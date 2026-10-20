@@ -1,0 +1,433 @@
+{
+  "schema_version": "1.0.0",
+  "results": [
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-B-CMB",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "TH",
+        "transit_countries": [
+          "LK"
+        ],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-01",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-B-DIR",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "TH",
+        "transit_countries": [],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-06",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-C-DIR",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "VN",
+        "transit_countries": [],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-03",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-C-SIN",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "VN",
+        "transit_countries": [
+          "SG"
+        ],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-02",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    }
+  ]
+}

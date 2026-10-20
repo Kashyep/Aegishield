@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "events": [
+    {
+      "disruption_id": "DIS-2026-0042",
+      "received_at": "2026-10-26T08:40:00+05:30",
+      "channel": "supplier_notice",
+      "source": {
+        "source_id": "SRC-NOTICE-0042",
+        "title": "Delay notice from Penang PowerTech logistics desk (synthetic)",
+        "authority": "contractual",
+        "uri": null,
+        "synthetic": true
+      },
+      "raw_text": "Dear Kaveri team, due to an unplanned shutdown at Zenith Wafer Fab (our die supplier's Kulim fab) on 24 Oct 2026, shipment SHP-A-0901 under PO-7001 (900 x PM-750) will depart Port Klang on 02 Nov 2026 instead of 26 Oct 2026, a delay of 7 days. We are invoking the force majeure clause of PO-7001. Regards, Penang PowerTech Logistics.",
+      "gold_extraction": {
+        "event_type": "supplier_delay",
+        "root_cause": {"kind": "facility_outage", "facility_alias": "Zenith Wafer Fab", "event_date": "2026-10-24"},
+        "affected_shipment_ids": ["SHP-A-0901"],
+        "affected_po_ids": ["PO-7001"],
+        "delay_days": 7,
+        "new_etd": "2026-11-02",
+        "force_majeure_invoked": true
+      }
+    }
+  ]
+}

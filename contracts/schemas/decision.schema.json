@@ -1,0 +1,649 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Human decisions, amendment requests, simulated execution and audit log",
+  "description": "Owner: Member 3. Reviewer: Member 5. Contract version 1.0.0. Mutating requests carry headers X-Actor-Id (simulated identity) and Idempotency-Key.",
+  "$defs": {
+    "Acknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "actor_id",
+        "note"
+      ],
+      "description": "Explicit human acceptance of one needs_review finding. The acknowledging actor's role must be listed in policies.approval_policy.acknowledgement_roles[finding.agent].",
+      "properties": {
+        "finding_id": {
+          "$ref": "common.schema.json#/$defs/FindingId"
+        },
+        "actor_id": {
+          "type": "string",
+          "pattern": "^USR-[A-Z]+$"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        }
+      }
+    },
+    "LcChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_tag",
+        "from",
+        "to"
+      ],
+      "properties": {
+        "field_tag": {
+          "type": "string",
+          "pattern": "^[0-9]{2}[A-Z]?$"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      }
+    },
+    "DecisionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "plan_version",
+        "plan_hash",
+        "justification",
+        "acknowledgements"
+      ],
+      "description": "approve: plan must be pending_approval, or needs_review with every needs_review finding acknowledged. Blocked plans can never be approved. reject: any undecided plan. request_amendment: blocked plan with at least one blocked LC.* finding; plan stays blocked and an AmendmentRequest is recorded.",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "reject",
+            "request_amendment"
+          ]
+        },
+        "plan_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "plan_hash": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "justification": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000,
+          "description": "Required (min 10 chars) for reject and request_amendment."
+        },
+        "acknowledgements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Acknowledgement"
+          }
+        },
+        "amendment": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lc_id",
+                "requested_changes"
+              ],
+              "properties": {
+                "lc_id": {
+                  "type": "string",
+                  "pattern": "^LC-[A-Z0-9-]+$"
+                },
+                "requested_changes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/LcChange"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "decision_id",
+        "plan_id",
+        "plan_version",
+        "plan_hash",
+        "action",
+        "actor",
+        "justification",
+        "acknowledgements",
+        "decided_at",
+        "resulting_plan_status",
+        "amendment_request_id",
+        "idempotency_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "decision_id": {
+          "$ref": "common.schema.json#/$defs/DecisionId"
+        },
+        "plan_id": {
+          "$ref": "common.schema.json#/$defs/PlanId"
+        },
+        "plan_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "plan_hash": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "reject",
+            "request_amendment"
+          ]
+        },
+        "actor": {
+          "$ref": "common.schema.json#/$defs/Actor"
+        },
+        "justification": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "acknowledgements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Acknowledgement"
+          }
+        },
+        "decided_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "resulting_plan_status": {
+          "$ref": "plan.schema.json#/$defs/PlanStatus"
+        },
+        "amendment_request_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/AmendmentRequestId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100
+        }
+      }
+    },
+    "AmendmentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "amendment_request_id",
+        "lc_id",
+        "lc_version",
+        "plan_id",
+        "plan_version",
+        "decision_id",
+        "requested_changes",
+        "status",
+        "fee_inr",
+        "created_at",
+        "simulated"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "amendment_request_id": {
+          "$ref": "common.schema.json#/$defs/AmendmentRequestId"
+        },
+        "lc_id": {
+          "type": "string"
+        },
+        "lc_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "plan_id": {
+          "$ref": "common.schema.json#/$defs/PlanId"
+        },
+        "plan_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision_id": {
+          "$ref": "common.schema.json#/$defs/DecisionId"
+        },
+        "requested_changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LcChange"
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "requested",
+            "simulated_accepted",
+            "withdrawn"
+          ]
+        },
+        "fee_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "created_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "simulated": {
+          "const": true
+        }
+      }
+    },
+    "ExecutionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id"
+      ],
+      "properties": {
+        "decision_id": {
+          "$ref": "common.schema.json#/$defs/DecisionId"
+        }
+      }
+    },
+    "ExecutionStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "step_type",
+        "refs",
+        "description",
+        "status",
+        "simulated",
+        "proposed_sap_mapping",
+        "error"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "step_type": {
+          "type": "string",
+          "enum": [
+            "REDUCE_PO",
+            "CREATE_PO",
+            "BOOK_FREIGHT",
+            "CREATE_STOCK_TRANSFER",
+            "RESERVE_STOCK",
+            "NOTIFY_CUSTOMER"
+          ]
+        },
+        "refs": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "succeeded",
+            "failed",
+            "skipped"
+          ]
+        },
+        "simulated": {
+          "const": true
+        },
+        "proposed_sap_mapping": {
+          "type": "string",
+          "description": "Where this step would land in an SAP landscape. A proposal, not an implemented integration."
+        },
+        "error": {
+          "$ref": "common.schema.json#/$defs/StepError"
+        }
+      }
+    },
+    "Execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "execution_id",
+        "plan_id",
+        "plan_version",
+        "decision_id",
+        "status",
+        "simulated",
+        "steps",
+        "started_at",
+        "finished_at",
+        "error"
+      ],
+      "description": "Steps run in order; the first failure stops the run, later steps become skipped, the plan becomes failed. No automatic retry and no automatic compensation.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "execution_id": {
+          "$ref": "common.schema.json#/$defs/ExecutionId"
+        },
+        "plan_id": {
+          "$ref": "common.schema.json#/$defs/PlanId"
+        },
+        "plan_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision_id": {
+          "$ref": "common.schema.json#/$defs/DecisionId"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed"
+          ]
+        },
+        "simulated": {
+          "const": true
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionStep"
+          }
+        },
+        "started_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "finished_at": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "$ref": "common.schema.json#/$defs/StepError"
+        }
+      }
+    },
+    "AuditEventType": {
+      "type": "string",
+      "enum": [
+        "DEMO_RESET",
+        "EVALUATION_REQUESTED",
+        "AGENT_STEP_SUCCEEDED",
+        "AGENT_STEP_DEGRADED",
+        "AGENT_STEP_FAILED",
+        "EVALUATION_COMPLETED",
+        "EVALUATION_FAILED",
+        "PLAN_CREATED",
+        "PLAN_SUPERSEDED",
+        "DECISION_RECORDED",
+        "DECISION_REFUSED",
+        "AMENDMENT_REQUESTED",
+        "AMENDMENT_SIMULATED_ACCEPTED",
+        "EXECUTION_REQUESTED",
+        "EXECUTION_REFUSED",
+        "EXECUTION_STEP_SUCCEEDED",
+        "EXECUTION_STEP_FAILED",
+        "EXECUTION_COMPLETED",
+        "EXECUTION_FAILED"
+      ]
+    },
+    "AuditEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "event_id",
+        "seq",
+        "occurred_at",
+        "actor",
+        "event_type",
+        "subject",
+        "payload",
+        "evidence_ids",
+        "prev_hash",
+        "event_hash"
+      ],
+      "description": "Append-only. event_hash = sha256 over canonical JSON of every field except event_hash. prev_hash of seq 1 is sha256: followed by 64 zeros. No API updates or deletes audit events; demo reset starts a new chain with a DEMO_RESET event.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "event_id": {
+          "$ref": "common.schema.json#/$defs/AuditEventId"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurred_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "actor": {
+          "$ref": "common.schema.json#/$defs/Actor"
+        },
+        "event_type": {
+          "$ref": "#/$defs/AuditEventType"
+        },
+        "subject": {
+          "$ref": "common.schema.json#/$defs/Subject"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Small, event-specific facts (status transitions, error codes, plan_hash, amounts). Never secrets.",
+          "additionalProperties": true
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/EvidenceId"
+          }
+        },
+        "prev_hash": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "event_hash": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        }
+      }
+    },
+    "AuditEventPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events",
+        "next_after_seq"
+      ],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditEvent"
+          }
+        },
+        "next_after_seq": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "AuditVerifyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid",
+        "checked_events",
+        "first_invalid_seq"
+      ],
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "checked_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_invalid_seq": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "ApprovalFlowScript": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "description",
+        "preconditions",
+        "steps"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "description": {
+          "type": "string"
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "seq",
+              "title",
+              "request",
+              "expect"
+            ],
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "title": {
+                "type": "string"
+              },
+              "request": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method",
+                  "path",
+                  "headers",
+                  "body"
+                ],
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "GET",
+                      "POST"
+                    ]
+                  },
+                  "path": {
+                    "type": "string",
+                    "pattern": "^/api/v1/"
+                  },
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "body": {
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "expect": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "error_code",
+                  "assertions"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "integer"
+                  },
+                  "error_code": {
+                    "oneOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/ErrorCode"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "assertions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

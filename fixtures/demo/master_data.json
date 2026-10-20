@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "locations": [
+    {"location_id": "INMAA", "kind": "seaport", "name": "Chennai", "country": "IN"},
+    {"location_id": "MYPKG", "kind": "seaport", "name": "Port Klang", "country": "MY"},
+    {"location_id": "THLCH", "kind": "seaport", "name": "Laem Chabang", "country": "TH"},
+    {"location_id": "VNSGN", "kind": "seaport", "name": "Ho Chi Minh City", "country": "VN"},
+    {"location_id": "SGSIN", "kind": "seaport", "name": "Singapore", "country": "SG"},
+    {"location_id": "LKCMB", "kind": "seaport", "name": "Colombo", "country": "LK"},
+    {"location_id": "LOC-KAV-BLR", "kind": "plant", "name": "Kaveri Bengaluru plant (synthetic)", "country": "IN"},
+    {"location_id": "LOC-KAV-PNQ", "kind": "distribution_center", "name": "Kaveri Pune DC (synthetic)", "country": "IN"}
+  ],
+  "agreements": [
+    {
+      "agreement_id": "AIFTA",
+      "name": "ASEAN-India Trade in Goods Agreement (AIFTA)",
+      "parties": ["IN", "BN", "KH", "ID", "LA", "MY", "MM", "PH", "SG", "TH", "VN"],
+      "verification_status": "secondary_source_only",
+      "verification_note": "Party list must be re-verified against an official source before it is stated in the pitch (owner: Member 5, research: Member 1)."
+    }
+  ],
+  "parts": [
+    {
+      "part_id": "PRT-PM750",
+      "name": "PM-750 IGBT power module (synthetic part)",
+      "hs_code": "HS-SYN-8504.90",
+      "hs_code_note": "Illustrative label only. Not a tariff classification.",
+      "unit": "EA",
+      "bom": [
+        {"child_part_id": "PRT-IGBT-DIE", "qty_per": 6, "critical": true},
+        {"child_part_id": "PRT-DBC-SUB", "qty_per": 1, "critical": true}
+      ]
+    },
+    {"part_id": "PRT-IGBT-DIE", "name": "IGBT semiconductor die (synthetic part)", "hs_code": null, "hs_code_note": null, "unit": "EA", "bom": []},
+    {"part_id": "PRT-DBC-SUB", "name": "Direct-bonded copper ceramic substrate (synthetic part)", "hs_code": null, "hs_code_note": null, "unit": "EA", "bom": []}
+  ],
+  "customers": [
+    {"customer_id": "CUS-NRC", "name": "Nilgiri Rail Components (synthetic)", "segment": "rail"},
+    {"customer_id": "CUS-DWU", "name": "Deccan Water Utilities (synthetic)", "segment": "water_utility"},
+    {"customer_id": "CUS-KCL", "name": "Konkan Cold Chain Logistics (synthetic)", "segment": "cold_chain"}
+  ],
+  "suppliers": [
+    {"supplier_id": "SUP-A", "name": "Penang PowerTech Sdn Bhd (synthetic)", "country": "MY", "supplying_facility_id": "FAC-A-PEN", "origin_port_id": "MYPKG", "relationship": "primary"},
+    {"supplier_id": "SUP-B", "name": "Chao Phraya Power Devices Co (synthetic)", "country": "TH", "supplying_facility_id": "FAC-B-CHB", "origin_port_id": "THLCH", "relationship": "alternate_candidate"},
+    {"supplier_id": "SUP-C", "name": "Saigon Precision Electronics JSC (synthetic)", "country": "VN", "supplying_facility_id": "FAC-C-BDG", "origin_port_id": "VNSGN", "relationship": "approved_alternate"}
+  ]
+}

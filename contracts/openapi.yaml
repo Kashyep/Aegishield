@@ -1,0 +1,581 @@
+openapi: 3.1.0
+info:
+  title: AegisShield AI prototype API
+  version: 1.0.0
+  summary: Supply-chain recovery preflight with supplier-dependency GraphRAG, temporal trade-rule retrieval, deterministic LC/FTA checks and human approval.
+  description: |
+    Contract owner: Member 3 (backend). Reviewer: Member 2 (frontend consumer). Final decision on breaking changes: Member 5.
+
+    Conventions (see docs/00-source-of-truth.md section 7):
+    - All data is SYNTHETIC. Every response that carries business data includes data_mode "synthetic" or synthetic flags.
+    - Money is whole Indian rupees (integer). Dates are YYYY-MM-DD in Asia/Kolkata business terms; timestamps are RFC 3339 with offset.
+    - Mutating requests require header X-Actor-Id (simulated identity from GET /api/v1/scenario actors) and Idempotency-Key.
+      Replaying the same key with the same body returns the original result with status 200 and header Idempotent-Replay: true.
+      Reusing a key with a different body returns 409 IDEMPOTENCY_KEY_REUSED.
+    - Errors use RFC 9457 application/problem+json with a stable code field.
+    - Evaluations and executions are asynchronous: POST returns 202, clients poll GET every 500 ms. Server-side budget per evaluation is 30 s (target, not measured).
+    - Nothing touches a real external system. Execution is simulated and every execution step says so.
+  license:
+    name: Hackathon prototype, all rights reserved by the team
+servers:
+  - url: http://localhost:8000
+    description: Local demo laptop (default)
+tags:
+  - name: system
+  - name: scenario
+  - name: evaluation
+  - name: decisions
+  - name: execution
+  - name: audit
+  - name: rules
+paths:
+  /api/v1/health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Service status, data mode and LLM mode
+      responses:
+        '200':
+          description: Service is up. status degraded means the configured LLM mode is unavailable and templates are in use.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Health'}
+              examples:
+                ok:
+                  value:
+                    status: ok
+                    api_version: v1
+                    contract_version: 1.0.0
+                    data_mode: synthetic
+                    llm_mode: 'off'
+                    demo_mode: true
+                    scenario_id: SCN-DEMO-001
+                    input_snapshot_id: sha256:d52c7ecc366a66470bd9e04cf43d4f913d31b729c5f2bf1ce3932622b9f3d6c0
+  /api/v1/demo/reset:
+    post:
+      tags: [system]
+      operationId: resetDemo
+      summary: Restore fixtures, clear evaluations, decisions, executions and audit log, and restart id counters
+      description: Only available when AEGIS_DEMO_MODE=1. Writes a DEMO_RESET audit event as seq 1 of a new chain. Takes no body.
+      parameters:
+        - $ref: '#/components/parameters/XActorId'
+      responses:
+        '200':
+          description: Reset complete
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DemoResetResponse'}
+              examples:
+                reset:
+                  value:
+                    scenario_id: SCN-DEMO-001
+                    input_snapshot_id: sha256:d52c7ecc366a66470bd9e04cf43d4f913d31b729c5f2bf1ce3932622b9f3d6c0
+                    reset_at: '2026-11-04T10:00:00+05:30'
+                    counters_reset: true
+                    audit_event_id: AUD-000001
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/scenario:
+    get:
+      tags: [scenario]
+      operationId: getScenario
+      summary: Scenario header, orders, purchase orders, shipments, suppliers, inventory, letters of credit and demo actors
+      responses:
+        '200':
+          description: Scenario snapshot
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScenarioResponse'}
+  /api/v1/disruptions:
+    get:
+      tags: [scenario]
+      operationId: listDisruptions
+      summary: Disruption events available to evaluate
+      responses:
+        '200':
+          description: Events
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DisruptionList'}
+  /api/v1/disruptions/{disruption_id}:
+    get:
+      tags: [scenario]
+      operationId: getDisruption
+      parameters:
+        - name: disruption_id
+          in: path
+          required: true
+          schema: {type: string, pattern: '^DIS-[0-9]{4}-[0-9]{4}$'}
+      responses:
+        '200':
+          description: Event with raw text and gold extraction
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DisruptionEvent'}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/evaluations:
+    post:
+      tags: [evaluation]
+      operationId: createEvaluation
+      summary: Run the five agents, build plans P1 and P2, and compute financials
+      description: |
+        Starts an asynchronous evaluation. Any undecided plan (blocked, needs_review, pending_approval) from an earlier
+        evaluation of the same disruption becomes superseded. Only one running evaluation per disruption is allowed.
+      parameters:
+        - $ref: '#/components/parameters/XActorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/EvaluationCreateRequest'}
+            examples:
+              demo:
+                value: {disruption_id: DIS-2026-0042}
+      responses:
+        '202':
+          description: Accepted. Poll poll_url.
+          headers:
+            Location: {schema: {type: string}, description: Same as poll_url}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EvaluationAccepted'}
+              examples:
+                accepted:
+                  value: {evaluation_id: EVAL-0001, status: queued, poll_url: /api/v1/evaluations/EVAL-0001, superseded_plan_ids: []}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/v1/evaluations/{evaluation_id}:
+    get:
+      tags: [evaluation]
+      operationId: getEvaluation
+      summary: Evaluation progress and, when completed, all results
+      parameters:
+        - $ref: '#/components/parameters/EvaluationId'
+      responses:
+        '200':
+          description: Evaluation. Golden example equals fixtures/expected/evaluation_EVAL-0001.json.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Evaluation'}
+              examples:
+                golden:
+                  externalValue: ../fixtures/expected/evaluation_EVAL-0001.json
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/evaluations/{evaluation_id}/graph:
+    get:
+      tags: [evaluation]
+      operationId: getEvaluationGraph
+      summary: Cytoscape-ready supplier graph with evidence paths for one candidate supplier
+      parameters:
+        - $ref: '#/components/parameters/EvaluationId'
+        - name: focus_supplier_id
+          in: query
+          required: true
+          schema: {type: string, pattern: '^SUP-[A-Z0-9]+$'}
+      responses:
+        '200':
+          description: Graph view
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GraphView'}
+              examples:
+                supB:
+                  externalValue: ../fixtures/expected/graph_view_SUP-B.json
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/plans/{plan_id}:
+    get:
+      tags: [decisions]
+      operationId: getPlan
+      summary: Current plan version, status, decision ids and execution id
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '200':
+          description: Plan
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RecoveryPlan'}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/plans/{plan_id}/decisions:
+    post:
+      tags: [decisions]
+      operationId: decidePlan
+      summary: Approve, reject or request an LC amendment for one plan version
+      description: |
+        Validation order (first failure wins): actor present and not viewer (400/403) -> idempotency replay (200) or key reuse (409) ->
+        plan exists (404) -> plan superseded (409 PLAN_SUPERSEDED) -> plan_version and plan_hash match (409 PLAN_VERSION_STALE) ->
+        plan already decided (409 DECISION_EXISTS) -> action rules:
+        approve: role in approver_roles (403); plan blocked (422 PLAN_BLOCKED); every needs_review finding acknowledged (422 ACKNOWLEDGEMENT_REQUIRED)
+        by an actor whose role may acknowledge that agent's findings (403 ROLE_FORBIDDEN).
+        reject: role in reject_roles; justification required.
+        request_amendment: role trade_compliance_officer; plan must contain a blocked LC.* finding (422 NO_AMENDABLE_FINDING); plan stays blocked.
+        Every refusal is written to the audit log as DECISION_REFUSED.
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+        - $ref: '#/components/parameters/XActorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecisionRequest'}
+            examples:
+              approveP2:
+                value:
+                  action: approve
+                  plan_version: 1
+                  plan_hash: sha256:3324f97f2eb3e8bc5c9f759e50d99488656e70a8ec194faea6848df207b0adf0
+                  justification: Independent supplier, direct route, all checks passed.
+                  acknowledgements: []
+              requestAmendmentP1:
+                value:
+                  action: request_amendment
+                  plan_version: 1
+                  plan_hash: sha256:e51b38ab2d777e233666de107d9871bc88c42bf59cf39f31891d6ff12927f6f2
+                  justification: Ask the bank to allow transhipment via Singapore for the Saigon shipment.
+                  acknowledgements: []
+                  amendment:
+                    lc_id: LC-SYN-0117
+                    requested_changes:
+                      - {field_tag: 43T, from: NOT ALLOWED, to: ALLOWED}
+                      - {field_tag: 47A, from: UCP 600 SUB-ARTICLE 20(C) IS EXCLUDED., to: (deleted)}
+      responses:
+        '201':
+          description: Decision recorded
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Decision'}
+              examples:
+                approved:
+                  value:
+                    schema_version: 1.0.0
+                    decision_id: DEC-0001
+                    plan_id: PLN-0002
+                    plan_version: 1
+                    plan_hash: sha256:3324f97f2eb3e8bc5c9f759e50d99488656e70a8ec194faea6848df207b0adf0
+                    action: approve
+                    actor: {actor_id: USR-PRIYA, role: supply_planner, kind: human, display_name: 'Priya R. (Supply Planner, synthetic)'}
+                    justification: Independent supplier, direct route, all checks passed.
+                    acknowledgements: []
+                    decided_at: '2026-11-04T10:02:10+05:30'
+                    resulting_plan_status: approved
+                    amendment_request_id: null
+                    idempotency_key: dec-p2-approve-01
+        '200':
+          description: Idempotent replay of an earlier identical request (header Idempotent-Replay true)
+          headers:
+            Idempotent-Replay: {schema: {type: string, enum: ['true']}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Decision'}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/v1/plans/{plan_id}/executions:
+    post:
+      tags: [execution]
+      operationId: executePlan
+      summary: Start simulated execution of an approved plan
+      description: |
+        Requires plan status approved, the approving decision_id, and that the current input snapshot still equals
+        plan.input_snapshot_id (otherwise 409 PLAN_VERSION_STALE: inputs changed after approval, re-evaluate).
+        Execution runs once per plan version.
+        Steps are generated deterministically from plan lines in this order: REDUCE_PO, CREATE_PO (per quote), BOOK_FREIGHT (per route),
+        CREATE_STOCK_TRANSFER (per inventory source with transfer_days > 0), RESERVE_STOCK (per plant inventory source and order),
+        NOTIFY_CUSTOMER (per order with late units). The first failed step stops the run; there is no automatic retry or compensation.
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+        - $ref: '#/components/parameters/XActorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ExecutionRequest'}
+            examples:
+              p2: {value: {decision_id: DEC-0001}}
+      responses:
+        '202':
+          description: Execution accepted. A replay with the same Idempotency-Key and body returns the original body with header Idempotent-Replay true.
+          headers:
+            Idempotent-Replay: {schema: {type: string, enum: ['true']}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Execution'}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/executions/{execution_id}:
+    get:
+      tags: [execution]
+      operationId: getExecution
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema: {type: string, pattern: '^EXE-[0-9]{4}$'}
+      responses:
+        '200':
+          description: Execution state
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Execution'}
+              examples:
+                completed:
+                  value:
+                    schema_version: 1.0.0
+                    execution_id: EXE-0001
+                    plan_id: PLN-0002
+                    plan_version: 1
+                    decision_id: DEC-0001
+                    status: completed
+                    simulated: true
+                    started_at: '2026-11-04T10:02:30+05:30'
+                    finished_at: '2026-11-04T10:02:33+05:30'
+                    error: null
+                    steps:
+                      - {seq: 1, step_type: REDUCE_PO, refs: {po_id: PO-7001, from_qty: 900, to_qty: 300}, description: Reduce delayed PO-7001 from 900 to 300 units under its force-majeure clause (simulated), status: succeeded, simulated: true, proposed_sap_mapping: S/4HANA purchase order change, error: null}
+                      - {seq: 2, step_type: CREATE_PO, refs: {supplier_id: SUP-C, quote_id: QT-C-01, qty: 600, unit_price_inr: 6600, lc_id: LC-SYN-0117, lc_drawing_inr: 3960000}, description: Create PO for 600 PM-750 from Saigon Precision Electronics under LC-SYN-0117 (simulated), status: succeeded, simulated: true, proposed_sap_mapping: S/4HANA purchase order with SAP Global Trade Services documentary credit reference, error: null}
+                      - {seq: 3, step_type: BOOK_FREIGHT, refs: {route_option_id: RT-C-DIR, qty: 600}, description: Book direct sailing VNSGN to INMAA ETD 2026-10-29 (simulated), status: succeeded, simulated: true, proposed_sap_mapping: SAP Transportation Management freight order, error: null}
+                      - {seq: 4, step_type: CREATE_STOCK_TRANSFER, refs: {inventory_source_id: INV-PNQ, to_location_id: LOC-KAV-BLR, qty: 150}, description: Transfer 150 units Pune DC to Bengaluru plant (simulated), status: succeeded, simulated: true, proposed_sap_mapping: S/4HANA stock transport order, error: null}
+                      - {seq: 5, step_type: RESERVE_STOCK, refs: {inventory_source_id: INV-BLR, order_id: SO-1001, qty: 150}, description: Reserve 150 plant units for SO-1001 (simulated), status: succeeded, simulated: true, proposed_sap_mapping: S/4HANA reservation, error: null}
+                      - {seq: 6, step_type: NOTIFY_CUSTOMER, refs: {order_id: SO-1001, qty_late: 100, days_late: 2}, description: 'Draft notice to Nilgiri Rail Components that 100 units arrive 2 days late (simulated, not sent)', status: succeeded, simulated: true, proposed_sap_mapping: S/4HANA sales order delivery date update, error: null}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/amendment-requests/{amendment_request_id}:
+    get:
+      tags: [decisions]
+      operationId: getAmendmentRequest
+      parameters:
+        - name: amendment_request_id
+          in: path
+          required: true
+          schema: {type: string, pattern: '^AMD-[0-9]{4}$'}
+      responses:
+        '200':
+          description: Amendment request
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AmendmentRequest'}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/demo/amendment-requests/{amendment_request_id}/simulate-acceptance:
+    post:
+      tags: [system]
+      operationId: simulateAmendmentAcceptance
+      summary: 'Stretch (P2): pretend the bank and beneficiary accepted the amendment'
+      description: Increments the LC version and applies the requested changes in demo state. Does not re-evaluate; the client must POST /api/v1/evaluations again, which supersedes undecided plans.
+      parameters:
+        - name: amendment_request_id
+          in: path
+          required: true
+          schema: {type: string, pattern: '^AMD-[0-9]{4}$'}
+        - $ref: '#/components/parameters/XActorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Amendment marked simulated_accepted
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AmendmentRequest'}
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/audit-events:
+    get:
+      tags: [audit]
+      operationId: listAuditEvents
+      parameters:
+        - name: after_seq
+          in: query
+          schema: {type: integer, minimum: 0, default: 0}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+        - name: subject_id
+          in: query
+          schema: {type: string}
+      responses:
+        '200':
+          description: Events ordered by seq ascending
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuditEventPage'}
+              examples:
+                firstPage:
+                  value:
+                    next_after_seq: null
+                    events:
+                      - schema_version: 1.0.0
+                        event_id: AUD-000001
+                        seq: 1
+                        occurred_at: '2026-11-04T10:00:00+05:30'
+                        actor: {actor_id: USR-PRIYA, role: supply_planner, kind: human, display_name: null}
+                        event_type: DEMO_RESET
+                        subject: {type: scenario, id: SCN-DEMO-001, version: null}
+                        payload: {input_snapshot_id: 'sha256:d52c7ecc366a66470bd9e04cf43d4f913d31b729c5f2bf1ce3932622b9f3d6c0'}
+                        evidence_ids: []
+                        prev_hash: sha256:0000000000000000000000000000000000000000000000000000000000000000
+                        event_hash: sha256:7f3a3c4b6a0d2e8f9b1c5d7e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a
+  /api/v1/audit-events/verify:
+    get:
+      tags: [audit]
+      operationId: verifyAuditChain
+      summary: Recompute every event_hash and prev_hash link
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuditVerifyResult'}
+              examples:
+                valid: {value: {valid: true, checked_events: 26, first_invalid_seq: null}}
+  /api/v1/rules/applicability:
+    post:
+      tags: [rules]
+      operationId: queryRuleApplicability
+      summary: Which trade rules apply for a jurisdiction, HS label, origin and date (evidence panel and tests)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RuleQuery'}
+            examples:
+              dayBeforeHike:
+                value:
+                  query_id: RQ-VC-RULE-01
+                  jurisdiction: IN
+                  rule_types: [tariff_mfn]
+                  hs_code: HS-SYN-8504.90
+                  origin_country: VN
+                  transit_countries: []
+                  agreement_id: AIFTA
+                  applicable_on: '2026-10-31'
+                  known_as_of: '2026-10-26'
+      responses:
+        '200':
+          description: Applicability result
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RuleApplicabilityResult'}
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+components:
+  parameters:
+    XActorId:
+      name: X-Actor-Id
+      in: header
+      required: true
+      description: Simulated identity (USR-PRIYA, USR-ARJUN, USR-VIEW). Not authentication.
+      schema: {type: string, pattern: '^USR-[A-Z]+$'}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 8, maxLength: 100}
+    EvaluationId:
+      name: evaluation_id
+      in: path
+      required: true
+      schema: {type: string, pattern: '^EVAL-[0-9]{4}$'}
+    PlanId:
+      name: plan_id
+      in: path
+      required: true
+      schema: {type: string, pattern: '^PLN-[0-9]{4}$'}
+  responses:
+    BadRequest:
+      description: Missing X-Actor-Id or Idempotency-Key, or malformed JSON
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          examples:
+            actorRequired:
+              value: {type: 'https://aegisshield.local/problems/actor-required', title: Actor required, status: 400, code: ACTOR_REQUIRED, detail: Send X-Actor-Id with a demo actor id., instance: /api/v1/plans/PLN-0002/decisions}
+    Forbidden:
+      description: Role not permitted, or demo mode disabled
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          examples:
+            roleForbidden:
+              value: {type: 'https://aegisshield.local/problems/role-forbidden', title: Role not permitted, status: 403, code: ROLE_FORBIDDEN, detail: Findings from agent trade_compliance can only be acknowledged by trade_compliance_officer., instance: /api/v1/plans/PLN-0002/decisions}
+    NotFound:
+      description: Unknown id
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          examples:
+            notFound:
+              value: {type: 'https://aegisshield.local/problems/not-found', title: Not found, status: 404, code: NOT_FOUND, detail: Plan PLN-0009 does not exist., instance: /api/v1/plans/PLN-0009}
+    Conflict:
+      description: State conflict. current carries the latest version, hash and status where relevant.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          examples:
+            stale:
+              value: {type: 'https://aegisshield.local/problems/plan-version-stale', title: Plan changed, status: 409, code: PLAN_VERSION_STALE, detail: The plan hash you approved is not the current one. Refresh and review again., instance: /api/v1/plans/PLN-0002/decisions, current: {plan_version: 1, plan_hash: 'sha256:3324f97f2eb3e8bc5c9f759e50d99488656e70a8ec194faea6848df207b0adf0', status: pending_approval}}
+            decisionExists:
+              value: {type: 'https://aegisshield.local/problems/decision-exists', title: Already decided, status: 409, code: DECISION_EXISTS, detail: PLN-0002 was already approved by DEC-0001., instance: /api/v1/plans/PLN-0002/decisions, current: {status: approved}}
+            notApproved:
+              value: {type: 'https://aegisshield.local/problems/not-approved', title: Not approved, status: 409, code: NOT_APPROVED, detail: Only approved plans can be executed., instance: /api/v1/plans/PLN-0001/executions, current: {status: blocked}}
+            alreadyExecuted:
+              value: {type: 'https://aegisshield.local/problems/already-executed', title: Already executed, status: 409, code: ALREADY_EXECUTED, detail: PLN-0002 version 1 was executed by EXE-0001., instance: /api/v1/plans/PLN-0002/executions, current: {status: completed}}
+            superseded:
+              value: {type: 'https://aegisshield.local/problems/plan-superseded', title: Plan superseded, status: 409, code: PLAN_SUPERSEDED, detail: A newer evaluation replaced this plan., instance: /api/v1/plans/PLN-0002/decisions, current: {status: superseded}}
+    Unprocessable:
+      description: Request is well-formed but violates a rule
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+          examples:
+            planBlocked:
+              value: {type: 'https://aegisshield.local/problems/plan-blocked', title: Plan is blocked, status: 422, code: PLAN_BLOCKED, detail: 'PLN-0001 has blocked findings FND-DEP-SUP-B and FND-LC-TRANSHIPMENT-RT-C-SIN. Blocked plans cannot be approved; request an LC amendment or choose another plan.', instance: /api/v1/plans/PLN-0001/decisions}
+            ackRequired:
+              value: {type: 'https://aegisshield.local/problems/acknowledgement-required', title: Acknowledgement required, status: 422, code: ACKNOWLEDGEMENT_REQUIRED, detail: Acknowledge every needs_review finding before approving., instance: /api/v1/plans/PLN-0003/decisions, errors: [{path: acknowledgements, message: 'missing FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-DIR'}]}
+  schemas:
+    Problem: {$ref: './schemas/common.schema.json#/$defs/Problem'}
+    Health: {$ref: './schemas/api.schema.json#/$defs/Health'}
+    DemoResetResponse: {$ref: './schemas/api.schema.json#/$defs/DemoResetResponse'}
+    ScenarioResponse: {$ref: './schemas/api.schema.json#/$defs/ScenarioResponse'}
+    DisruptionList: {$ref: './schemas/api.schema.json#/$defs/DisruptionList'}
+    DisruptionEvent: {$ref: './schemas/disruption.schema.json#/$defs/DisruptionEvent'}
+    EvaluationCreateRequest: {$ref: './schemas/plan.schema.json#/$defs/EvaluationCreateRequest'}
+    EvaluationAccepted: {$ref: './schemas/plan.schema.json#/$defs/EvaluationAccepted'}
+    Evaluation: {$ref: './schemas/plan.schema.json#/$defs/Evaluation'}
+    RecoveryPlan: {$ref: './schemas/plan.schema.json#/$defs/RecoveryPlan'}
+    GraphView: {$ref: './schemas/graph.schema.json#/$defs/GraphView'}
+    DecisionRequest: {$ref: './schemas/decision.schema.json#/$defs/DecisionRequest'}
+    Decision: {$ref: './schemas/decision.schema.json#/$defs/Decision'}
+    AmendmentRequest: {$ref: './schemas/decision.schema.json#/$defs/AmendmentRequest'}
+    ExecutionRequest: {$ref: './schemas/decision.schema.json#/$defs/ExecutionRequest'}
+    Execution: {$ref: './schemas/decision.schema.json#/$defs/Execution'}
+    AuditEventPage: {$ref: './schemas/decision.schema.json#/$defs/AuditEventPage'}
+    AuditVerifyResult: {$ref: './schemas/decision.schema.json#/$defs/AuditVerifyResult'}
+    RuleQuery: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleQuery'}
+    RuleApplicabilityResult: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleApplicabilityResult'}

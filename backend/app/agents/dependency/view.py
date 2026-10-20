@@ -57,3 +57,24 @@ def build_graph_view(results: list[dict], graph: SupplyGraph, focus_supplier_id:
             "edge_direction": "provider_to_consumer", "nodes": nodes,
             "edges": [edges[k] for k in sorted(edges)], "paths": paths,
             "text_alternative": [p["linearized"] for r in focus for p in r["paths"]]}
+
+
+class GraphViewError(Exception):
+    def __init__(self, status: int, code: str, detail: str):
+        super().__init__(detail)
+        self.status, self.code, self.detail = status, code, detail
+
+
+def graph_view_for_evaluation(evaluation: dict | None, graph: SupplyGraph, focus_supplier_id: str) -> dict:
+    """Endpoint support for GET /evaluations/{id}/graph?focus_supplier_id= (M4-D8).
+
+    404 unknown evaluation or supplier not evaluated; 409 EVALUATION_NOT_COMPLETE.
+    """
+    if evaluation is None:
+        raise GraphViewError(404, "EVALUATION_NOT_FOUND", "evaluation not found")
+    if evaluation.get("status") != "completed":
+        raise GraphViewError(409, "EVALUATION_NOT_COMPLETE", "evaluation is not complete")
+    results = evaluation["dependency_results"]
+    if focus_supplier_id not in {r["supplier_id"] for r in results}:
+        raise GraphViewError(404, "SUPPLIER_NOT_EVALUATED", f"{focus_supplier_id} has no dependency result")
+    return build_graph_view(results, graph, focus_supplier_id, evaluation["evaluation_id"])

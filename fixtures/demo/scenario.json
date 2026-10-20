@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "notice": "SYNTHETIC DEMO DATA. All companies, people, prices, penalties, tariff rates, schedules, letters of credit and outcomes in this dataset are fictional and exist only to demonstrate AegisShield AI. Real port codes are used as location labels only.",
+  "title": "Kulim die-fab outage delays PM-750 power modules for three customer orders",
+  "currency": "INR",
+  "money_unit": "whole_rupees",
+  "timezone": "Asia/Kolkata",
+  "as_of": "2026-10-26T09:00:00+05:30",
+  "buyer": {
+    "org_id": "ORG-KAVERI",
+    "name": "Kaveri Motion Systems Pvt Ltd (synthetic)",
+    "country": "IN",
+    "plant_location_id": "LOC-KAV-BLR"
+  },
+  "import_jurisdiction": "IN",
+  "primary_disruption_id": "DIS-2026-0042",
+  "id_counters_start": {
+    "EVAL": 1,
+    "PLN": 1,
+    "DEC": 1,
+    "EXE": 1,
+    "AMD": 1,
+    "AUD": 1
+  }
+}

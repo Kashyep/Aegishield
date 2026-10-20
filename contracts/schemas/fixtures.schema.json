@@ -1,0 +1,479 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fixture file wrappers",
+  "description": "Shapes of the files in fixtures/demo and fixtures/validation. Owner: Member 3. Reviewer: Member 5. Contract version 1.0.0.",
+  "$defs": {
+    "FileHeader": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "dataset_id",
+        "synthetic"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "dataset_id": {
+          "type": "string",
+          "pattern": "^SCN-[A-Z0-9-]+$"
+        },
+        "synthetic": {
+          "const": true
+        }
+      }
+    },
+    "ScenarioFile": {
+      "$ref": "master-data.schema.json#/$defs/Scenario"
+    },
+    "MasterDataFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "locations",
+        "agreements",
+        "parts",
+        "customers",
+        "suppliers"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Location"
+          }
+        },
+        "agreements": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Agreement"
+          }
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Part"
+          }
+        },
+        "customers": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Customer"
+          }
+        },
+        "suppliers": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Supplier"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "OrdersFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "customer_orders",
+        "purchase_orders",
+        "shipments"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "customer_orders": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/CustomerOrder"
+          }
+        },
+        "purchase_orders": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/PurchaseOrder"
+          }
+        },
+        "shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Shipment"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "DisruptionsFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "disruption.schema.json#/$defs/DisruptionEvent"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SupplierQuotesFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "baseline_unit_price",
+        "quotes"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "baseline_unit_price": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "part_id",
+            "unit_price_inr",
+            "basis"
+          ],
+          "properties": {
+            "part_id": {
+              "$ref": "common.schema.json#/$defs/PartId"
+            },
+            "unit_price_inr": {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            },
+            "basis": {
+              "type": "string"
+            }
+          }
+        },
+        "quotes": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/SupplierQuote"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "RouteOptionsFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "port_to_plant_days",
+        "port_to_plant_basis",
+        "route_options"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "port_to_plant_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "port_to_plant_basis": {
+          "type": "string"
+        },
+        "route_options": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/RouteOption"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "InventoryFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "positions"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "positions": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/InventoryPosition"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "LettersOfCreditFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "field_tag_reference",
+        "letters_of_credit"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "field_tag_reference": {
+          "type": "string"
+        },
+        "letters_of_credit": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/LetterOfCredit"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "PoliciesFile": {
+      "$ref": "master-data.schema.json#/$defs/Policies"
+    },
+    "SourcesFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "note",
+        "sources"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "note": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Source"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "collection",
+        "op"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "enum": [
+            "disruptions",
+            "inventory",
+            "letters_of_credit",
+            "master_data",
+            "orders",
+            "policies",
+            "route_options",
+            "scenario",
+            "sources",
+            "supplier_quotes",
+            "supply_graph",
+            "trade_rules"
+          ]
+        },
+        "collection": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "append",
+            "set",
+            "remove"
+          ]
+        },
+        "match": {
+          "type": "object"
+        },
+        "value": {},
+        "set": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "append"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "set"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "match",
+              "set"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "remove"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "match"
+            ]
+          }
+        }
+      ]
+    },
+    "ValidationCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "title",
+        "module",
+        "owner",
+        "priority",
+        "oracle",
+        "patches",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^VC-[A-Z]+-[0-9]{2}$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string",
+          "enum": [
+            "disruption_sensing",
+            "supplier_dependency",
+            "temporal_rules",
+            "trade_compliance",
+            "inventory_rebalancing",
+            "plan_builder",
+            "approvals",
+            "llm_gateway"
+          ]
+        },
+        "owner": {
+          "$ref": "common.schema.json#/$defs/Owner"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "P0",
+            "P1",
+            "P2"
+          ]
+        },
+        "oracle": {
+          "type": "boolean"
+        },
+        "patches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Patch"
+          }
+        },
+        "input": {
+          "type": "object",
+          "required": [
+            "kind"
+          ]
+        },
+        "expected": {
+          "type": "object"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "ValidationCasesFile": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FileHeader"
+        }
+      ],
+      "required": [
+        "how_to_read",
+        "patch_format",
+        "cases"
+      ],
+      "properties": {
+        "schema_version": true,
+        "dataset_id": true,
+        "synthetic": true,
+        "how_to_read": {
+          "type": "string"
+        },
+        "patch_format": {
+          "type": "string"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidationCase"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

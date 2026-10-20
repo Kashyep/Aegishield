@@ -1,0 +1,1276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AegisShield enterprise master data (synthetic ERP)",
+  "description": "Entities loaded from fixtures/demo. Owner: Member 3. Reviewers: Member 4 (suppliers, parts, routes), Member 5 (letters of credit). Contract version 1.0.0.",
+  "$defs": {
+    "Scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "dataset_id",
+        "synthetic",
+        "notice",
+        "title",
+        "currency",
+        "money_unit",
+        "timezone",
+        "as_of",
+        "buyer",
+        "import_jurisdiction",
+        "primary_disruption_id",
+        "id_counters_start"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "dataset_id": {
+          "type": "string",
+          "pattern": "^SCN-[A-Z0-9-]+$"
+        },
+        "synthetic": {
+          "const": true
+        },
+        "notice": {
+          "type": "string",
+          "minLength": 20
+        },
+        "title": {
+          "type": "string"
+        },
+        "currency": {
+          "const": "INR"
+        },
+        "money_unit": {
+          "const": "whole_rupees"
+        },
+        "timezone": {
+          "const": "Asia/Kolkata"
+        },
+        "as_of": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "buyer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "org_id",
+            "name",
+            "country",
+            "plant_location_id"
+          ],
+          "properties": {
+            "org_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "country": {
+              "$ref": "common.schema.json#/$defs/CountryCode"
+            },
+            "plant_location_id": {
+              "$ref": "common.schema.json#/$defs/LocationId"
+            }
+          }
+        },
+        "import_jurisdiction": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        },
+        "primary_disruption_id": {
+          "type": "string",
+          "pattern": "^DIS-[0-9]{4}-[0-9]{4}$"
+        },
+        "id_counters_start": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "Location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location_id",
+        "kind",
+        "name",
+        "country"
+      ],
+      "properties": {
+        "location_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "seaport",
+            "airport",
+            "plant",
+            "distribution_center"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "country": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        }
+      }
+    },
+    "Agreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agreement_id",
+        "name",
+        "parties",
+        "verification_status",
+        "verification_note"
+      ],
+      "properties": {
+        "agreement_id": {
+          "type": "string",
+          "pattern": "^[A-Z]+$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parties": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "common.schema.json#/$defs/CountryCode"
+          },
+          "uniqueItems": true
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "verified_primary",
+            "secondary_source_only",
+            "unverified"
+          ]
+        },
+        "verification_note": {
+          "type": "string"
+        }
+      }
+    },
+    "Part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "part_id",
+        "name",
+        "hs_code",
+        "hs_code_note",
+        "unit",
+        "bom"
+      ],
+      "properties": {
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "hs_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Synthetic HS label used only for rule matching."
+        },
+        "hs_code_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "EA"
+          ]
+        },
+        "bom": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "child_part_id",
+              "qty_per",
+              "critical"
+            ],
+            "properties": {
+              "child_part_id": {
+                "$ref": "common.schema.json#/$defs/PartId"
+              },
+              "qty_per": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "critical": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Customer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "customer_id",
+        "name",
+        "segment"
+      ],
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "pattern": "^CUS-[A-Z]+$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "segment": {
+          "type": "string"
+        }
+      }
+    },
+    "Supplier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supplier_id",
+        "name",
+        "country",
+        "supplying_facility_id",
+        "origin_port_id",
+        "relationship"
+      ],
+      "properties": {
+        "supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "country": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        },
+        "supplying_facility_id": {
+          "$ref": "common.schema.json#/$defs/NodeId"
+        },
+        "origin_port_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "relationship": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "approved_alternate",
+            "alternate_candidate"
+          ]
+        }
+      }
+    },
+    "CustomerOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "customer_id",
+        "product",
+        "component_part_id",
+        "qty",
+        "order_value_inr",
+        "component_need_by",
+        "penalty"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "common.schema.json#/$defs/OrderId"
+        },
+        "customer_id": {
+          "type": "string",
+          "pattern": "^CUS-[A-Z]+$"
+        },
+        "product": {
+          "type": "string"
+        },
+        "component_part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Units of the component required (one component per finished unit)."
+        },
+        "order_value_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "component_need_by": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "penalty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rate_inr_per_unit_per_day",
+            "cap_days",
+            "basis"
+          ],
+          "description": "penalty = late_units x rate x min(days_late, cap_days).",
+          "properties": {
+            "rate_inr_per_unit_per_day": {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            },
+            "cap_days": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "basis": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "PurchaseOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "po_id",
+        "supplier_id",
+        "part_id",
+        "qty",
+        "unit_price_inr",
+        "payment_mechanism",
+        "lc_id",
+        "force_majeure_qty_reduction_allowed",
+        "shipment_id",
+        "pegging"
+      ],
+      "properties": {
+        "po_id": {
+          "type": "string",
+          "pattern": "^PO-[0-9]{4}$"
+        },
+        "supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unit_price_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "payment_mechanism": {
+          "type": "string",
+          "enum": [
+            "open_account",
+            "advance_tt",
+            "documentary_credit"
+          ]
+        },
+        "lc_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "force_majeure_qty_reduction_allowed": {
+          "type": "boolean"
+        },
+        "shipment_id": {
+          "type": "string",
+          "pattern": "^SHP-[A-Z0-9-]+$"
+        },
+        "pegging": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "order_id",
+              "qty"
+            ],
+            "properties": {
+              "order_id": {
+                "$ref": "common.schema.json#/$defs/OrderId"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "Shipment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shipment_id",
+        "po_id",
+        "origin_port_id",
+        "destination_port_id",
+        "transshipment_port_ids",
+        "planned_etd",
+        "planned_eta_port",
+        "planned_eta_plant"
+      ],
+      "properties": {
+        "shipment_id": {
+          "type": "string",
+          "pattern": "^SHP-[A-Z0-9-]+$"
+        },
+        "po_id": {
+          "type": "string",
+          "pattern": "^PO-[0-9]{4}$"
+        },
+        "origin_port_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "destination_port_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "transshipment_port_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/LocationId"
+          }
+        },
+        "planned_etd": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "planned_eta_port": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "planned_eta_plant": {
+          "$ref": "common.schema.json#/$defs/Date"
+        }
+      }
+    },
+    "SupplierQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quote_id",
+        "supplier_id",
+        "part_id",
+        "unit_price_inr",
+        "capacity_units",
+        "ready_date",
+        "origin_port_id",
+        "valid_until",
+        "payment_mechanism",
+        "lc_id",
+        "certificate_of_origin",
+        "source_ref"
+      ],
+      "properties": {
+        "quote_id": {
+          "type": "string",
+          "pattern": "^QT-[A-Z0-9-]+$"
+        },
+        "supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "unit_price_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ready_date": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "origin_port_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "valid_until": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "payment_mechanism": {
+          "type": "string",
+          "enum": [
+            "open_account",
+            "advance_tt",
+            "documentary_credit"
+          ]
+        },
+        "lc_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^LC-[A-Z0-9-]+$"
+        },
+        "certificate_of_origin": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "agreement_id",
+            "status"
+          ],
+          "properties": {
+            "agreement_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "available",
+                "pending",
+                "unavailable"
+              ]
+            }
+          }
+        },
+        "source_ref": {
+          "$ref": "common.schema.json#/$defs/SourceId"
+        }
+      }
+    },
+    "RouteOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_option_id",
+        "origin_port_id",
+        "destination_port_id",
+        "mode",
+        "legs",
+        "transshipment_port_ids",
+        "single_bill_of_lading",
+        "containerized",
+        "transport_document",
+        "etd",
+        "eta_port",
+        "eta_plant",
+        "freight_inr_per_unit",
+        "fta_transit_evidence_available",
+        "source_ref"
+      ],
+      "description": "Transshipment = unloading from one vessel and reloading to another at an intermediate port between port of loading and port of discharge. transshipment_port_ids must equal the intermediate ports of legs.",
+      "properties": {
+        "route_option_id": {
+          "$ref": "common.schema.json#/$defs/RouteOptionId"
+        },
+        "origin_port_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "destination_port_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "sea",
+            "air",
+            "multimodal"
+          ]
+        },
+        "legs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "seq",
+              "from_port_id",
+              "to_port_id",
+              "vessel",
+              "etd",
+              "eta"
+            ],
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "from_port_id": {
+                "$ref": "common.schema.json#/$defs/LocationId"
+              },
+              "to_port_id": {
+                "$ref": "common.schema.json#/$defs/LocationId"
+              },
+              "vessel": {
+                "type": "string"
+              },
+              "etd": {
+                "$ref": "common.schema.json#/$defs/Date"
+              },
+              "eta": {
+                "$ref": "common.schema.json#/$defs/Date"
+              }
+            }
+          }
+        },
+        "transshipment_port_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/LocationId"
+          }
+        },
+        "single_bill_of_lading": {
+          "type": "boolean"
+        },
+        "containerized": {
+          "type": "boolean"
+        },
+        "transport_document": {
+          "type": "string",
+          "enum": [
+            "bill_of_lading",
+            "multimodal_transport_document",
+            "air_waybill"
+          ]
+        },
+        "etd": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "eta_port": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "eta_plant": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "freight_inr_per_unit": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "fta_transit_evidence_available": {
+          "type": "boolean"
+        },
+        "source_ref": {
+          "$ref": "common.schema.json#/$defs/SourceId"
+        }
+      }
+    },
+    "InventoryPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory_source_id",
+        "location_id",
+        "part_id",
+        "on_hand",
+        "reserved",
+        "protected_floor",
+        "transfer_days",
+        "transfer_cost_inr_per_unit",
+        "replenishment_note"
+      ],
+      "description": "available_to_promise = max(0, on_hand - reserved - protected_floor). Available at plant on scenario date + transfer_days.",
+      "properties": {
+        "inventory_source_id": {
+          "type": "string",
+          "pattern": "^INV-[A-Z0-9]+$"
+        },
+        "location_id": {
+          "$ref": "common.schema.json#/$defs/LocationId"
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "on_hand": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserved": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "protected_floor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transfer_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transfer_cost_inr_per_unit": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "replenishment_note": {
+          "type": "string"
+        }
+      }
+    },
+    "LcField": {
+      "type": "object",
+      "required": [
+        "tag"
+      ],
+      "properties": {
+        "tag": {
+          "type": "string",
+          "pattern": "^[0-9]{2}[A-Z]?$"
+        }
+      }
+    },
+    "LetterOfCredit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lc_id",
+        "version",
+        "synthetic",
+        "applicable_rules",
+        "applicant",
+        "beneficiary_supplier_id",
+        "issuing_bank",
+        "raw_text",
+        "structured",
+        "available_balance_inr",
+        "available_balance_source_ref",
+        "extraction"
+      ],
+      "properties": {
+        "lc_id": {
+          "type": "string",
+          "pattern": "^LC-[A-Z0-9-]+$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Incremented by every accepted amendment."
+        },
+        "synthetic": {
+          "const": true
+        },
+        "applicable_rules": {
+          "type": "string"
+        },
+        "applicant": {
+          "type": "string"
+        },
+        "beneficiary_supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "issuing_bank": {
+          "type": "string"
+        },
+        "raw_text": {
+          "type": "string",
+          "description": "MT700-style text. Input for bounded LLM extraction tests."
+        },
+        "structured": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "partial_shipments",
+            "transhipment",
+            "ucp_20c_excluded",
+            "port_of_loading",
+            "port_of_discharge",
+            "latest_shipment_date",
+            "expiry",
+            "presentation_period_days",
+            "amount",
+            "transport_document_required"
+          ],
+          "properties": {
+            "partial_shipments": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "43P"
+                },
+                "value": {
+                  "enum": [
+                    "allowed",
+                    "not_allowed",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "unevaluatedProperties": false
+            },
+            "transhipment": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "43T"
+                },
+                "value": {
+                  "enum": [
+                    "allowed",
+                    "not_allowed",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "unevaluatedProperties": false,
+              "description": "null = credit is silent."
+            },
+            "ucp_20c_excluded": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "47A"
+                },
+                "value": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "unevaluatedProperties": false
+            },
+            "port_of_loading": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "44E"
+                },
+                "any_port_in_country": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "port_ids": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/LocationId"
+                  }
+                }
+              },
+              "required": [
+                "any_port_in_country",
+                "port_ids"
+              ],
+              "unevaluatedProperties": false
+            },
+            "port_of_discharge": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "44F"
+                },
+                "port_id": {
+                  "$ref": "common.schema.json#/$defs/LocationId"
+                }
+              },
+              "required": [
+                "port_id"
+              ],
+              "unevaluatedProperties": false
+            },
+            "latest_shipment_date": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "44C"
+                },
+                "value": {
+                  "$ref": "common.schema.json#/$defs/Date"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "unevaluatedProperties": false
+            },
+            "expiry": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "31D"
+                },
+                "date": {
+                  "$ref": "common.schema.json#/$defs/Date"
+                },
+                "place": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "date",
+                "place"
+              ],
+              "unevaluatedProperties": false
+            },
+            "presentation_period_days": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "48"
+                },
+                "value": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "unevaluatedProperties": false
+            },
+            "amount": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/LcField"
+                }
+              ],
+              "properties": {
+                "tag": {
+                  "const": "32B"
+                },
+                "currency": {
+                  "const": "INR"
+                },
+                "value": {
+                  "$ref": "common.schema.json#/$defs/MoneyInr"
+                }
+              },
+              "required": [
+                "currency",
+                "value"
+              ],
+              "unevaluatedProperties": false
+            },
+            "transport_document_required": {
+              "type": "string",
+              "enum": [
+                "bill_of_lading",
+                "multimodal_transport_document",
+                "air_waybill"
+              ]
+            }
+          }
+        },
+        "available_balance_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "available_balance_source_ref": {
+          "$ref": "common.schema.json#/$defs/SourceId"
+        },
+        "extracted": {
+          "type": "object",
+          "description": "Optional LLM extraction output keyed by structured field name, compared against structured by LC.EXTRACTION_CONSISTENCY.",
+          "additionalProperties": true
+        },
+        "extraction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "verified_by_role",
+            "note"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "manual_gold",
+                "llm_verified",
+                "llm_unverified"
+              ]
+            },
+            "verified_by_role": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "title",
+        "kind",
+        "as_of",
+        "authority",
+        "synthetic"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "common.schema.json#/$defs/SourceId"
+        },
+        "title": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "supplier_notice",
+            "supplier_quote",
+            "carrier_schedule",
+            "erp_record",
+            "contract",
+            "supplier_declaration",
+            "audit_report",
+            "trade_record"
+          ]
+        },
+        "as_of": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "authority": {
+          "$ref": "common.schema.json#/$defs/EvidenceAuthority"
+        },
+        "synthetic": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DemoActor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_id",
+        "display_name",
+        "role"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "pattern": "^USR-[A-Z]+$"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "common.schema.json#/$defs/Role"
+        }
+      }
+    },
+    "Policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "dataset_id",
+        "synthetic",
+        "dependency_policy",
+        "severity_policy",
+        "plan_policy",
+        "cost_policy",
+        "approval_policy",
+        "demo_actors"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "dataset_id": {
+          "type": "string"
+        },
+        "synthetic": {
+          "const": true
+        },
+        "dependency_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_depth",
+            "block_requires_all_path_edges_verified",
+            "missing_critical_input_outcome",
+            "truncated_traversal_outcome"
+          ],
+          "properties": {
+            "max_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "block_requires_all_path_edges_verified": {
+              "type": "boolean"
+            },
+            "missing_critical_input_outcome": {
+              "const": "needs_review"
+            },
+            "truncated_traversal_outcome": {
+              "const": "needs_review"
+            }
+          }
+        },
+        "severity_policy": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "plan_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "strategies",
+            "verified_strategy_allowed_option_outcomes",
+            "late_option_must_beat_baseline_arrival"
+          ],
+          "properties": {
+            "strategies": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "cost_time_only",
+                  "constraint_verified"
+                ]
+              }
+            },
+            "verified_strategy_allowed_option_outcomes": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Outcome"
+              }
+            },
+            "late_option_must_beat_baseline_arrival": {
+              "type": "boolean"
+            }
+          }
+        },
+        "cost_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lc_amendment_fee_inr",
+            "duty_basis",
+            "duty_scope_note",
+            "rounding"
+          ],
+          "properties": {
+            "lc_amendment_fee_inr": {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            },
+            "duty_basis": {
+              "const": "unit_price_plus_freight"
+            },
+            "duty_scope_note": {
+              "type": "string"
+            },
+            "rounding": {
+              "const": "half_up_to_whole_rupee_per_line"
+            }
+          }
+        },
+        "approval_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "all_plans_require_human_approval",
+            "approver_roles",
+            "acknowledgement_roles",
+            "amendment_request_roles",
+            "reject_roles",
+            "blocked_plans_approvable"
+          ],
+          "properties": {
+            "all_plans_require_human_approval": {
+              "const": true
+            },
+            "approver_roles": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Role"
+              }
+            },
+            "acknowledgement_roles": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/Role"
+                }
+              }
+            },
+            "amendment_request_roles": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Role"
+              }
+            },
+            "reject_roles": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Role"
+              }
+            },
+            "blocked_plans_approvable": {
+              "const": false
+            }
+          }
+        },
+        "demo_actors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DemoActor"
+          }
+        }
+      }
+    }
+  }
+}

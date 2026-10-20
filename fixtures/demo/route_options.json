@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "port_to_plant_days": 2,
+  "port_to_plant_basis": "1 day customs clearance + 1 day road transport Chennai to Bengaluru (synthetic)",
+  "route_options": [
+    {
+      "route_option_id": "RT-B-CMB",
+      "origin_port_id": "THLCH",
+      "destination_port_id": "INMAA",
+      "mode": "sea",
+      "legs": [
+        {"seq": 1, "from_port_id": "THLCH", "to_port_id": "LKCMB", "vessel": "SYN ORCHID", "etd": "2026-10-27", "eta": "2026-10-30"},
+        {"seq": 2, "from_port_id": "LKCMB", "to_port_id": "INMAA", "vessel": "SYN TERN", "etd": "2026-10-31", "eta": "2026-11-01"}
+      ],
+      "transshipment_port_ids": ["LKCMB"],
+      "single_bill_of_lading": true,
+      "containerized": true,
+      "transport_document": "bill_of_lading",
+      "etd": "2026-10-27",
+      "eta_port": "2026-11-01",
+      "eta_plant": "2026-11-03",
+      "freight_inr_per_unit": 160,
+      "fta_transit_evidence_available": false,
+      "source_ref": "SRC-SCHED-2026W44"
+    },
+    {
+      "route_option_id": "RT-B-DIR",
+      "origin_port_id": "THLCH",
+      "destination_port_id": "INMAA",
+      "mode": "sea",
+      "legs": [
+        {"seq": 1, "from_port_id": "THLCH", "to_port_id": "INMAA", "vessel": "SYN HERON", "etd": "2026-11-01", "eta": "2026-11-06"}
+      ],
+      "transshipment_port_ids": [],
+      "single_bill_of_lading": true,
+      "containerized": true,
+      "transport_document": "bill_of_lading",
+      "etd": "2026-11-01",
+      "eta_port": "2026-11-06",
+      "eta_plant": "2026-11-08",
+      "freight_inr_per_unit": 140,
+      "fta_transit_evidence_available": false,
+      "source_ref": "SRC-SCHED-2026W44"
+    },
+    {
+      "route_option_id": "RT-C-SIN",
+      "origin_port_id": "VNSGN",
+      "destination_port_id": "INMAA",
+      "mode": "sea",
+      "legs": [
+        {"seq": 1, "from_port_id": "VNSGN", "to_port_id": "SGSIN", "vessel": "SYN KESTREL", "etd": "2026-10-28", "eta": "2026-10-30"},
+        {"seq": 2, "from_port_id": "SGSIN", "to_port_id": "INMAA", "vessel": "SYN PELICAN", "etd": "2026-10-31", "eta": "2026-11-02"}
+      ],
+      "transshipment_port_ids": ["SGSIN"],
+      "single_bill_of_lading": true,
+      "containerized": true,
+      "transport_document": "bill_of_lading",
+      "etd": "2026-10-28",
+      "eta_port": "2026-11-02",
+      "eta_plant": "2026-11-04",
+      "freight_inr_per_unit": 120,
+      "fta_transit_evidence_available": false,
+      "source_ref": "SRC-SCHED-2026W44"
+    },
+    {
+      "route_option_id": "RT-C-DIR",
+      "origin_port_id": "VNSGN",
+      "destination_port_id": "INMAA",
+      "mode": "sea",
+      "legs": [
+        {"seq": 1, "from_port_id": "VNSGN", "to_port_id": "INMAA", "vessel": "SYN EGRET", "etd": "2026-10-29", "eta": "2026-11-03"}
+      ],
+      "transshipment_port_ids": [],
+      "single_bill_of_lading": true,
+      "containerized": true,
+      "transport_document": "bill_of_lading",
+      "etd": "2026-10-29",
+      "eta_port": "2026-11-03",
+      "eta_plant": "2026-11-05",
+      "freight_inr_per_unit": 210,
+      "fta_transit_evidence_available": false,
+      "source_ref": "SRC-SCHED-2026W44"
+    }
+  ]
+}

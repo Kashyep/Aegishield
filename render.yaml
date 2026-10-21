@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: aegisshield-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: AEGIS_DEMO_MODE
+        value: "1"
+      - key: AEGIS_LLM_MODE
+        value: off
+      - key: AEGIS_DB_PATH
+        value: /tmp/aegis-demo.sqlite3

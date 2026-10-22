@@ -14,6 +14,8 @@ from ..agents.dependency.linearize import linearize
 from ..agents.dependency.view import build_graph_view
 from ..agents.routing import eligible_routes
 from ..agents.sensing import assess_disruption as _assess_disruption
+from ..llm.explain_plan import explain_plan
+from ..llm.gateway import LLMGateway, gateway_from_env
 
 OUTCOME_RANK = {"not_applicable": -1, "passed": 0, "needs_review": 1, "blocked": 2}
 
@@ -555,6 +557,7 @@ def build_evaluation_payload(
     started_at: str,
     completed_at: str | None = None,
     max_depth: int | None = None,
+    gateway: LLMGateway | None = None,
 ) -> dict[str, Any]:
     """Build a contract-shaped evaluation from fixture-derived domain results."""
     snapshot = input_snapshot_id(fx)
@@ -638,30 +641,19 @@ def build_evaluation_payload(
         ),
     }
     findings = result["findings"]
-    explanations = []
-    for plan in plans:
-        cited = [findings[fid] for fid in plan["finding_ids"]]
-        material = [f for f in cited if f["outcome"] in ("blocked", "needs_review")]
-        if material:
-            summary = "; ".join(f"{f['finding_id']} is {f['outcome']}" for f in material)
-            cited_ids = [f["finding_id"] for f in material]
-        else:
-            summary = "All checks passed"
-            cited_ids = plan["finding_ids"][:3]
-        explanations.append({
-            "explanation_id": f"XPL-{plan['plan_id']}",
-            "subject_id": plan["plan_id"],
-            "mode": "template",
-            "prompt_id": None,
-            "model": None,
-            "text": (
-                f"{plan['plan_id']} outcome {plan['outcome']}. {summary}. "
-                f"Net avoided loss INR {plan['financials']['net_avoided_loss_inr']}."
-            ),
-            "cited_ids": cited_ids,
-            "validation": {"passed": True, "errors": []},
-            "generated_at": completed_at,
-        })
+    gw = gateway if gateway is not None else gateway_from_env(llm_mode)
+    explanations, infos = [], []
+    for plan in plans:  # MOD-12 (Member 5): template / recorded / live, validated; never changes outcomes
+        xpl, info = explain_plan(plan, findings, gw, completed_at)
+        explanations.append(xpl)
+        infos.append(info)
+    step7 = steps[6]
+    modes = {i["mode"] for i in infos}
+    step7["mode"] = modes.pop() if len(modes) == 1 else "template"
+    step7["attempts"] = max([1] + [i["attempts"] for i in infos])
+    if any(i["degraded"] for i in infos):
+        step7["status"] = "degraded"
+        step7["error"] = sorted({i["error"] for i in infos if i["error"]})[0]
     return {
         "schema_version": "1.0.0",
         "evaluation_id": evaluation_id,

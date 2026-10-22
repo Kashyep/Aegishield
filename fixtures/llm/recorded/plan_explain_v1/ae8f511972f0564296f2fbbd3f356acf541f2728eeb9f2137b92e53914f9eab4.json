@@ -1,0 +1,61 @@
+{
+  "prompt_id": "plan_explain_v1",
+  "prompt_version": "1.0.0",
+  "request_hash": "ae8f511972f0564296f2fbbd3f356acf541f2728eeb9f2137b92e53914f9eab4",
+  "input": {
+    "subject_id": "PLN-0001",
+    "lines": [
+      "PLAN PLN-0001 outcome=blocked strategy=cost_time_only",
+      "FINANCIALS baseline_loss_inr=1160000 recovery_cost_inr=334000 residual_loss_inr=0 net_avoided_loss_inr=826000 worst_case_exposure_inr=510000",
+      "FINDING FND-SENSE-DIS-2026-0042 outcome=passed check=SENSE.EVENT_RESOLUTION title=Disruption mapped to graph nodes and affected orders",
+      "FINDING FND-INV-ATP-INV-BLR outcome=passed check=INV.AVAILABLE_TO_PROMISE title=150 units available to promise above protected floor",
+      "FINDING FND-INV-ATP-INV-PNQ outcome=passed check=INV.AVAILABLE_TO_PROMISE title=150 units available to promise above protected floor",
+      "FINDING FND-DEP-SUP-B outcome=blocked check=DEP.SHARED_DISRUPTED_DEPENDENCY title=Alternate supplier depends on the disrupted node",
+      "FINDING FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB outcome=needs_review check=FTA.DIRECT_CONSIGNMENT title=Non-party transit: preference depends on evidence that direct-consignment conditions are met",
+      "FINDING FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-CMB outcome=passed check=FTA.CERTIFICATE_OF_ORIGIN title=Certificate of origin available from supplier",
+      "FINDING FND-DEP-SUP-C outcome=passed check=DEP.SHARED_DISRUPTED_DEPENDENCY title=No upstream path to the disrupted node within depth",
+      "FINDING FND-FTA-DIRECT_CONSIGNMENT-RT-C-SIN outcome=passed check=FTA.DIRECT_CONSIGNMENT title=Transit only through agreement parties (or direct): direct consignment satisfied",
+      "FINDING FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-SIN outcome=passed check=FTA.CERTIFICATE_OF_ORIGIN title=Certificate of origin available from supplier",
+      "FINDING FND-LC-TRANSHIPMENT-RT-C-SIN outcome=blocked check=LC.TRANSHIPMENT title=Route transships while the credit prohibits transhipment and excludes UCP 600 20(c)",
+      "FINDING FND-LC-LATEST_SHIPMENT-RT-C-SIN outcome=passed check=LC.LATEST_SHIPMENT_DATE title=Shipment date is within 44C",
+      "FINDING FND-LC-PORT_OF_LOADING-RT-C-SIN outcome=passed check=LC.PORT_OF_LOADING title=Port of loading matches 44E",
+      "FINDING FND-LC-PORT_OF_DISCHARGE-RT-C-SIN outcome=passed check=LC.PORT_OF_DISCHARGE title=Port of discharge matches 44F",
+      "FINDING FND-LC-PRESENTATION-RT-C-SIN outcome=passed check=LC.PRESENTATION_PERIOD title=Presentation deadline falls before expiry",
+      "FINDING FND-LC-AMOUNT-PLN-0001-LC-SYN-0117 outcome=passed check=LC.AMOUNT title=Drawing fits the available LC balance",
+      "FINDING FND-LC-PARTIAL-PLN-0001-LC-SYN-0117 outcome=passed check=LC.PARTIAL_SHIPMENTS title=Partial drawing permitted by 43P",
+      "FINDING FND-INV-ALLOCATION-PLN-0001-INV-BLR outcome=passed check=INV.ALLOCATION_FEASIBLE title=Allocates 150 of 150 available units",
+      "FINDING FND-INV-ALLOCATION-PLN-0001-INV-PNQ outcome=passed check=INV.ALLOCATION_FEASIBLE title=Allocates 150 of 150 available units"
+    ],
+    "allowed_citation_ids": [
+      "FND-DEP-SUP-B",
+      "FND-DEP-SUP-C",
+      "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-CMB",
+      "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-SIN",
+      "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+      "FND-FTA-DIRECT_CONSIGNMENT-RT-C-SIN",
+      "FND-INV-ALLOCATION-PLN-0001-INV-BLR",
+      "FND-INV-ALLOCATION-PLN-0001-INV-PNQ",
+      "FND-INV-ATP-INV-BLR",
+      "FND-INV-ATP-INV-PNQ",
+      "FND-LC-AMOUNT-PLN-0001-LC-SYN-0117",
+      "FND-LC-LATEST_SHIPMENT-RT-C-SIN",
+      "FND-LC-PARTIAL-PLN-0001-LC-SYN-0117",
+      "FND-LC-PORT_OF_DISCHARGE-RT-C-SIN",
+      "FND-LC-PORT_OF_LOADING-RT-C-SIN",
+      "FND-LC-PRESENTATION-RT-C-SIN",
+      "FND-LC-TRANSHIPMENT-RT-C-SIN",
+      "FND-SENSE-DIS-2026-0042"
+    ]
+  },
+  "output": {
+    "text": "PLN-0001 is blocked and cannot be executed. Its alternate supplier SUP-B depends on the disrupted wafer fab (FND-DEP-SUP-B), and the Singapore transhipment breaks the letter of credit (FND-LC-TRANSHIPMENT-RT-C-SIN). The Colombo route also needs review for FTA direct consignment (FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB). Its net avoided loss of INR 826000 exists only on paper.",
+    "cited_ids": [
+      "FND-DEP-SUP-B",
+      "FND-LC-TRANSHIPMENT-RT-C-SIN",
+      "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB"
+    ]
+  },
+  "model": "hand-authored (synthetic)",
+  "origin": "hand_authored",
+  "synthetic": true
+}

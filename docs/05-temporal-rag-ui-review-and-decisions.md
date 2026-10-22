@@ -130,6 +130,10 @@ Template for new entries: `| D-0NN | date | context | options considered | decis
 | D-018 | 19 Oct | Reviews bounded to R1–R4; 4-hour decision SLA; silence = owner's proposal | Avoid blocking | all |
 | D-019 | 19 Oct | No novelty, performance or score claims | Unverifiable (C7) | M1 |
 | D-020 | 19 Oct | Phase 0 code = throwaway spikes until OD-05 answered | Rules risk R-09 | M1 |
+| D-021 | 22 Oct | OD-01 **provisional default**: (a) host the backend on SAP BTP Cloud Foundry trial, plus the proposed-SAP-mapping slide | No recorded decision by the 22 Oct deadline; documented default (`docs/00` §14.5) applied per D-018. Member 5 to confirm or overrule | pending |
+| D-022 | 22 Oct | OD-02 **provisional default**: no LangGraph wrapper; plain Python pipeline | Same as D-021 | pending |
+| D-023 | 22 Oct | OD-03 **provisional default**: Tailwind/shadcn with Fiori-inspired density | Same as D-021 | pending |
+| D-024 | 22 Oct | MOD-12 integration: (1) recorded demo responses are hand-authored, labelled `origin: hand_authored`, until OD-04 picks a provider; live responses are captured to `work/llm/captured/` for review before commit; (2) `extract_lc_fields` is not run inside the evaluation, because an extra `LC.EXTRACTION_CONSISTENCY` finding would change plan hashes across modes (VC-LLM-01); when to store `LetterOfCredit.extracted` stays with Member 3 | Keep outcomes and hashes identical in off/recorded/live | M3, M4 |
 
 Open decisions you must close (from `docs/00` §14.5): **OD-01** SAP technology (22 Oct), **OD-02** LangGraph wrapper (22 Oct), **OD-03** UI kit (22 Oct), **OD-04** live LLM provider (25 Oct), **OD-05/06** event rules (20–21 Oct, research by Member 1), **OD-07** primary-source verification for pitch wording (23 Oct), **OD-08** stretch S-1 (D5).
 

@@ -1,0 +1,32 @@
+{
+  "prompt_id": "dependency_explain_v1",
+  "prompt_version": "1.0.0",
+  "request_hash": "83e3e8330d7416f50b4be39341107045d36031649d3ecb44a8fd2ed7d941ada5",
+  "input": {
+    "subject_id": "SUP-B",
+    "lines": [
+      "QUERY supplier=SUP-B part=PRT-PM750 max_depth=3 disrupted=FAC-FABZ",
+      "RESULT outcome=blocked reason=SHARED_DISRUPTED_DEPENDENCY coverage_complete=true truncated=false",
+      "PATH PATH-SUP-B-1 [shared_disrupted_dependency] (Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]",
+      "PATH PATH-SUP-B-2 [clean] (Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+    ],
+    "allowed_citation_ids": [
+      "E-004",
+      "E-005",
+      "E-006",
+      "PATH-SUP-B-1",
+      "PATH-SUP-B-2"
+    ]
+  },
+  "output": {
+    "text": "Chao Phraya Power Devices is not independent: its IGBT dies come through Kedah die sort from the disrupted Zenith Kulim fab (PATH-SUP-B-1: E-004, E-005).",
+    "cited_ids": [
+      "PATH-SUP-B-1",
+      "E-004",
+      "E-005"
+    ]
+  },
+  "model": "hand-authored (synthetic)",
+  "origin": "hand_authored",
+  "synthetic": true
+}

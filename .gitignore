@@ -6,3 +6,6 @@ node_modules/
 frontend/dist/
 build/
 .venv/
+
+# runtime demo database (created by tests and the API)
+work/

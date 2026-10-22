@@ -8,6 +8,12 @@ import json
 from typing import Any
 from .fixtures import canonical_json, digest as sha256_of, snapshot_id as input_snapshot_id
 from .rules import query_rule_applicability as rule_applicability
+from ..agents.dependency.check import check_dependency
+from ..agents.dependency.graph import SupplyGraph, build_graph
+from ..agents.dependency.linearize import linearize
+from ..agents.dependency.view import build_graph_view
+from ..agents.routing import eligible_routes
+from ..agents.sensing import assess_disruption as _assess_disruption
 
 OUTCOME_RANK = {"not_applicable": -1, "passed": 0, "needs_review": 1, "blocked": 2}
 
@@ -41,324 +47,31 @@ def penalty(order: dict, qty: int, arrival: str) -> int:
     p = order["penalty"]
     return qty * p["rate_inr_per_unit_per_day"] * min(late, p["cap_days"])
 
-def resolve_alias(fx: dict, alias: str):
-    alias_l = alias.strip().lower()
-    hits = [n["node_id"] for n in fx["supply_graph"]["nodes"] if alias_l in [a.lower() for a in n["aliases"]]]
-    return hits[0] if len(hits) == 1 else None
+# --- MOD-04/05/06 (Member 4) -------------------------------------------------------------
+# Thin adapters keep this module's fixture-dict call signatures; the logic lives in app/agents.
+def _graph(fx: dict) -> SupplyGraph:
+    return build_graph(fx["supply_graph"], fx["master_data"])
+
 
 def assess_disruption(fx: dict, disruption_id: str) -> dict:
     event = index(fx["disruptions"]["events"], "disruption_id")[disruption_id]
-    gold = event["gold_extraction"]
-    orders = index(fx["orders"]["customer_orders"], "order_id")
-    pos = index(fx["orders"]["purchase_orders"], "po_id")
-    shipments = index(fx["orders"]["shipments"], "shipment_id")
-    node_id = resolve_alias(fx, gold["root_cause"]["facility_alias"])
-    issues = []
-    if node_id is None:
-        issues.append("ROOT_CAUSE_ALIAS_UNRESOLVED")
-    affected_shipments, affected_orders = [], []
-    baseline = 0
-    for sid in gold["affected_shipment_ids"]:
-        shp = shipments[sid]
-        revised_etd = add_days(shp["planned_etd"], gold["delay_days"])
-        if revised_etd != gold["new_etd"]:
-            issues.append("NEW_ETD_INCONSISTENT_WITH_DELAY")
-        revised_plant = add_days(shp["planned_eta_plant"], gold["delay_days"])
-        affected_shipments.append({
-            "shipment_id": sid,
-            "po_id": shp["po_id"],
-            "planned_etd": shp["planned_etd"],
-            "revised_etd": revised_etd,
-            "planned_eta_plant": shp["planned_eta_plant"],
-            "revised_eta_plant": revised_plant,
-            "delay_days": gold["delay_days"],
-        })
-        for peg in pos[shp["po_id"]]["pegging"]:
-            order = orders[peg["order_id"]]
-            late = days_late(revised_plant, order["component_need_by"])
-            if late == 0:
-                continue
-            pen = penalty(order, peg["qty"], revised_plant)
-            baseline += pen
-            affected_orders.append({
-                "order_id": order["order_id"],
-                "customer_id": order["customer_id"],
-                "qty_affected": peg["qty"],
-                "order_value_inr": order["order_value_inr"],
-                "need_by": order["component_need_by"],
-                "revised_arrival": revised_plant,
-                "days_late": late,
-                "baseline_penalty_inr": pen,
-            })
-    pol = fx["policies"]["severity_policy"]
-    max_late = max([o["days_late"] for o in affected_orders], default=0)
-    if baseline >= pol["critical_if_baseline_loss_inr_gte"]:
-        severity = "critical"
-    elif baseline >= pol["high_if_baseline_loss_inr_gte"] or max_late >= pol["high_if_any_order_days_late_gte"]:
-        severity = "high"
-    elif baseline >= pol["medium_if_baseline_loss_inr_gte"]:
-        severity = "medium"
-    else:
-        severity = "low"
-    supplier_ids = sorted({pos[s["po_id"]]["supplier_id"] for s in affected_shipments})
-    return {
-        "schema_version": "1.0.0",
-        "assessment_id": f"DA-{disruption_id}",
-        "disruption_id": disruption_id,
-        "outcome": "needs_review" if issues else "passed",
-        "issues": issues,
-        "extraction_mode": "gold",
-        "event_type": gold["event_type"],
-        "severity": severity,
-        "severity_basis": f"baseline_loss_inr={baseline}; max_days_late={max_late}",
-        "disrupted_node_ids": [node_id] if node_id else [],
-        "affected_supplier_ids": supplier_ids,
-        "affected_shipments": affected_shipments,
-        "affected_orders": affected_orders,
-        "baseline_loss_inr": baseline,
-        "evidence": [{
-            "evidence_id": f"EVD-NOTICE-{disruption_id}",
-            "kind": "source_document",
-            "source_ids": [event["source"]["source_id"]],
-            "title": event["source"]["title"],
-            "authority": event["source"]["authority"],
-            "synthetic": True,
-            "locator": {"record_id": disruption_id},
-            "excerpt": "Shipment SHP-A-0901 will depart Port Klang on 02 Nov 2026 instead of 26 Oct 2026.",
-        }],
-    }
+    return _assess_disruption(event, fx, "gold")
 
-def bom_closure(fx: dict, part_id: str) -> set:
-    parts = index(fx["master_data"]["parts"], "part_id")
-    out, stack = set(), [part_id]
-    while stack:
-        p = stack.pop()
-        if p in out:
-            continue
-        out.add(p)
-        stack.extend(c["child_part_id"] for c in parts[p]["bom"])
-    return out
-
-def _incoming(fx: dict) -> dict:
-    inc = {}
-    for e in fx["supply_graph"]["edges"]:
-        if e["type"] == "SUPPLIES":
-            inc.setdefault(e["target"], []).append(e)
-    for v in inc.values():
-        v.sort(key=lambda e: e["edge_id"])
-    return inc
-
-def upstream_paths(fx: dict, start: str, part_id: str, max_depth: int):
-    nodes = index(fx["supply_graph"]["nodes"], "node_id")
-    relevant = bom_closure(fx, part_id)
-    inc = _incoming(fx)
-    paths, flags = [], {"cycle": False, "truncated": False, "gaps": []}
-
-    def dfs(node, depth, pnodes, pedges):
-        ins = [e for e in inc.get(node, []) if e["part_id"] in relevant]
-        if not ins:
-            if pedges:
-                supplied_part = pedges[-1]["part_id"]
-                if supplied_part not in nodes[node]["origin_for_part_ids"]:
-                    flags["gaps"].append({"kind": "upstream_unknown", "node_id": node, "part_id": supplied_part})
-                paths.append((pnodes, pedges, "complete"))
-            return
-        if depth == max_depth:
-            flags["truncated"] = True
-            paths.append((pnodes, pedges, "truncated"))
-            return
-        for e in ins:
-            if e["source"] in pnodes:
-                flags["cycle"] = True
-                continue
-            dfs(e["source"], depth + 1, pnodes + [e["source"]], pedges + [e])
-
-    dfs(start, 0, [start], [])
-    return paths, flags
-
-def linearize_path(fx: dict, pnodes: list, pedges: list, disrupted: set) -> str:
-    nodes = index(fx["supply_graph"]["nodes"], "node_id")
-    parts = index(fx["master_data"]["parts"], "part_id")
-
-    def label(nid):
-        n = nodes[nid]
-        tag = " [DISRUPTED]" if nid in disrupted else ""
-        return f"({n['label']} | {n['org_name']} | {n['country']} | {nid}){tag}"
-
-    text = label(pnodes[0])
-    for i, e in enumerate(pedges):
-        text += f" <-SUPPLIES[{parts[e['part_id']]['name'].split(' (')[0]}; {e['edge_id']}; {e['source_ref']}; {e['confidence']}]- " + label(pnodes[i + 1])
-    return text
 
 def dependency_check(fx: dict, supplier_id: str, part_id: str, disrupted_ids: list, max_depth=None) -> dict:
     pol = fx["policies"]["dependency_policy"]
-    max_depth = max_depth or pol["max_depth"]
-    suppliers = index(fx["master_data"]["suppliers"], "supplier_id")
-    parts = index(fx["master_data"]["parts"], "part_id")
-    nodes = index(fx["supply_graph"]["nodes"], "node_id")
-    disrupted = set(disrupted_ids)
-    start = suppliers[supplier_id]["supplying_facility_id"]
-    paths, flags = upstream_paths(fx, start, part_id, max_depth)
-    inc = _incoming(fx)
+    query = {"supplier_id": supplier_id, "part_id": part_id, "disrupted_node_ids": list(disrupted_ids),
+             "max_depth": max_depth or pol["max_depth"]}
+    return check_dependency(query, _graph(fx), fx["master_data"]["parts"], pol)
 
-    gaps = list(flags["gaps"])
-    for child in parts[part_id]["bom"]:
-        if child["critical"] and not any(e["part_id"] == child["child_part_id"] for e in inc.get(start, [])):
-            gaps.append({"kind": "missing_critical_input", "node_id": start, "part_id": child["child_part_id"]})
-
-    evidence, disrupted_paths, all_paths = [], [], []
-    for i, (pnodes, pedges, status) in enumerate(paths, start=1):
-        hit = next((k for k, n in enumerate(pnodes) if n in disrupted), None)
-        if hit is not None:
-            pnodes, pedges = pnodes[: hit + 1], pedges[:hit]
-        path_id = f"PATH-{supplier_id}-{i}"
-        kind = "shared_disrupted_dependency" if hit is not None else ("truncated" if status == "truncated" else "clean")
-        rec = {
-            "path_id": path_id,
-            "kind": kind,
-            "node_ids": pnodes,
-            "edge_ids": [e["edge_id"] for e in pedges],
-            "all_edges_verified": all(e["confidence"] == "verified" for e in pedges),
-            "linearized": linearize_path(fx, pnodes, pedges, disrupted),
-        }
-        all_paths.append(rec)
-        if hit is not None:
-            disrupted_paths.append(rec)
-        evidence.append({
-            "evidence_id": f"EVD-{path_id}",
-            "kind": "graph_path",
-            "source_ids": sorted({e["source_ref"] for e in pedges}),
-            "title": (f"Upstream path from {nodes[start]['label']} to disrupted {nodes[pnodes[-1]]['label']}" if hit is not None
-                      else f"Upstream path from {nodes[start]['label']} to {nodes[pnodes[-1]]['label']}"),
-            "authority": "internal",
-            "synthetic": True,
-            "locator": {"path_id": path_id, "node_ids": pnodes, "edge_ids": rec["edge_ids"]},
-            "excerpt": rec["linearized"],
-        })
-
-    if not disrupted:
-        outcome, reason = "needs_review", "DISRUPTED_NODE_UNKNOWN"
-    elif disrupted_paths:
-        verified = all(p["all_edges_verified"] for p in disrupted_paths)
-        outcome = "blocked" if (verified and pol["block_requires_all_path_edges_verified"]) else "needs_review"
-        reason = "SHARED_DISRUPTED_DEPENDENCY" if outcome == "blocked" else "UNVERIFIED_PATH_TO_DISRUPTED_NODE"
-    elif gaps:
-        outcome, reason = pol["missing_critical_input_outcome"], "INCOMPLETE_DEPENDENCY_DATA"
-    elif flags["truncated"]:
-        outcome, reason = pol["truncated_traversal_outcome"], "TRAVERSAL_TRUNCATED"
-    else:
-        outcome, reason = "passed", "NO_PATH_TO_DISRUPTED_NODE"
-
-    upstream = sorted({n for p in all_paths for n in p["node_ids"][1:]})
-    primary = [s for s in fx["master_data"]["suppliers"] if s["relationship"] == "primary"]
-    shared_with_primary = []
-    if primary and primary[0]["supplier_id"] != supplier_id:
-        p_paths, _ = upstream_paths(fx, primary[0]["supplying_facility_id"], part_id, max_depth)
-        p_up = {n for pn, _, _ in p_paths for n in pn[1:]}
-        shared_with_primary = sorted(set(upstream) & p_up)
-    notes = []
-    for n in shared_with_primary:
-        if n not in disrupted:
-            notes.append({"code": "SHARED_NON_DISRUPTED_DEPENDENCY", "node_id": n,
-                          "text": f"{nodes[n]['label']} also supplies the primary supplier; not disrupted, recorded as concentration risk."})
-    if flags["cycle"]:
-        notes.append({"code": "CYCLE_DETECTED", "node_id": None, "text": "A cycle was detected and skipped during traversal."})
-
-    return {
-        "schema_version": "1.0.0",
-        "supplier_id": supplier_id,
-        "part_id": part_id,
-        "start_node_id": start,
-        "max_depth": max_depth,
-        "disrupted_node_ids": sorted(disrupted),
-        "outcome": outcome,
-        "reason_code": reason,
-        "paths": all_paths,
-        "upstream_node_ids": upstream,
-        "shared_with_primary_node_ids": shared_with_primary,
-        "coverage": {"complete": not gaps, "gaps": gaps},
-        "truncated": flags["truncated"],
-        "cycle_detected": flags["cycle"],
-        "notes": notes,
-        "evidence": evidence,
-    }
 
 def linearized_context(fx: dict, dep: dict) -> dict:
-    lines = [f"QUERY supplier={dep['supplier_id']} part={dep['part_id']} max_depth={dep['max_depth']} disrupted={','.join(dep['disrupted_node_ids'])}",
-             f"RESULT outcome={dep['outcome']} reason={dep['reason_code']} coverage_complete={str(dep['coverage']['complete']).lower()} truncated={str(dep['truncated']).lower()}"]
-    for p in dep["paths"]:
-        lines.append(f"PATH {p['path_id']} [{p['kind']}] {p['linearized']}")
-    for n in dep["notes"]:
-        lines.append(f"NOTE {n['code']} {n['node_id'] or ''}".rstrip())
-    triples = []
-    edges = index(fx["supply_graph"]["edges"], "edge_id")
-    for eid in sorted({e for p in dep["paths"] for e in p["edge_ids"]}):
-        e = edges[eid]
-        triples.append({"s": e["source"], "p": f"SUPPLIES:{e['part_id']}", "o": e["target"], "edge_id": eid, "confidence": e["confidence"]})
-    return {
-        "schema_version": "1.0.0",
-        "context_id": f"CTX-DEP-{dep['supplier_id']}",
-        "format": "aegis-path-v1",
-        "subject_id": dep["supplier_id"],
-        "lines": lines,
-        "triples": triples,
-        "allowed_citation_ids": sorted([p["path_id"] for p in dep["paths"]] + [t["edge_id"] for t in triples]),
-        "truncated": False,
-    }
+    return linearize(dep, _graph(fx))
+
 
 def graph_view(fx: dict, deps: list, focus_supplier_id: str, evaluation_id: str = "EVAL-0001") -> dict:
-    nodes = index(fx["supply_graph"]["nodes"], "node_id")
-    suppliers = index(fx["master_data"]["suppliers"], "supplier_id")
-    disrupted = set(deps[0]["disrupted_node_ids"]) if deps else set()
-    status_by_supplier = {dep["supplier_id"]: dep["outcome"] for dep in deps}
-    view_nodes, view_edges, paths = {}, {}, []
-    keep = {"FAC-KAV-BLR"}
-    for dep in deps:
-        keep.add(dep["start_node_id"])
-        keep.update(dep["upstream_node_ids"])
-    primary = [s for s in fx["master_data"]["suppliers"] if s["relationship"] == "primary"][0]
-    keep.add(primary["supplying_facility_id"])
-    for nid in sorted(keep):
-        n = nodes[nid]
-        if nid in disrupted:
-            st = "disrupted"
-        elif n["supplier_id"] in status_by_supplier:
-            st = {"blocked": "blocked", "needs_review": "needs_review", "passed": "candidate_passed"}[status_by_supplier[n["supplier_id"]]]
-        elif n["role"] == "buyer_plant":
-            st = "buyer"
-        elif nid == primary["supplying_facility_id"]:
-            st = "affected_primary"
-        else:
-            st = "normal"
-        view_nodes[nid] = {"id": nid, "label": n["label"], "org_name": n["org_name"], "country": n["country"], "role": n["role"], "status": st, "synthetic": True}
-    blocking_edges = set()
-    focus = [dep for dep in deps if dep["supplier_id"] == focus_supplier_id]
-    for dep in focus:
-        for p in dep["paths"]:
-            paths.append({"path_id": p["path_id"], "kind": p["kind"], "node_ids": p["node_ids"], "edge_ids": p["edge_ids"]})
-            if p["kind"] == "shared_disrupted_dependency":
-                blocking_edges.update(p["edge_ids"])
-    for e in fx["supply_graph"]["edges"]:
-        if e["source"] in keep and e["target"] in keep:
-            view_edges[e["edge_id"]] = {"id": e["edge_id"], "source": e["source"], "target": e["target"], "type": "SUPPLIES",
-                                        "part_id": e["part_id"], "confidence": e["confidence"], "source_ref": e["source_ref"],
-                                        "highlighted": e["edge_id"] in blocking_edges, "candidate": False}
-    for dep in deps:
-        sid = dep["supplier_id"]
-        cid = f"CAND-{sid}"
-        view_edges[cid] = {"id": cid, "source": suppliers[sid]["supplying_facility_id"], "target": "FAC-KAV-BLR", "type": "CANDIDATE_SUPPLY",
-                           "part_id": dep["part_id"], "confidence": None, "source_ref": None, "highlighted": False, "candidate": True}
-    return {
-        "schema_version": "1.0.0",
-        "view_id": f"GV-{evaluation_id}-{focus_supplier_id}",
-        "evaluation_id": evaluation_id,
-        "focus_supplier_id": focus_supplier_id,
-        "edge_direction": "provider_to_consumer",
-        "nodes": [view_nodes[k] for k in sorted(view_nodes)],
-        "edges": [view_edges[k] for k in sorted(view_edges)],
-        "paths": paths,
-        "text_alternative": [p["linearized"] for dep in focus for p in dep["paths"]],
-    }
+    return build_graph_view(deps, _graph(fx), focus_supplier_id, evaluation_id)
+
 
 def rule_query_for(fx: dict, quote: dict, route: dict) -> dict:
     suppliers = index(fx["master_data"]["suppliers"], "supplier_id")
@@ -574,8 +287,9 @@ def source_options(fx: dict, assessment: dict):
                                              "coverage_complete": dep["coverage"]["complete"]})
             for e in dep["evidence"]:
                 evidence[e["evidence_id"]] = e
-        for r in routes:
-            if r["origin_port_id"] != q["origin_port_id"] or r["etd"] < q["ready_date"]:
+        eligible = {r["route_option_id"] for r in eligible_routes(q, routes)}  # MOD-06 decides eligibility
+        for r in routes:  # fixture order is kept: it is the golden options[] order
+            if r["route_option_id"] not in eligible:
                 continue
             fids = [f"FND-DEP-{q['supplier_id']}"]
             rq = rule_applicability(fx, rule_query_for(fx, q, r))

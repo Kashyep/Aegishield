@@ -15,6 +15,7 @@ from ..agents.dependency.view import build_graph_view
 from ..agents.routing import eligible_routes
 from ..agents.sensing import assess_disruption as _assess_disruption
 from ..llm.explain_plan import explain_plan
+from ..llm.lc_extract import compare_with_record
 from ..llm.gateway import LLMGateway, gateway_from_env
 
 OUTCOME_RANK = {"not_applicable": -1, "passed": 0, "needs_review": 1, "blocked": 2}
@@ -133,7 +134,7 @@ def lc_route_findings(lc: dict, route: dict, locs: dict):
     # extraction consistency
     extracted = lc.get("extracted")
     if extracted is not None:
-        mismatch = sorted(k for k, v in extracted.items() if s.get(k, {}).get("value") != v)
+        mismatch = compare_with_record(extracted, lc)
         raw = {"evidence_id": f"EVD-LCRAW-{lc['lc_id']}", "kind": "lc_field", "source_ids": [f"SRC-{lc['lc_id']}"],
                "title": f"{lc['lc_id']} raw text", "authority": "contractual", "synthetic": True,
                "locator": {"lc_id": lc["lc_id"], "lc_version": lc["version"], "field_tag": None}, "excerpt": None}

@@ -45,4 +45,12 @@ def test_endpoint_on_live_app():
     assert not any(e["highlighted"] for e in v["edges"])
     assert c.get(url, params={"focus_supplier_id": "SUP-Z"}).status_code == 404
     assert c.get("/api/v1/evaluations/EVAL-9999/graph", params={"focus_supplier_id": "SUP-B"}).status_code == 404
-    assert c.get(url).json() == golden("graph_view_SUP-B.json")  # M3 keeps SUP-B as default (contract says required)
+    missing = c.get(url)  # contract: focus_supplier_id is required
+    assert missing.status_code in (400, 422) and missing.headers["content-type"].startswith("application/problem+json")
+
+
+def test_cors_exposes_idempotency_header():
+    c = TestClient(app)
+    r = c.get("/api/v1/health", headers={"Origin": "http://localhost:5173"})
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "Idempotent-Replay" in r.headers["access-control-expose-headers"]

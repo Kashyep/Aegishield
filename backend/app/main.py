@@ -13,7 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION
+from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION, CORS_ORIGINS, FRONTEND_DIST
 from .services.fixtures import load_fixtures, snapshot_id, digest
 from .services.evaluation import build_evaluation_payload
 from .agents.dependency.graph import build_graph
@@ -109,9 +109,10 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Idempotent-Replay", "Location"],
 )
 
 
@@ -430,7 +431,7 @@ def get_evaluation(evaluation_id: str):
 
 
 @app.get("/api/v1/evaluations/{evaluation_id}/graph")
-def get_graph(evaluation_id: str, focus_supplier_id: str = Query("SUP-B", pattern=r"^SUP-[A-Z0-9]+$")):
+def get_graph(evaluation_id: str, focus_supplier_id: str = Query(..., pattern=r"^SUP-[A-Z0-9]+$")):
     instance = f"/api/v1/evaluations/{evaluation_id}/graph"
     with read_connection() as con:
         row = con.execute("SELECT payload_json FROM evaluations WHERE evaluation_id=?", (evaluation_id,)).fetchone()
@@ -679,3 +680,11 @@ def rules_applicability(body: RuleQueryRequest):
     if invalid:
         return invalid
     return query_rule_applicability(fx, body)
+
+
+# Serve the built frontend (frontend/dist) from the same origin when present, so one deployment is the whole demo.
+# Mounted last: every /api/v1 route above takes precedence.
+if FRONTEND_DIST.is_dir():
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

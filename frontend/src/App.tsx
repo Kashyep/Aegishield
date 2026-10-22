@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApiError, getApiMode, getAuditEvents, getEvaluation, getExecution, getPlan, getPolicies, getSupplyGraph, startExecution, submitDecision, verifyAuditChain } from './api/client'
-import type { Acknowledgement, AuditEvent, AuditVerifyResult, Decision, DecisionRequest, DemoActor, Evaluation, Execution, Finding, GraphNode, Plan, Policies, SupplyGraph } from './api/types'
+import { ApiError, createEvaluation, getApiMode, getAuditEvents, getEvaluation, getEvaluationById, getExecution, getGraphView, getHealth, getPlan, getPolicies, resetDemo, startExecution, submitDecision, verifyAuditChain } from './api/client'
+import type { Acknowledgement, AuditEvent, AuditVerifyResult, Decision, DecisionRequest, DemoActor, Evaluation, Execution, Finding, GraphView, GraphViewNode, Health, Plan, Policies } from './api/types'
+import { DependencyGraph } from './components/DependencyGraph'
+import { STATUS_TEXT } from './components/graphStatus'
 import { navItems, readScreenFromHash, screenLabel, writeScreenToHash, type Screen } from './app/navigation'
 import './App.css'
 
@@ -20,83 +22,22 @@ const formatLocalTimestamp = (timestamp?: string | null) => {
     : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(date)
 }
 
-function SupplyGraphView({ graph, selectedNodeId, onSelectNode }: {
-  graph: SupplyGraph
-  selectedNodeId: string | null
-  onSelectNode: (node: GraphNode) => void
-}) {
-  const positions: Record<string, { x: number; y: number }> = {
-    'FAC-FABZ': { x: 28, y: 36 },
-    'FAC-SUBS': { x: 28, y: 205 },
-    'FAC-FABK': { x: 28, y: 376 },
-    'FAC-TSUB': { x: 28, y: 545 },
-    'FAC-Q-KDH': { x: 344, y: 36 },
-    'FAC-VDIE': { x: 344, y: 376 },
-    'FAC-A-PEN': { x: 670, y: 36 },
-    'FAC-B-CHB': { x: 670, y: 286 },
-    'FAC-C-BDG': { x: 670, y: 456 },
-    'FAC-KAV-BLR': { x: 980, y: 36 },
-  }
-  const isConnected = (nodeId: string) => graph.edges.some((edge) => edge.source === selectedNodeId && edge.target === nodeId || edge.target === selectedNodeId && edge.source === nodeId)
-
-  return <>
-    <div className="graph-legend"><span><i className="legend-dot disrupted" />Disruption root cause</span><span><i className="legend-dot affected" />Affected supplier (SUP-A)</span><span><i className="legend-line" />Goods flow direction</span></div>
-    <div className="graph-scroll">
-      <svg className="supply-graph" viewBox="0 0 1215 670" role="img" aria-labelledby="supply-graph-title" aria-describedby="supply-graph-description">
-        <title id="supply-graph-title">Interactive supply chain graph</title>
-        <desc id="supply-graph-description">Arrows show fixture goods flowing from provider to consumer. Every facility and direct link is also listed below the graphic.</desc>
-        <defs><marker id="graph-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
-        {graph.edges.map((edge) => {
-          const from = positions[edge.source]
-          const to = positions[edge.target]
-          if (!from || !to) return null
-          const startX = from.x + 205
-          const endX = to.x - 10
-          const middleX = (startX + endX) / 2
-          const connected = selectedNodeId !== null && (edge.source === selectedNodeId || edge.target === selectedNodeId)
-          return <g key={edge.edge_id} className={`graph-edge ${edge.source === 'FAC-FABZ' ? 'edge-disrupted' : ''} ${selectedNodeId ? connected ? 'is-connected' : 'is-dimmed' : ''}`}>
-            <path d={`M ${startX} ${from.y + 44} C ${middleX} ${from.y + 44}, ${middleX} ${to.y + 44}, ${endX} ${to.y + 44}`} markerEnd="url(#graph-arrow)" />
-            <title>{edge.edge_id}: {edge.source} supplies {edge.target} ({edge.part_id})</title>
-          </g>
-        })}
-        {graph.nodes.map((node) => {
-          const position = positions[node.node_id]
-          if (!position) return null
-          const disrupted = node.node_id === 'FAC-FABZ'
-          const affected = node.supplier_id === 'SUP-A'
-          const selected = node.node_id === selectedNodeId
-          const tag = disrupted ? 'DISRUPTION ROOT CAUSE' : affected ? 'AFFECTED SUPPLIER · SUP-A' : node.role.replace(/_/g, ' ').toUpperCase()
-          return <g key={node.node_id} className={`graph-node ${disrupted ? 'is-disrupted' : ''} ${affected ? 'is-affected' : ''} ${selected ? 'is-selected' : ''} ${selectedNodeId && !selected && !isConnected(node.node_id) ? 'is-dimmed' : ''}`} transform={`translate(${position.x} ${position.y})`} onClick={() => onSelectNode(node)}>
-            <rect width="205" height="88" rx="10" />
-            <text x="13" y="24" className="node-tag">{tag}</text>
-            <text x="13" y="49" className="node-label">{node.label}</text>
-            <text x="13" y="69" className="node-meta">{node.node_id} · {node.country}</text>
-            <title>{node.org_name}</title>
-          </g>
-        })}
-      </svg>
-    </div>
-    <p className="graph-note">Select a facility to inspect its fixture details and trace only its direct supply links. Arrows show provider-to-consumer flow.</p>
-    <section className="graph-text-alternative" aria-labelledby="graph-text-heading">
-      <h2 id="graph-text-heading">Text alternative: supply links</h2>
-      <p>Each entry reports a fixture edge in its recorded direction: provider to consumer. Select a link to focus its consumer in the graphic.</p>
-      <ol>{graph.edges.map((edge) => {
-        const source = graph.nodes.find((node) => node.node_id === edge.source)
-        const target = graph.nodes.find((node) => node.node_id === edge.target)
-        return <li key={edge.edge_id}><button className="graph-link-button" onClick={() => target && onSelectNode(target)}>{source?.label ?? edge.source} ({source?.country ?? 'country not recorded'}) supplies {target?.label ?? edge.target} ({target?.country ?? 'country not recorded'})</button><span>{edge.part_id} · {edge.type} · {edge.confidence} · source {edge.source_ref}</span></li>
-      })}</ol>
-      <div className="table-scroll" role="region" aria-label="Scrollable facility records table" tabIndex={0}><table className="audit-table"><caption>Facility records in this graph fixture</caption><thead><tr><th scope="col">Facility</th><th scope="col">Organization</th><th scope="col">Country</th><th scope="col">Role</th><th scope="col">Supplier</th></tr></thead><tbody>{graph.nodes.map((node) => <tr key={node.node_id}><td>{node.label}<small>{node.node_id}</small></td><td>{node.org_name}</td><td>{node.country}</td><td>{node.role.replace(/_/g, ' ')}</td><td>{node.supplier_id ?? '—'}</td></tr>)}</tbody></table></div>
-    </section>
-  </>
-}
+/** Remedy target values for the LC fields the demo may amend (backend accepts 43T and 47A only). */
+const LC_AMENDMENT_TARGETS: Record<string, string> = { '43T': 'ALLOWED', '47A': '(deleted)' }
+const fieldValue = (excerpt: string | null | undefined, tag: string) => (excerpt ?? '').replace(`:${tag}:`, '').trim()
 
 function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>(readScreenFromHash)
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
-  const [graph, setGraph] = useState<SupplyGraph | null>(null)
+  const [graphView, setGraphView] = useState<GraphView | null>(null)
+  const [focusSupplierId, setFocusSupplierId] = useState('SUP-B')
+  const [health, setHealth] = useState<Health | null>(null)
+  const [demoBusy, setDemoBusy] = useState<'' | 'reset' | 'evaluate'>('')
+  const [demoMessage, setDemoMessage] = useState('')
+  const [amendmentResult, setAmendmentResult] = useState<Decision | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null)
-  const [selectedGraphNode, setSelectedGraphNode] = useState<GraphNode | null>(null)
+  const [selectedGraphNode, setSelectedGraphNode] = useState<GraphViewNode | null>(null)
   const [approvalPlan, setApprovalPlan] = useState<Plan | null>(null)
   const [approvedDecision, setApprovedDecision] = useState<Decision | null>(null)
   const [execution, setExecution] = useState<Execution | null>(null)
@@ -124,36 +65,103 @@ function App() {
   const [evaluationError, setEvaluationError] = useState('')
   const [graphError, setGraphError] = useState('')
 
-  const loadEvaluation = useCallback(async () => {
+  const [evaluationId, setEvaluationId] = useState('EVAL-0001')
+  const loadEvaluation = useCallback(async (id = evaluationId) => {
     setEvaluationState('loading')
     setEvaluationError('')
     try {
-      setEvaluation(await getEvaluation())
+      setEvaluation(getApiMode() === 'live' ? await getEvaluationById(id) : await getEvaluation())
       setEvaluationState('ready')
     } catch (error) {
       setEvaluation(null)
       setEvaluationError(error instanceof Error ? error.message : 'Evaluation fixture could not be loaded.')
       setEvaluationState('error')
     }
-  }, [])
+  }, [evaluationId])
 
+  const evaluationCompleted = evaluation?.status === 'completed'
   const loadGraph = useCallback(async () => {
     setGraphError('')
-    try {
-      setGraph(await getSupplyGraph())
-    } catch (error) {
-      setGraph(null)
-      setGraphError(error instanceof Error ? error.message : 'Supply graph fixture could not be loaded.')
+    if (!evaluationCompleted) {
+      setGraphView(null)
+      setGraphError('The dependency graph is available once an evaluation has completed.')
+      return
     }
-  }, [])
+    try {
+      setGraphView(await getGraphView(evaluationId, focusSupplierId))
+    } catch (error) {
+      setGraphView(null)
+      setGraphError(error instanceof Error ? error.message : 'Dependency graph could not be loaded.')
+    }
+  }, [evaluationId, focusSupplierId, evaluationCompleted])
+
+  useEffect(() => {
+    void loadGraph()
+  }, [loadGraph])
+
+  useEffect(() => {
+    if (getApiMode() !== 'live') return
+    void getHealth().then(setHealth).catch(() => setHealth(null))
+  }, [evaluation?.evaluation_id])
+
+  const llmMode = health?.llm_mode ?? evaluation?.llm_mode ?? 'off'
+  const llmBadge = `LLM: ${llmMode}${llmMode === 'off' ? ' (templates)' : ''}${health?.status === 'degraded' ? ' · degraded, templates in use' : ''}`
+
+  const pollEvaluation = async (id: string) => {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const current = await getEvaluationById(id)
+      setEvaluation(current)
+      if (!['queued', 'running'].includes(current.status)) return current
+      await new Promise((resolve) => window.setTimeout(resolve, 500))
+    }
+    throw new ApiError(`Evaluation ${id} did not finish within 60 seconds.`)
+  }
+
+  const runDemoReset = async () => {
+    setDemoBusy('reset')
+    setDemoMessage('')
+    try {
+      const reset = await resetDemo(actorId)
+      setEvaluation(null)
+      setGraphView(null)
+      setExecution(null)
+      setApprovedDecision(null)
+      setAmendmentResult(null)
+      setEvaluationState('error')
+      setEvaluationError('No evaluation yet. Run the evaluation to assess the disruption.')
+      setDemoMessage(`Demo reset at ${formatLocalTimestamp(reset.reset_at)}. Audit chain restarted (${reset.audit_event_id}).`)
+    } catch (error) {
+      setDemoMessage(error instanceof Error ? error.message : 'Reset failed.')
+    } finally {
+      setDemoBusy('')
+    }
+  }
+
+  const runEvaluation = async () => {
+    setDemoBusy('evaluate')
+    setDemoMessage('')
+    try {
+      const disruptionId = evaluation?.disruption_id ?? 'DIS-2026-0042'
+      const accepted = await createEvaluation(actorId, crypto.randomUUID(), disruptionId)
+      setEvaluationId(accepted.evaluation_id)
+      navigate('evaluation-progress')
+      setEvaluationState('ready')
+      const done = await pollEvaluation(accepted.evaluation_id)
+      setDemoMessage(`Evaluation ${done.evaluation_id} ${done.status}.${accepted.superseded_plan_ids.length ? ` Superseded: ${accepted.superseded_plan_ids.join(', ')}.` : ''}`)
+    } catch (error) {
+      setDemoMessage(error instanceof Error ? error.message : 'Evaluation could not be started.')
+    } finally {
+      setDemoBusy('')
+    }
+  }
 
   useEffect(() => {
     void loadEvaluation()
-    void loadGraph()
     void getPolicies().then(setPolicies).catch((error: unknown) => {
       setPoliciesError(error instanceof Error ? error.message : 'Approval policy fixture could not be loaded.')
     })
-  }, [loadEvaluation, loadGraph])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load only; later loads are explicit
+  }, [])
 
   useEffect(() => {
     const syncScreenFromHistory = () => setActiveScreen(readScreenFromHash())
@@ -200,6 +208,62 @@ function App() {
       : !reviewsAcknowledged
         ? 'Acknowledge every review finding with a note of at least 5 characters.'
         : ''
+  const hasAmendableLcFinding = (plan: Plan) => Boolean(evaluation?.findings.some((finding) => plan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked' && finding.check_code.startsWith('LC.')))
+  const amendableFindings = approvalPlan && evaluation
+    ? evaluation.findings.filter((finding) => approvalPlan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked' && finding.check_code.startsWith('LC.'))
+    : []
+  const amendmentEvidence = evaluation
+    ? evaluation.evidence.filter((item) => item.kind === 'lc_field' && amendableFindings.some((finding) => finding.evidence_ids.includes(item.evidence_id)))
+    : []
+  const amendmentLcId = amendmentEvidence.map((item) => item.locator.lc_id).find((id): id is string => typeof id === 'string')
+  const amendmentChanges = [...new Map(amendmentEvidence
+    .map((item) => [String(item.locator.field_tag), item] as const)
+    .filter(([tag]) => tag in LC_AMENDMENT_TARGETS)).values()]
+    .map((item) => {
+      const tag = String(item.locator.field_tag)
+      return { field_tag: tag, from: fieldValue(item.excerpt, tag), to: LC_AMENDMENT_TARGETS[tag] }
+    })
+  const actorCanAmend = Boolean(currentActor && policies?.approval_policy.amendment_request_roles?.includes(currentActor.role))
+  const amendmentDisabledReason = !actorCanAmend
+    ? 'Switch to the trade compliance officer to request an LC amendment.'
+    : decisionJustification.trim().length < 10
+      ? 'Enter a justification of at least 10 characters.'
+      : getApiMode() === 'stub'
+        ? 'Fixture mode has no decision endpoint response.'
+        : ''
+
+  const submitAmendment = async () => {
+    if (!approvalPlan || !amendmentLcId || amendmentDisabledReason) return
+    const body: DecisionRequest = {
+      action: 'request_amendment',
+      plan_version: approvalPlan.version,
+      plan_hash: approvalPlan.plan_hash,
+      justification: decisionJustification.trim(),
+      acknowledgements: [],
+      amendment: { lc_id: amendmentLcId, requested_changes: amendmentChanges },
+    }
+    const serializedBody = JSON.stringify(body)
+    if (pendingDecisionRef.current?.body !== serializedBody) {
+      pendingDecisionRef.current = { body: serializedBody, key: crypto.randomUUID() }
+    }
+    setDecisionSubmitting(true)
+    setDecisionError(null)
+    try {
+      const result = await submitDecision(approvalPlan.plan_id, actorId, pendingDecisionRef.current.key, body)
+      setAmendmentResult(result.data)
+      setEvaluation((previous) => previous && ({
+        ...previous,
+        plans: previous.plans.map((plan) => plan.plan_id === result.data.plan_id
+          ? { ...plan, status: result.data.resulting_plan_status, decision_ids: [...(plan.decision_ids ?? []), result.data.decision_id] }
+          : plan),
+      }))
+    } catch (error) {
+      setDecisionError(error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : 'Amendment request could not be submitted.'))
+    } finally {
+      setDecisionSubmitting(false)
+    }
+  }
+
   const linkedEvidence = selectedFinding && evaluation
     ? evaluation.evidence.filter((item) => selectedFinding.evidence_ids.includes(item.evidence_id))
     : []
@@ -218,6 +282,7 @@ function App() {
     setAcknowledgements({})
     setDecisionError(null)
     setDecisionJustification('')
+    setAmendmentResult(null)
     pendingDecisionRef.current = null
   }
 
@@ -420,7 +485,7 @@ function App() {
             {item.icon} &nbsp; {item.label}
           </button>
         ))}
-        <div className="sidebar-bottom"><span className="status-dot" />Demo environment<small>LLM mode: Off</small></div>
+        <div className="sidebar-bottom"><span className="status-dot" />Demo environment<small className="llm-badge" aria-label="LLM mode">{llmBadge}</small></div>
       </aside>
 
       <main className="main-content">
@@ -430,7 +495,8 @@ function App() {
 
           {activeScreen === 'command' && (
             <>
-              <div className="page-title-row"><div><p className="eyebrow">SUPPLY CHAIN RESILIENCE</p><h1>Command Center</h1><p className="subtitle">Assess disruption, compare recovery plans, and review evidence before approval.</p></div><span className="evaluation-status"><span className="status-dot" />Evaluation completed</span></div>
+              <div className="page-title-row"><div><p className="eyebrow">SUPPLY CHAIN RESILIENCE</p><h1>Command Center</h1><p className="subtitle">Assess disruption, compare recovery plans, and review evidence before approval.</p></div><span className="evaluation-status"><span className="status-dot" />{evaluation ? `Evaluation ${evaluation.status}` : 'No evaluation'}</span></div>
+              {getApiMode() === 'live' && <div className="demo-controls" aria-label="Demo controls"><button className="secondary-button" disabled={Boolean(demoBusy)} onClick={() => void runDemoReset()}>{demoBusy === 'reset' ? 'Resetting…' : 'Reset demo'}</button><button className="primary-button" disabled={Boolean(demoBusy)} onClick={() => void runEvaluation()}>{demoBusy === 'evaluate' ? 'Evaluating…' : 'Run evaluation'}</button>{demoMessage && <span role="status">{demoMessage}</span>}</div>}
               <section className="disruption-card"><div className="disruption-icon">!</div><div className="disruption-copy"><span className="eyebrow">ACTIVE DISRUPTION · DIS-2026-0042</span><h2>Supplier delay detected</h2><p>A delay at supplier SUP-A affects downstream supply-chain commitments.</p></div><span className="severity-badge">High severity</span></section>
               <div className="section-heading"><div><h2>Evaluation overview</h2><p>Evaluation {evaluation?.evaluation_id ?? 'EVAL-0001'} · {evaluation?.status ?? 'Loading'}</p></div><div className="command-actions"><button className="secondary-button" onClick={() => navigate('evaluations')}>View evaluation details ↗</button><button className="primary-button" onClick={openEvaluationProgress}>View evaluation progress</button></div></div>
               <section className="metrics-grid">
@@ -444,7 +510,7 @@ function App() {
                 const passed = plan.outcome === 'passed'
                 const fullPlan = evaluation?.plans.find((candidate) => candidate.plan_id === plan.plan_id)
                 const isBlocked = fullPlan?.status === 'blocked'
-                return <article className="plan-card" key={plan.plan_id}><div className="plan-top"><div className="plan-id">{plan.plan_id.replace('PLN-', 'P')}</div><span className={`plan-status ${passed ? 'passed' : 'blocked'}`}>{fullPlan?.status?.replace(/_/g, ' ') ?? plan.outcome}</span></div><h3>{plan.label}</h3><p className="plan-detail">Recovery plan from evaluation {evaluation?.evaluation_id}.</p><div className="financial-block"><span>Net avoided loss{isBlocked ? ' · on paper' : ''}</span><strong>{money(plan.net_avoided_loss_inr)}</strong></div><div className="checks-row">{plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked</div><div className="plan-actions"><button className="secondary-button" onClick={() => fullPlan && setSelectedPlan(fullPlan)}>Review evidence</button>{fullPlan?.status === 'approved' || fullPlan?.status === 'completed' ? <button className="primary-button" disabled={executionSubmitting || getApiMode() === 'stub'} onClick={() => void startPlanExecution(fullPlan)}>{fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}</button> : <button className="primary-button" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={() => openApproval(plan.plan_id)}>Approve</button>}</div>{isBlocked && <p className="blocked-reason" id={`blocked-reason-${plan.plan_id}`}>Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. P1 remains blocked.</p>}</article>
+                return <article className="plan-card" key={plan.plan_id}><div className="plan-top"><div className="plan-id">{plan.plan_id.replace('PLN-', 'P')}</div><span className={`plan-status ${passed ? 'passed' : 'blocked'}`}>{fullPlan?.status?.replace(/_/g, ' ') ?? plan.outcome}</span></div><h3>{plan.label}</h3><p className="plan-detail">Recovery plan from evaluation {evaluation?.evaluation_id}.</p><div className="financial-block"><span>Net avoided loss{isBlocked ? ' · on paper' : ''}</span><strong>{money(plan.net_avoided_loss_inr)}</strong></div><div className="checks-row">{plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked</div><div className="plan-actions"><button className="secondary-button" onClick={() => fullPlan && setSelectedPlan(fullPlan)}>Review evidence</button>{fullPlan?.status === 'approved' || fullPlan?.status === 'completed' ? <button className="primary-button" disabled={executionSubmitting || getApiMode() === 'stub'} onClick={() => void startPlanExecution(fullPlan)}>{fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}</button> : <button className="primary-button" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={() => openApproval(plan.plan_id)}>Approve</button>}{isBlocked && fullPlan && hasAmendableLcFinding(fullPlan) && <button className="secondary-button" disabled={!actorCanAmend} title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'} onClick={() => openApproval(plan.plan_id)}>Request LC amendment</button>}</div>{isBlocked && <p className="blocked-reason" id={`blocked-reason-${plan.plan_id}`}>Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. P1 remains blocked.</p>}</article>
               })}</section>
               {executionError && <p className="load-error" role="alert">{executionError}</p>}
               {selectedPlan && <div className="evidence-panel"><div className="evidence-header"><h2>Evidence — {selectedPlan.plan_id}</h2><button className="secondary-button" onClick={() => setSelectedPlan(null)}>Close ✕</button></div><h3>{selectedPlan.label}</h3><p><strong>Validation status:</strong> {selectedPlan.status}</p><p><strong>Check results:</strong> {selectedPlan.check_outcome_counts.passed} passed · {selectedPlan.check_outcome_counts.needs_review} need review · {selectedPlan.check_outcome_counts.blocked} blocked</p><p><strong>Financial impact:</strong> {money(selectedPlan.financials.net_avoided_loss_inr)}</p><div className="evidence-findings"><h3>Plan findings</h3>{evaluation?.findings.filter((finding) => selectedPlan.finding_ids.includes(finding.finding_id)).map((finding) => <button key={finding.finding_id} className="finding-link" onClick={() => setSelectedFinding(finding)}>{finding.title}<span>{finding.finding_id} · {finding.outcome}</span></button>)}</div></div>}
@@ -485,17 +551,25 @@ function App() {
           </>}
 
           {activeScreen === 'supply-graph' && <>
-            <div className="page-title-row"><div><p className="eyebrow">WORKSPACE / SUPPLY GRAPH</p><h1>Supply graph</h1><p className="subtitle">Facilities and supply relationships from the SCN-DEMO-001 fixture.</p></div></div>
-            {graph ? <>
-              <p className="subtitle">{graph.nodes.length} facilities · {graph.edges.length} supply links · Direction: {graph.edge_direction.replace(/_/g, ' ')}</p>
-              <SupplyGraphView graph={graph} selectedNodeId={selectedGraphNode?.node_id ?? null} onSelectNode={setSelectedGraphNode} />
+            <div className="page-title-row"><div><p className="eyebrow">WORKSPACE / SUPPLY GRAPH</p><h1>Supply graph</h1><p className="subtitle">Why a candidate supplier is or is not independent of the disruption: upstream evidence from evaluation {evaluationId}.</p></div></div>
+            {graphView ? <>
+              <p className="subtitle">{graphView.nodes.length} facilities · {graphView.edges.length} links · Direction: {graphView.edge_direction.replace(/_/g, ' ')}</p>
+              <DependencyGraph
+                view={graphView}
+                result={evaluation?.dependency_results?.find((result) => result.supplier_id === graphView.focus_supplier_id)}
+                candidates={(evaluation?.dependency_results ?? []).map((result) => ({
+                  supplierId: result.supplier_id,
+                  label: graphView.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
+                }))}
+                onFocusSupplier={(supplierId) => { setSelectedGraphNode(null); setFocusSupplierId(supplierId) }}
+                selectedNodeId={selectedGraphNode?.id ?? null}
+                onSelectNode={setSelectedGraphNode}
+              />
               {selectedGraphNode && <section className="facility-details" aria-live="polite" aria-label="Selected facility details">
                 <div className="facility-details-header"><div><p className="eyebrow">SELECTED FACILITY</p><h2>{selectedGraphNode.label}</h2></div><button className="secondary-button" onClick={() => setSelectedGraphNode(null)}>Clear selection</button></div>
-                <dl><div><dt>Facility ID</dt><dd>{selectedGraphNode.node_id}</dd></div><div><dt>Organization</dt><dd>{selectedGraphNode.org_name}</dd></div><div><dt>Country</dt><dd>{selectedGraphNode.country}</dd></div><div><dt>Role</dt><dd>{selectedGraphNode.role.replace(/_/g, ' ')}</dd></div>{selectedGraphNode.supplier_id && <div><dt>Supplier</dt><dd>{selectedGraphNode.supplier_id}</dd></div>}</dl>
+                <dl><div><dt>Facility ID</dt><dd>{selectedGraphNode.id}</dd></div><div><dt>Organization</dt><dd>{selectedGraphNode.org_name}</dd></div><div><dt>Country</dt><dd>{selectedGraphNode.country}</dd></div><div><dt>Role</dt><dd>{selectedGraphNode.role.replace(/_/g, ' ')}</dd></div><div><dt>Status</dt><dd>{STATUS_TEXT[selectedGraphNode.status] ?? selectedGraphNode.status}</dd></div></dl>
               </section>}
-              <div className="section-heading"><div><h2>Source records</h2><p>Fixture sources referenced by supply links.</p></div></div>
-              {graph.sources.map((source) => <article className="evidence-finding" key={source.source_id}><h4>{source.title}</h4><p>{source.source_id} · {source.kind} · as of {source.as_of}</p></article>)}
-            </> : <p>{graphError || 'Loading supply graph fixture…'}</p>}
+            </> : <p>{graphError || 'Loading dependency graph…'}</p>}
           </>}
 
           {activeScreen === 'audit-trail' && <>
@@ -537,6 +611,15 @@ function App() {
               </fieldset>
             })}
           </section>
+          {approvalPlan.status === 'blocked' && amendableFindings.length > 0 && amendmentLcId && <section className="amendment-section" aria-labelledby="amendment-heading">
+            <h3 id="amendment-heading">Request LC amendment</h3>
+            <p>{amendableFindings.map((finding) => finding.title).join('; ')}. The plan stays blocked until the bank accepts the amendment and the plan is re-evaluated.</p>
+            <table className="audit-table"><caption>Requested changes to {amendmentLcId}</caption><thead><tr><th scope="col">Field</th><th scope="col">Current</th><th scope="col">Requested</th></tr></thead><tbody>{amendmentChanges.map((change) => <tr key={change.field_tag}><td>{change.field_tag}</td><td>{change.from}</td><td>{change.to}</td></tr>)}</tbody></table>
+            <p className="field-hint">Uses the justification above (at least 10 characters). Role: trade compliance officer.</p>
+            <button className="secondary-button" disabled={decisionSubmitting || Boolean(amendmentDisabledReason) || Boolean(amendmentResult)} title={amendmentDisabledReason || undefined} onClick={() => void submitAmendment()}>{decisionSubmitting ? 'Submitting…' : 'Request LC amendment'}</button>
+            {amendmentDisabledReason && !amendmentResult && <p className="field-hint">{amendmentDisabledReason}</p>}
+            {amendmentResult && <p className="approval-note" role="status">Amendment request {amendmentResult.amendment_request_id} recorded by {amendmentResult.actor.display_name ?? amendmentResult.actor.actor_id}. Plan {amendmentResult.plan_id} stays {amendmentResult.resulting_plan_status}.</p>}
+          </section>}
           {policiesError && <p className="load-error" role="alert">{policiesError}</p>}
           {getApiMode() === 'stub' && <p className="approval-note">Fixture mode contains no decision response. Connect the backend in live mode to submit; no approval will be simulated here.</p>}
           {decisionError && <div className="api-error" role="alert"><strong>{decisionError.problem?.title ?? 'Decision not recorded'}</strong><p>{decisionError.problem?.detail ?? decisionError.message}</p>{['PLAN_VERSION_STALE', 'PLAN_SUPERSEDED', 'DECISION_EXISTS'].includes(decisionError.problem?.code ?? '') && <button className="secondary-button" disabled={decisionSubmitting} onClick={() => void reloadApprovalPlan()}>Reload current plan</button>}</div>}

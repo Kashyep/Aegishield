@@ -139,6 +139,22 @@ export type Evaluation = {
   findings: Finding[]
   evidence: Evidence[]
   rule_results: RuleResult[]
+  dependency_results?: DependencyResult[]
+}
+
+export type DependencyResult = {
+  supplier_id: string
+  part_id: string
+  start_node_id: string
+  max_depth: number
+  disrupted_node_ids: string[]
+  outcome: 'passed' | 'needs_review' | 'blocked'
+  reason_code: string
+  paths: { path_id: string; kind: string; node_ids: string[]; edge_ids: string[] }[]
+  shared_with_primary_node_ids: string[]
+  coverage: { complete: boolean; gaps: unknown[] }
+  truncated: boolean
+  cycle_detected: boolean
 }
 
 export type DemoActor = {
@@ -286,3 +302,63 @@ export type SupplyGraph = {
 }
 
 export type GraphNode = SupplyGraph['nodes'][number]
+
+export type GraphViewNodeStatus = 'disrupted' | 'blocked' | 'candidate_passed' | 'affected_primary' | 'buyer' | 'normal'
+
+export type GraphView = {
+  schema_version: string
+  view_id: string
+  evaluation_id: string
+  focus_supplier_id: string
+  edge_direction: string
+  nodes: {
+    id: string
+    label: string
+    org_name: string
+    country: string
+    role: string
+    status: GraphViewNodeStatus
+    synthetic: boolean
+  }[]
+  edges: {
+    id: string
+    source: string
+    target: string
+    type: string
+    part_id: string
+    confidence: string | null
+    source_ref: string | null
+    highlighted: boolean
+    candidate: boolean
+  }[]
+  paths: { path_id: string; kind: string; node_ids: string[]; edge_ids: string[] }[]
+  text_alternative: string[]
+}
+
+export type GraphViewNode = GraphView['nodes'][number]
+
+export type Health = {
+  status: 'ok' | 'degraded'
+  api_version: string
+  contract_version: string
+  data_mode: string
+  llm_mode: 'off' | 'recorded' | 'live'
+  demo_mode: boolean
+  scenario_id: string
+  input_snapshot_id: string
+}
+
+export type EvaluationAccepted = {
+  evaluation_id: string
+  status: string
+  poll_url: string
+  superseded_plan_ids: string[]
+}
+
+export type DemoResetResponse = {
+  scenario_id: string
+  input_snapshot_id: string
+  reset_at: string
+  counters_reset: boolean
+  audit_event_id: string
+}

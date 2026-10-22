@@ -990,3 +990,41 @@ footer {
     transition-duration: .01ms !important;
   }
 }
+
+/* Dependency evidence graph (GraphView) */
+.graph-focus { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 12px; color: #52657a; font-size: 13px; }
+.focus-button { padding: 6px 12px; border: 1px solid #bdcbd9; border-radius: 16px; color: #20364e; background: #fff; font-size: 12px; cursor: pointer; }
+.focus-button.active { border-color: #0a6ed1; color: #fff; background: #0a6ed1; }
+.focus-button:focus-visible { outline: 3px solid #5eafff; outline-offset: 2px; }
+.dependency-verdict { margin-bottom: 12px; padding: 12px 14px; border-left: 4px solid #91a2b5; border-radius: 6px; background: #fff; font-size: 13px; }
+.dependency-verdict strong { display: block; color: #20364e; }
+.dependency-verdict span { color: #5b6d80; font-size: 12px; }
+.dependency-verdict p { margin: 6px 0 0; color: #344b63; }
+.dependency-verdict.blocked { border-left-color: #c24135; background: #fff5f3; }
+.dependency-verdict.passed { border-left-color: #1f7a45; background: #f1faf4; }
+.dependency-verdict.needs_review { border-left-color: #d98a16; background: #fff9ed; }
+.legend-dot.blocked { background: #c24135; border-radius: 2px; }
+.legend-dot.passed { background: #1f7a45; }
+.legend-line.path { height: 4px; background: #c24135; }
+.legend-line.focus { background: #0a6ed1; }
+.legend-line.candidate { background: repeating-linear-gradient(90deg, #6d839b 0 5px, transparent 5px 9px); }
+.graph-edge.edge-path { stroke: #c24135; stroke-width: 4; }
+.graph-edge.edge-focus { stroke: #0a6ed1; stroke-width: 2.5; }
+.graph-edge.edge-candidate { stroke: #6d839b; stroke-dasharray: 7 5; }
+marker.arrow-default path, marker.arrow-candidate path { fill: #73879d; }
+marker.arrow-path path { fill: #c24135; }
+marker.arrow-focus path { fill: #0a6ed1; }
+.graph-node.status-disrupted rect { fill: #fff5f3; stroke: #c24135; stroke-width: 2.5; }
+.graph-node.status-disrupted .node-tag, .graph-node.status-blocked .node-tag { fill: #ad352a; }
+.graph-node.status-blocked rect { fill: #fff5f3; stroke: #c24135; stroke-width: 2.5; stroke-dasharray: 6 3; }
+.graph-node.status-candidate_passed rect { fill: #f1faf4; stroke: #1f7a45; stroke-width: 2.5; }
+.graph-node.status-candidate_passed .node-tag { fill: #1a6a3c; }
+.graph-node.status-affected_primary rect { fill: #fff9ed; stroke: #d98a16; stroke-width: 2.5; }
+.graph-node.status-affected_primary .node-tag { fill: #9b610b; }
+.graph-node.status-buyer rect { fill: #f2f6fb; stroke: #5b6d80; }
+.graph-text-alternative h3 { margin: 14px 0 6px; color: #20364e; font-size: 14px; }
+.evidence-paths code { display: block; margin-top: 4px; padding: 6px 8px; border-radius: 4px; color: #344b63; background: #f4f7fa; font-size: 11px; white-space: pre-wrap; word-break: break-word; }
+.llm-badge { display: block; margin-top: 4px; }
+.demo-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.amendment-section { margin-top: 18px; padding: 14px; border: 1px solid #dbe4ee; border-radius: 8px; }
+.amendment-section table { width: 100%; font-size: 12px; }

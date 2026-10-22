@@ -5,8 +5,12 @@ import type {
   AuditVerifyResult,
   Decision,
   DecisionRequest,
+  DemoResetResponse,
   Evaluation,
+  EvaluationAccepted,
   Execution,
+  GraphView,
+  Health,
   Policies,
   Plan,
   SupplyGraph,
@@ -114,6 +118,34 @@ export function getSupplyGraph(): Promise<SupplyGraph> {
     return unsupportedLiveOperation('The raw supply graph fixture view')
   }
   return getStub<SupplyGraph>('/stubs/supply_graph.json')
+}
+
+/** Dependency evidence graph (GraphView) for one candidate supplier. Stub files are generated from the backend builder. */
+export function getGraphView(evaluationId: string, supplierId: string): Promise<GraphView> {
+  return apiMode === 'stub'
+    ? getStub<GraphView>(`/stubs/graph_view_${encodeURIComponent(supplierId)}.json`)
+    : request<GraphView>(`/api/v1/evaluations/${encodeURIComponent(evaluationId)}/graph?focus_supplier_id=${encodeURIComponent(supplierId)}`).then(({ data }) => data)
+}
+
+export async function getHealth(): Promise<Health> {
+  return (await request<Health>('/api/v1/health')).data
+}
+
+export async function resetDemo(actorId: string): Promise<DemoResetResponse> {
+  return (await request<DemoResetResponse>('/api/v1/demo/reset', { method: 'POST', actorId })).data
+}
+
+export async function createEvaluation(actorId: string, idempotencyKey: string, disruptionId: string): Promise<EvaluationAccepted> {
+  return (await request<EvaluationAccepted>('/api/v1/evaluations', {
+    method: 'POST',
+    actorId,
+    idempotencyKey,
+    body: { disruption_id: disruptionId },
+  })).data
+}
+
+export async function getEvaluationById(evaluationId: string): Promise<Evaluation> {
+  return (await request<Evaluation>(`/api/v1/evaluations/${encodeURIComponent(evaluationId)}`)).data
 }
 
 export function getPolicies(): Promise<Policies> {

@@ -1,0 +1,252 @@
+{
+  "schema_version": "1.0.0",
+  "view_id": "GV-EVAL-0001-SUP-B",
+  "evaluation_id": "EVAL-0001",
+  "focus_supplier_id": "SUP-B",
+  "edge_direction": "provider_to_consumer",
+  "nodes": [
+    {
+      "id": "FAC-A-PEN",
+      "label": "Penang module assembly",
+      "org_name": "Penang PowerTech Sdn Bhd (synthetic)",
+      "country": "MY",
+      "role": "module_assembly",
+      "status": "affected_primary",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-B-CHB",
+      "label": "Chonburi module assembly",
+      "org_name": "Chao Phraya Power Devices Co (synthetic)",
+      "country": "TH",
+      "role": "module_assembly",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-C-BDG",
+      "label": "Binh Duong module assembly",
+      "org_name": "Saigon Precision Electronics JSC (synthetic)",
+      "country": "VN",
+      "role": "module_assembly",
+      "status": "candidate_passed",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-FABK",
+      "label": "Kumgang Gumi wafer fab",
+      "org_name": "Kumgang Semiconductor Co (synthetic)",
+      "country": "KR",
+      "role": "wafer_fab",
+      "status": "normal",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-FABZ",
+      "label": "Zenith Kulim wafer fab",
+      "org_name": "Zenith Wafer Fab Sdn Bhd (synthetic)",
+      "country": "MY",
+      "role": "wafer_fab",
+      "status": "disrupted",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-KAV-BLR",
+      "label": "Kaveri Bengaluru plant",
+      "org_name": "Kaveri Motion Systems Pvt Ltd (synthetic)",
+      "country": "IN",
+      "role": "buyer_plant",
+      "status": "buyer",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-Q-KDH",
+      "label": "Kedah die sort and dicing",
+      "org_name": "Kedah Die Services Sdn Bhd (synthetic)",
+      "country": "MY",
+      "role": "die_processing",
+      "status": "normal",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-SUBS",
+      "label": "Shah Alam ceramic substrates",
+      "org_name": "Selangor Ceramic Substrates Sdn Bhd (synthetic)",
+      "country": "MY",
+      "role": "material_supplier",
+      "status": "normal",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-TSUB",
+      "label": "Rayong substrate works",
+      "org_name": "Rayong Substrate Works Co (synthetic)",
+      "country": "TH",
+      "role": "material_supplier",
+      "status": "normal",
+      "synthetic": true
+    },
+    {
+      "id": "FAC-VDIE",
+      "label": "Hanoi die distribution",
+      "org_name": "Vina Die Distribution Co (synthetic)",
+      "country": "VN",
+      "role": "die_processing",
+      "status": "normal",
+      "synthetic": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "CAND-SUP-B",
+      "source": "FAC-B-CHB",
+      "target": "FAC-KAV-BLR",
+      "type": "CANDIDATE_SUPPLY",
+      "part_id": "PRT-PM750",
+      "confidence": null,
+      "source_ref": null,
+      "highlighted": false,
+      "candidate": true
+    },
+    {
+      "id": "CAND-SUP-C",
+      "source": "FAC-C-BDG",
+      "target": "FAC-KAV-BLR",
+      "type": "CANDIDATE_SUPPLY",
+      "part_id": "PRT-PM750",
+      "confidence": null,
+      "source_ref": null,
+      "highlighted": false,
+      "candidate": true
+    },
+    {
+      "id": "E-001",
+      "source": "FAC-A-PEN",
+      "target": "FAC-KAV-BLR",
+      "type": "SUPPLIES",
+      "part_id": "PRT-PM750",
+      "confidence": "verified",
+      "source_ref": "SRC-ERP-PO-7001",
+      "highlighted": false,
+      "candidate": false
+    },
+    {
+      "id": "E-002",
+      "source": "FAC-FABZ",
+      "target": "FAC-A-PEN",
+      "type": "SUPPLIES",
+      "part_id": "PRT-IGBT-DIE",
+      "confidence": "verified",
+      "source_ref": "SRC-DECL-A-2026",
+      "highlighted": false,
+      "candidate": false
+    },
+    {
+      "id": "E-003",
+      "source": "FAC-SUBS",
+      "target": "FAC-A-PEN",
+      "type": "SUPPLIES",
+      "part_id": "PRT-DBC-SUB",
+      "confidence": "verified",
+      "source_ref": "SRC-DECL-A-2026",
+      "highlighted": false,
+      "candidate": false
+    },
+    {
+      "id": "E-004",
+      "source": "FAC-Q-KDH",
+      "target": "FAC-B-CHB",
+      "type": "SUPPLIES",
+      "part_id": "PRT-IGBT-DIE",
+      "confidence": "verified",
+      "source_ref": "SRC-AUD-B-2026Q2",
+      "highlighted": true,
+      "candidate": false
+    },
+    {
+      "id": "E-005",
+      "source": "FAC-FABZ",
+      "target": "FAC-Q-KDH",
+      "type": "SUPPLIES",
+      "part_id": "PRT-IGBT-DIE",
+      "confidence": "verified",
+      "source_ref": "SRC-AUD-B-2026Q2",
+      "highlighted": true,
+      "candidate": false
+    },
+    {
+      "id": "E-006",
+      "source": "FAC-TSUB",
+      "target": "FAC-B-CHB",
+      "type": "SUPPLIES",
+      "part_id": "PRT-DBC-SUB",
+      "confidence": "verified",
+      "source_ref": "SRC-AUD-B-2026Q2",
+      "highlighted": false,
+      "candidate": false
+    },
+    {
+      "id": "E-007",
+      "source": "FAC-VDIE",
+      "target": "FAC-C-BDG",
+      "type": "SUPPLIES",
+      "part_id": "PRT-IGBT-DIE",
+      "confidence": "verified",
+      "source_ref": "SRC-DECL-C-2026",
+      "highlighted": false,
+      "candidate": false
+    },
+    {
+      "id": "E-008",
+      "source": "FAC-FABK",
+      "target": "FAC-VDIE",
+      "type": "SUPPLIES",
+      "part_id": "PRT-IGBT-DIE",
+      "confidence": "verified",
+      "source_ref": "SRC-DECL-C-2026",
+      "highlighted": false,
+      "candidate": false
+    },
+    {
+      "id": "E-009",
+      "source": "FAC-SUBS",
+      "target": "FAC-C-BDG",
+      "type": "SUPPLIES",
+      "part_id": "PRT-DBC-SUB",
+      "confidence": "verified",
+      "source_ref": "SRC-DECL-C-2026",
+      "highlighted": false,
+      "candidate": false
+    }
+  ],
+  "paths": [
+    {
+      "path_id": "PATH-SUP-B-1",
+      "kind": "shared_disrupted_dependency",
+      "node_ids": [
+        "FAC-B-CHB",
+        "FAC-Q-KDH",
+        "FAC-FABZ"
+      ],
+      "edge_ids": [
+        "E-004",
+        "E-005"
+      ]
+    },
+    {
+      "path_id": "PATH-SUP-B-2",
+      "kind": "clean",
+      "node_ids": [
+        "FAC-B-CHB",
+        "FAC-TSUB"
+      ],
+      "edge_ids": [
+        "E-006"
+      ]
+    }
+  ],
+  "text_alternative": [
+    "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]",
+    "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+  ]
+}

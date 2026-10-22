@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import re
 
+from ...llm.explain import explain
+from ...llm.validate import validate_output
 from .graph import SupplyGraph
 
 PROMPT_ID = "dependency_explain_v1"
 MAX_CHARS = 600
-PROMPT_SPEC = {
+PROMPT_SPEC = {  # registered as app/llm/prompts/dependency_explain_v1.md
     "prompt_id": PROMPT_ID,
     "owner": "member_4",
     "input": "LinearizedContext.lines (aegis-path-v1) and allowed_citation_ids",
@@ -62,29 +64,15 @@ def template_explanation(result: dict, graph: SupplyGraph, parts: list[dict]) ->
 
 
 def validate_explanation(expl: dict, context: dict, result: dict) -> list[str]:
-    """Grounding rules the gateway validator enforces (kept here so the harness can measure them)."""
-    problems = []
-    allowed = set(context["allowed_citation_ids"])
-    if any(c not in allowed for c in expl["cited_ids"]):
-        problems.append("CITATION_NOT_ALLOWED")
-    text = expl["text"]
-    if len(text) > MAX_CHARS:
-        problems.append("TOO_LONG")
-    if result["outcome"] != "passed" and re.search(r"\bindependent\b", text, re.I) and not re.search(r"not independent|cannot be confirmed", text, re.I):
-        problems.append("CONTRADICTS_OUTCOME")
-    ctx_nums = set(re.findall(r"\d+", " ".join(context["lines"])))
-    if set(re.findall(r"\d+", text)) - ctx_nums:
-        problems.append("UNGROUNDED_NUMBER")
-    return problems
+    """Same rules as every other model output (MOD-12 validator)."""
+    return validate_output(expl, allowed_ids=context["allowed_citation_ids"], context_text="\n".join(context["lines"]),
+                           outcome=result["outcome"], subject_id=result["supplier_id"], max_chars=MAX_CHARS)
 
 
-def explain_dependency(result: dict, context: dict, graph: SupplyGraph, parts: list[dict], llm=None) -> dict:
-    """llm: optional callable(prompt_spec, context)->{text, cited_ids} (MOD-12). Never raises; template on any failure."""
-    if llm is not None:
-        try:
-            cand = llm(PROMPT_SPEC, context)
-            if not validate_explanation(cand, context, result):
-                return {**cand, "source": "llm"}
-        except Exception:
-            pass
-    return {**template_explanation(result, graph, parts), "source": "template"}
+def explain_dependency(result: dict, context: dict, graph: SupplyGraph, parts: list[dict], gateway=None,
+                       generated_at: str | None = None) -> dict:
+    """Explanation for one dependency result through the MOD-12 gateway; template on any failure. Never raises."""
+    ctx = {**context, "outcome": result["outcome"]}
+    xpl, _ = explain(result["supplier_id"], ctx, PROMPT_ID, template_explanation(result, graph, parts), gateway,
+                     explanation_id=f"XPL-DEP-{result['supplier_id']}", generated_at=generated_at, max_chars=MAX_CHARS)
+    return xpl

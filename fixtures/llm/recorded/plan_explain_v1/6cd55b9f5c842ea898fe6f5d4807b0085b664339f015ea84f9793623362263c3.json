@@ -1,0 +1,54 @@
+{
+  "prompt_id": "plan_explain_v1",
+  "prompt_version": "1.0.0",
+  "request_hash": "6cd55b9f5c842ea898fe6f5d4807b0085b664339f015ea84f9793623362263c3",
+  "input": {
+    "subject_id": "PLN-0002",
+    "lines": [
+      "PLAN PLN-0002 outcome=passed strategy=constraint_verified",
+      "FINANCIALS baseline_loss_inr=1160000 recovery_cost_inr=492000 residual_loss_inr=50000 net_avoided_loss_inr=618000 worst_case_exposure_inr=0",
+      "FINDING FND-SENSE-DIS-2026-0042 outcome=passed check=SENSE.EVENT_RESOLUTION title=Disruption mapped to graph nodes and affected orders",
+      "FINDING FND-INV-ATP-INV-BLR outcome=passed check=INV.AVAILABLE_TO_PROMISE title=150 units available to promise above protected floor",
+      "FINDING FND-INV-ATP-INV-PNQ outcome=passed check=INV.AVAILABLE_TO_PROMISE title=150 units available to promise above protected floor",
+      "FINDING FND-DEP-SUP-C outcome=passed check=DEP.SHARED_DISRUPTED_DEPENDENCY title=No upstream path to the disrupted node within depth",
+      "FINDING FND-FTA-DIRECT_CONSIGNMENT-RT-C-DIR outcome=passed check=FTA.DIRECT_CONSIGNMENT title=Transit only through agreement parties (or direct): direct consignment satisfied",
+      "FINDING FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-DIR outcome=passed check=FTA.CERTIFICATE_OF_ORIGIN title=Certificate of origin available from supplier",
+      "FINDING FND-LC-TRANSHIPMENT-RT-C-DIR outcome=passed check=LC.TRANSHIPMENT title=Transhipment terms satisfied",
+      "FINDING FND-LC-LATEST_SHIPMENT-RT-C-DIR outcome=passed check=LC.LATEST_SHIPMENT_DATE title=Shipment date is within 44C",
+      "FINDING FND-LC-PORT_OF_LOADING-RT-C-DIR outcome=passed check=LC.PORT_OF_LOADING title=Port of loading matches 44E",
+      "FINDING FND-LC-PORT_OF_DISCHARGE-RT-C-DIR outcome=passed check=LC.PORT_OF_DISCHARGE title=Port of discharge matches 44F",
+      "FINDING FND-LC-PRESENTATION-RT-C-DIR outcome=passed check=LC.PRESENTATION_PERIOD title=Presentation deadline falls before expiry",
+      "FINDING FND-LC-AMOUNT-PLN-0002-LC-SYN-0117 outcome=passed check=LC.AMOUNT title=Drawing fits the available LC balance",
+      "FINDING FND-LC-PARTIAL-PLN-0002-LC-SYN-0117 outcome=passed check=LC.PARTIAL_SHIPMENTS title=Partial drawing permitted by 43P",
+      "FINDING FND-INV-ALLOCATION-PLN-0002-INV-BLR outcome=passed check=INV.ALLOCATION_FEASIBLE title=Allocates 150 of 150 available units",
+      "FINDING FND-INV-ALLOCATION-PLN-0002-INV-PNQ outcome=passed check=INV.ALLOCATION_FEASIBLE title=Allocates 150 of 150 available units"
+    ],
+    "allowed_citation_ids": [
+      "FND-DEP-SUP-C",
+      "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-DIR",
+      "FND-FTA-DIRECT_CONSIGNMENT-RT-C-DIR",
+      "FND-INV-ALLOCATION-PLN-0002-INV-BLR",
+      "FND-INV-ALLOCATION-PLN-0002-INV-PNQ",
+      "FND-INV-ATP-INV-BLR",
+      "FND-INV-ATP-INV-PNQ",
+      "FND-LC-AMOUNT-PLN-0002-LC-SYN-0117",
+      "FND-LC-LATEST_SHIPMENT-RT-C-DIR",
+      "FND-LC-PARTIAL-PLN-0002-LC-SYN-0117",
+      "FND-LC-PORT_OF_DISCHARGE-RT-C-DIR",
+      "FND-LC-PORT_OF_LOADING-RT-C-DIR",
+      "FND-LC-PRESENTATION-RT-C-DIR",
+      "FND-LC-TRANSHIPMENT-RT-C-DIR",
+      "FND-SENSE-DIS-2026-0042"
+    ]
+  },
+  "output": {
+    "text": "PLN-0002 passed every check: plant and Pune stock plus Saigon Precision Electronics on the direct sailing. Net avoided loss is INR 618000, with a residual loss of INR 50000 for units that arrive late.",
+    "cited_ids": [
+      "FND-DEP-SUP-C",
+      "FND-LC-TRANSHIPMENT-RT-C-DIR"
+    ]
+  },
+  "model": "hand-authored (synthetic)",
+  "origin": "hand_authored",
+  "synthetic": true
+}

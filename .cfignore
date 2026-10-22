@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/__pycache__
+.pytest_cache
+# frontend/dist is built before cf push and must be uploaded
+frontend/test-results
+frontend/playwright-report
+work
+aegisshield-docs-package.zip

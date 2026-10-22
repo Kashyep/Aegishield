@@ -73,8 +73,8 @@ def test_success_and_problem_responses_match_openapi():
         assert_response_schema("createEvaluation", accepted)
         assert_response_schema("getEvaluation", client.get(accepted.json()["poll_url"]))
         assert_response_schema("getEvaluation", client.get("/api/v1/evaluations/EVAL-9999"))
-        assert_response_schema("getEvaluationGraph", client.get("/api/v1/evaluations/EVAL-0001/graph"))
-        assert_response_schema("getEvaluationGraph", client.get("/api/v1/evaluations/EVAL-9999/graph"))
+        assert_response_schema("getEvaluationGraph", client.get("/api/v1/evaluations/EVAL-0001/graph?focus_supplier_id=SUP-B"))
+        assert_response_schema("getEvaluationGraph", client.get("/api/v1/evaluations/EVAL-9999/graph?focus_supplier_id=SUP-B"))
         assert_response_schema("getPlan", client.get("/api/v1/plans/PLN-0001"))
         assert_response_schema("getPlan", client.get("/api/v1/plans/PLN-9999"))
 

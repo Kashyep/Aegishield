@@ -40,13 +40,15 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-The Playwright tests cover the blocked-P1/P2-approval journey, graph keyboard text alternative, fixture audit honesty, and axe WCAG checks on the tested views.
+The Playwright tests cover the blocked-P1/P2-approval journey, the dependency evidence graph (DA-05 path highlighting, SUP-C passed), the LLM badge, the LC amendment entry point, graph keyboard text alternative, fixture audit honesty, and axe WCAG checks on the tested views.
+
+`npm.cmd run test:live` runs the full stack: it starts the backend (`python -m uvicorn backend.app.main:app` on port 8010, fresh SQLite, `AEGIS_LLM_MODE=recorded`) and Vite in live mode on port 4174. It then drives reset → run evaluation → graph → LC amendment → P2 approval → audit verification.
 
 ## Live API mode
 
-Live mode requires a separately running API service implementing the routes and schemas in `../contracts/openapi.yaml`. The current repository includes the contracts and agent modules, but not an HTTP service exposing these routes. Do not enable live mode until that compatible service is available.
+Live mode uses the backend in `../backend` (`python -m uvicorn backend.app.main:app --port 8000` from the repo root). Its CORS origins come from `AEGIS_CORS_ORIGINS`, defaulting to the Vite dev ports.
 
-When it is available, start the frontend in a PowerShell session with:
+Start the frontend against it in a PowerShell session:
 
 ```powershell
 $env:VITE_API_MODE = 'live'
@@ -58,7 +60,10 @@ Live decision and execution requests carry the contract-required `X-Actor-Id` an
 
 ## Supported data boundaries
 
-- Evaluation and supply graph: recorded fixtures in stub mode; the current graph component does not map the contract `GraphView` response in live mode.
+- Evaluation: recorded fixture in stub mode; in live mode, the **Reset demo** and **Run evaluation** buttons on the Command Center call `POST /demo/reset` and `POST /evaluations`, then poll.
+- Supply graph: the contract `GraphView` (`/evaluations/{id}/graph?focus_supplier_id=`) in live mode. In stub mode, `public/stubs/graph_view_SUP-*.json` are generated from the backend builder by `python frontend/scripts/gen_graph_stubs.py`, and CI fails if they drift.
+- LLM badge: `/health` `llm_mode` in live mode, and the evaluation's `llm_mode` in stub mode.
+- Deployed build: the Dockerfile builds with `VITE_API_MODE=live` and `VITE_API_BASE_URL=/`, and the backend serves `frontend/dist` at `/` from the same origin.
 - Approval and execution: documented live endpoints only; no stub mutation response is available.
 - Audit events and verification: documented live GET endpoints only; the fixtures contain neither event records nor verification results.
 - Rule and evidence panels: use the evaluation payload’s included evidence and `rule_results`; fields absent from that response remain explicitly unavailable.

@@ -15,7 +15,9 @@ from fastapi.responses import JSONResponse
 
 from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION
 from .services.fixtures import load_fixtures, snapshot_id, digest
-from .services.evaluation import build_evaluation_payload, graph_view
+from .services.evaluation import build_evaluation_payload
+from .agents.dependency.graph import build_graph
+from .agents.dependency.view import GraphViewError, graph_view_for_evaluation
 from .db.sqlite import read_connection, transaction
 from .audit.chain import append_event, verify
 from .api.problems import problem_response
@@ -428,15 +430,16 @@ def get_evaluation(evaluation_id: str):
 
 
 @app.get("/api/v1/evaluations/{evaluation_id}/graph")
-def get_graph(evaluation_id: str, focus_supplier_id: str = Query("SUP-B")):
+def get_graph(evaluation_id: str, focus_supplier_id: str = Query("SUP-B", pattern=r"^SUP-[A-Z0-9]+$")):
+    instance = f"/api/v1/evaluations/{evaluation_id}/graph"
     with read_connection() as con:
         row = con.execute("SELECT payload_json FROM evaluations WHERE evaluation_id=?", (evaluation_id,)).fetchone()
-        if not row:
-            return problem_response(404, "NOT_FOUND", f"Evaluation {evaluation_id} not found", instance=f"/api/v1/evaluations/{evaluation_id}/graph")
-        evaluation = json.loads(row["payload_json"])
-    if evaluation["status"] != "completed":
-        return problem_response(409, "EVALUATION_NOT_COMPLETED", f"Evaluation {evaluation_id} is not completed", instance=f"/api/v1/evaluations/{evaluation_id}/graph")
-    return graph_view(fx, evaluation["dependency_results"], focus_supplier_id, evaluation_id=evaluation_id)
+    evaluation = json.loads(row["payload_json"]) if row else None
+    try:  # MOD-05 (Member 4) owns the view and its 404/409 rules
+        return graph_view_for_evaluation(evaluation, build_graph(fx["supply_graph"], fx["master_data"]), focus_supplier_id)
+    except GraphViewError as e:
+        code = "NOT_FOUND" if e.status == 404 else e.code
+        return problem_response(e.status, code, e.detail, instance=instance)
 
 
 @app.get("/api/v1/plans/{plan_id}")

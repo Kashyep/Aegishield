@@ -1,0 +1,19 @@
+{
+  "prompt_id": "lc_extract_v1",
+  "prompt_version": "1.0.0",
+  "request_hash": "c1e0fb0d7405e772323fbd64f7472029abfbb285613d0ae68189746246c7eec0",
+  "input": {
+    "raw_text": ":20:SYN0117LC26\n:31C:261005\n:40E:UCP LATEST VERSION\n:31D:261126VIETNAM\n:32B:INR6000000,\n:43P:ALLOWED\n:43T:NOT ALLOWED\n:44E:ANY PORT IN VIETNAM\n:44F:CHENNAI, INDIA\n:44C:261105\n:45A:PM-750 IGBT POWER MODULES\n:47A:UCP 600 SUB-ARTICLE 20(C) IS EXCLUDED.\n:48:21/DAYS AFTER DATE OF SHIPMENT"
+  },
+  "output": {
+    "transhipment": "not_allowed",
+    "partial_shipments": "allowed",
+    "ucp_20c_excluded": true,
+    "latest_shipment_date": "2026-11-05",
+    "port_of_discharge": "INMAA",
+    "presentation_period_days": 21
+  },
+  "model": "hand-authored (synthetic)",
+  "origin": "hand_authored",
+  "synthetic": true
+}

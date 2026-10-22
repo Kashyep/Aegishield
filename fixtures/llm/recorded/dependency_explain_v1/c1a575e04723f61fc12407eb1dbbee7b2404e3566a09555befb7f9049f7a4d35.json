@@ -1,0 +1,33 @@
+{
+  "prompt_id": "dependency_explain_v1",
+  "prompt_version": "1.0.0",
+  "request_hash": "c1a575e04723f61fc12407eb1dbbee7b2404e3566a09555befb7f9049f7a4d35",
+  "input": {
+    "subject_id": "SUP-C",
+    "lines": [
+      "QUERY supplier=SUP-C part=PRT-PM750 max_depth=3 disrupted=FAC-FABZ",
+      "RESULT outcome=passed reason=NO_PATH_TO_DISRUPTED_NODE coverage_complete=true truncated=false",
+      "PATH PATH-SUP-C-1 [clean] (Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)",
+      "PATH PATH-SUP-C-2 [clean] (Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)",
+      "NOTE SHARED_NON_DISRUPTED_DEPENDENCY FAC-SUBS"
+    ],
+    "allowed_citation_ids": [
+      "E-007",
+      "E-008",
+      "E-009",
+      "PATH-SUP-C-1",
+      "PATH-SUP-C-2"
+    ]
+  },
+  "output": {
+    "text": "No upstream path from Saigon Precision Electronics reaches the disrupted fab within 3 hops; its dies come from the Kumgang Gumi fab via Hanoi die distribution (PATH-SUP-C-1). It shares the undisrupted Shah Alam substrate plant with the primary supplier.",
+    "cited_ids": [
+      "PATH-SUP-C-1",
+      "E-007",
+      "E-008"
+    ]
+  },
+  "model": "hand-authored (synthetic)",
+  "origin": "hand_authored",
+  "synthetic": true
+}

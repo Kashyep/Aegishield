@@ -2,7 +2,7 @@
 
 Hosts the API and the built frontend as **one** Cloud Foundry app on the SAP BTP trial, at the same origin.
 OD-01 default (a); it stays provisional until Member 5 confirms D-021.
-Not yet deployed: there is no BTP account in this repo and these steps have not been run against BTP.
+Deployed at https://aegisshield-demo.cfapps.ap21.hana.ondemand.com (`AEGIS_LLM_MODE=off`).
 The same artefacts are verified locally (see "Local check").
 
 ## Prerequisites

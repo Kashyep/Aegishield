@@ -44,7 +44,7 @@ Each item names what a human must supply, why the agent is stuck, and where the 
 
 ## What does NOT belong here
 
-- OD-02 (no LangGraph) and OD-03 (plain CSS) are already decided by the agent per D-023 — they appear in the dispatch register only, not here.
+- OD-02 (no LangGraph) and OD-03 (plain CSS in frontend/src/App.css; no tokens.css) are already decided by the agent per D-023 — they appear in the dispatch register only, not here.
 - OD-05 pre-start frame keep/drop already has a default (keep); it appears above under OD-07 only because sign-off mentions it.
 - Anything NOT FOUND (e.g. the "24 Oct" claim, official registration date) is tracked in `docs/M5-open-questions.md` as a search result, not a human request.
 

@@ -85,7 +85,7 @@ Shot-list BV-P3 (§9.3, line 110): the shot list says the recording is parked un
 
 ## Resolved / non-issues (carried from dispatch for completeness)
 
-- OD-01 (BTP/SAP): resources to check (if needed) are in `ops/btp/README.md` — `cf push -f ops/btp/manifest.yml`; the 15% MFN number is unaffected (TR-0003, effective 1 Nov).
+- OD-01 (BTP/SAP): Deployed and verified live on SAP BTP Cloud Foundry trial (`https://aegisshield-demo.cfapps.ap21.hana.ondemand.com`). Health and demo reset endpoints verified. Non-issue.
 - OD-02: M5 does **not** use LangGraph. Confirmed non-issue.
 - OD-03: M2 uses plain CSS on `frontend/src/styles/tokens.css` + `frontend/src/App.css`.
   Confirmed non-issue.

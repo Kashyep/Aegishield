@@ -1,7 +1,9 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT / ".env")
 FIXTURES = ROOT / "fixtures"
 DB_PATH = Path(os.getenv("AEGIS_DB_PATH", str(ROOT / "work" / "aegis-demo.sqlite3")))
 DEMO_MODE = os.getenv("AEGIS_DEMO_MODE", "1").lower() in {"1", "true", "yes"}

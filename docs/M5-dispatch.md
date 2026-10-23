@@ -26,7 +26,7 @@ This document is that register, in one place, so the weekly checkpoint calls
 
 | ID | Status | Owner | Decision needed |
 |----|--------|-------|-----------------|
-| OD-01 | raised | Member 1, with M5 note | Provisional default: SAP BTP Cloud Foundry trial (`ops/btp/README.md`, `cf push -f ops/btp/manifest.yml`). `cf login` needs a human BTP trial account. |
+| OD-01 | deployed / verified | Member 1, with M5 note | Deployed to SAP BTP Cloud Foundry trial (`https://aegisshield-demo.cfapps.ap21.hana.ondemand.com`). Health and demo reset endpoints verified live. |
 | OD-02 | raised | Member 5 | No LangGraph; Phase 0 throwaway spikes only. |
 | OD-03 | raised | Member 2 | D-023 correction: repo uses plain CSS (`frontend/src/styles/tokens.css` + `frontend/src/App.css`), not Tailwind/shadcn. UI work stays plain CSS. |
 | OD-04 | raised | Member 5 | Live LLM mode needs human credentials by Sun 2026-10-25: `AEGIS_LLM_BASE_URL`, `AEGIS_LLM_MODEL`, `AEGIS_LLM_API_KEY`. If missing, system degrades cleanly to recorded mode (D-024). |
@@ -63,8 +63,7 @@ This document is that register, in one place, so the weekly checkpoint calls
 1. **OD-04 (time-critical, Sun 2026-10-25)** — human supplies the three
    `AEGIS_LLM_*` variables; M5 then wires live mode and strips nothing from
    VC-LLM-01 hashes.
-2. **OD-01** — human runs `cf login` on a BTP trial account; then
-   `cf push -f ops/btp/manifest.yml`.
+2. **OD-01** — completed; deployed and verified live on SAP BTP Cloud Foundry trial (`https://aegisshield-demo.cfapps.ap21.hana.ondemand.com`).
 3. **OD-05 / OD-06 / OD-07 / OD-08** — Member 1 decisions; OD-06 stays
    NOT FOUND until an artifact or human input arrives. OD-05's pre-start
    deadline (Wed 2026-10-21) has passed; keep the pre-start framing and

@@ -61,6 +61,9 @@ test('shows linked LC excerpts and route-specific rule results without inventing
   await expect(drawer.getByText('Superseded')).toBeVisible()
   await expect(drawer.getByText(/Excluded-rule dates and authority are not included/)).toBeVisible()
   await expectNoAccessibilityViolations(page)
+
+  await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
 })
 
 test('completes Command Center to evaluation findings, evidence, and P2 approval', async ({ page }) => {
@@ -152,4 +155,101 @@ test('does not present evaluation steps as audit events or claim fixture verific
   await expect(page.getByRole('button', { name: 'Verify chain' })).toBeDisabled()
   await expect(page.getByText('1. disruption sensing')).toHaveCount(0)
   expect(apiRequests).toEqual([])
+})
+
+test('F-02, F-03, F-05, DA-02, DA-03, DA-04, DA-07, DA-13: asserts disruption card, plan comparison financials, recommended badge, duty at risk, and drawer escape', async ({ page }) => {
+  // Disruption card: SO-1001/SO-1002/SO-1003, Penang, days late visible
+  const disruptionCard = page.locator('.disruption-card')
+  await expect(disruptionCard).toBeVisible()
+  await expect(disruptionCard).toContainText('SO-1001')
+  await expect(disruptionCard).toContainText('SO-1002')
+  await expect(disruptionCard).toContainText('SO-1003')
+  await expect(disruptionCard).toContainText('Penang')
+  await expect(disruptionCard).toContainText('days late')
+  await expect(disruptionCard).toContainText('6 days late')
+  await expect(disruptionCard).toContainText('4 days late')
+  await expect(disruptionCard).toContainText('2 days late')
+  await expect(page.getByText('₹11,60,000')).toBeVisible()
+
+  // Recommended badge on P2 only after evaluation
+  const recBadge = page.locator('.recommendation-label')
+  await expect(recBadge).toBeVisible()
+  await expect(recBadge).toHaveText('P2 · Recommended')
+
+  // Plan comparison: P1 334,000 / 826,000 / 510,000 BLOCKED and P2 492,000 / 50,000 / 618,000 PASSED
+  const p1 = page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' })
+  const p2 = page.locator('.plan-card').filter({ hasText: 'P2 AegisShield verified' })
+
+  // P1: 3,34,000 / 8,26,000 / 5,10,000 BLOCKED (Indian format)
+  await expect(p1).toContainText('3,34,000')
+  await expect(p1).toContainText('8,26,000')
+  await expect(p1).toContainText('5,10,000')
+  await expect(p1).toContainText('BLOCKED')
+
+  // P2: 4,92,000 / 50,000 / 6,18,000 PASSED (Indian format)
+  await expect(p2).toContainText('4,92,000')
+  await expect(p2).toContainText('50,000')
+  await expect(p2).toContainText('6,18,000')
+  await expect(p2).toContainText('PASSED')
+
+  // Approval modal: shows recovery cost, residual, net, and worst-case exposure
+  const p2Approval = p2.getByRole('button', { name: 'Approve' })
+  await p2Approval.click()
+  const approvalDialog = page.getByRole('dialog', { name: 'Review P2 AegisShield verified' })
+  await expect(approvalDialog).toBeVisible()
+  await expect(approvalDialog.getByText('₹4,92,000')).toBeVisible()
+  await expect(approvalDialog.getByText('₹50,000')).toBeVisible()
+  await expect(approvalDialog.getByText('₹6,18,000')).toBeVisible()
+  await expect(approvalDialog.getByText('₹0')).toBeVisible()
+
+  // DA-13: Shift+Tab from container stays inside dialog
+  await page.keyboard.press('Shift+Tab')
+  await expect.poll(async () => approvalDialog.evaluate((el) => el.contains(document.activeElement))).toBeTruthy()
+
+  await page.keyboard.press('Escape')
+  await expect(approvalDialog).toBeHidden()
+  await expect(p2Approval).toBeFocused()
+
+  // Finding evidence drawer: duty at risk INR 3,87,600 and Escape closes drawer returning focus
+  await p1.getByRole('button', { name: 'Review evidence' }).click()
+  const ftaFindingBtn = page.getByRole('button', { name: /Non-party transit: preference depends on evidence/ })
+  await ftaFindingBtn.click()
+
+  const drawer = page.getByRole('dialog', { name: 'Finding details' })
+  await expect(drawer).toBeVisible()
+  await expect(drawer.getByText('₹3,87,600')).toBeVisible()
+  await expect(drawer.getByText('duty_if_preference_denied')).toBeVisible()
+
+  // DA-07: assert "Needs review", "15", TR-0002, TR-0003, TR-0004, TR-0006 visible in rule results
+  await expect(drawer.getByText('Needs review')).toBeVisible()
+  const rulesTable = drawer.getByRole('table', { name: 'Rules included in the evaluation response' })
+  await expect(rulesTable).toBeVisible()
+  await expect(rulesTable.getByText(/15/)).toBeVisible()
+  await expect(rulesTable.getByText('TR-0002')).toBeVisible()
+  await expect(rulesTable.getByText('TR-0003')).toBeVisible()
+  await expect(rulesTable.getByText('TR-0004')).toBeVisible()
+  await expect(rulesTable.getByText('TR-0006')).toBeVisible()
+
+  // DA-13: Shift+Tab from container stays inside drawer
+  await page.keyboard.press('Shift+Tab')
+  await expect.poll(async () => drawer.evaluate((el) => el.contains(document.activeElement))).toBeTruthy()
+
+  // Escape closes drawer and returns focus to opener
+  await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
+  await expect(ftaFindingBtn).toBeFocused()
+
+  // DA-03: visible step status text in evaluation progress
+  await page.getByRole('button', { name: /View evaluation progress/ }).click()
+  await expect(page.getByText('succeeded').first()).toBeVisible()
+
+  await expectNoAccessibilityViolations(page)
+})
+
+test('shows neutral "Run the evaluation" state and no recommended badge before evaluation', async ({ page }) => {
+  await page.route('**/stubs/evaluation_EVAL-0001.json', (route) => route.abort())
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Run the evaluation' })).toBeVisible()
+  await expect(page.locator('.recommendation-label')).toHaveCount(0)
+  await expect(page.getByText('11,60,000')).toHaveCount(0)
 })

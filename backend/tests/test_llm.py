@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 
 import httpx
@@ -135,3 +136,44 @@ def test_disruption_extraction_recorded(fx):
     miss = assess_disruption({**ev, "raw_text": ev["raw_text"] + " "}, fx, "recorded",
                              extractor=extractor_for(LLMGateway(mode="recorded")))
     assert miss["outcome"] == "needs_review" and "EXTRACTION_MISMATCH" in miss["issues"]
+
+
+def test_regression_7e37ad2_step7_degraded_steperror(monkeypatch, fx):
+    """Regression for commit 7e37ad2: with live mode & unreachable URL, step 7 error is StepError object."""
+    import jsonschema
+    from backend.app.services.evaluation import build_evaluation_payload
+
+    step_error_schema = json.loads(
+        (Path(__file__).resolve().parents[2] / "contracts" / "schemas" / "common.schema.json").read_text(encoding="utf-8")
+    )["$defs"]["StepError"]
+
+    monkeypatch.setenv("AEGIS_LLM_MODE", "live")
+    monkeypatch.setenv("AEGIS_LLM_BASE_URL", "http://127.0.0.1:9/v1")
+    monkeypatch.setenv("AEGIS_LLM_MODEL", "test-model")
+    monkeypatch.setenv("AEGIS_LLM_TIMEOUT_S", "0.2")
+
+    ev_live = build_evaluation_payload(
+        fx, "DIS-2026-0042", "EVAL-0001", ("PLN-0001", "PLN-0002"),
+        "live", START, END
+    )
+
+    step7 = ev_live["steps"][6]
+    assert step7["step"] == "explanation"
+    assert step7["status"] == "degraded"
+    assert isinstance(step7["error"], dict)
+    assert step7["error"]["code"] == "LLM_DEGRADED"
+    assert isinstance(step7["error"]["message"], str) and len(step7["error"]["message"]) > 0
+
+    # Valid against StepError schema
+    jsonschema.validate(instance=step7["error"], schema=step_error_schema)
+
+    # Business outcomes and hashes equal off-mode run
+    ev_off = build_evaluation_payload(
+        fx, "DIS-2026-0042", "EVAL-0001", ("PLN-0001", "PLN-0002"),
+        "off", START, END
+    )
+    for p_live, p_off in zip(ev_live["plans"], ev_off["plans"]):
+        assert p_live["outcome"] == p_off["outcome"]
+        assert p_live["plan_hash"] == p_off["plan_hash"]
+        assert p_live["financials"]["recovery_cost_inr"] == p_off["financials"]["recovery_cost_inr"]
+        assert p_live["financials"]["net_avoided_loss_inr"] == p_off["financials"]["net_avoided_loss_inr"]

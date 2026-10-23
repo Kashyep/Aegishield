@@ -231,7 +231,13 @@ def upstream_paths(fx: dict, start: str, part_id: str, max_depth: int):
 
     def dfs(node, depth, pnodes, pedges):
         ins = [e for e in inc.get(node, []) if e["part_id"] in relevant]
-        if not ins:
+        acyclic_ins = []
+        for e in ins:
+            if e["source"] in pnodes:
+                flags["cycle"] = True
+            else:
+                acyclic_ins.append(e)
+        if not acyclic_ins:
             if pedges:
                 supplied_part = pedges[-1]["part_id"]
                 if supplied_part not in nodes[node]["origin_for_part_ids"]:
@@ -242,10 +248,7 @@ def upstream_paths(fx: dict, start: str, part_id: str, max_depth: int):
             flags["truncated"] = True
             paths.append((pnodes, pedges, "truncated"))
             return
-        for e in ins:
-            if e["source"] in pnodes:
-                flags["cycle"] = True
-                continue
+        for e in acyclic_ins:
             dfs(e["source"], depth + 1, pnodes + [e["source"]], pedges + [e])
 
     dfs(start, 0, [start], [])
@@ -313,7 +316,7 @@ def dependency_check(fx: dict, supplier_id: str, part_id: str, disrupted_ids: li
             "excerpt": rec["linearized"],
         })
 
-    if not disrupted:
+    if not disrupted or any(d not in nodes for d in disrupted):
         outcome, reason = "needs_review", "DISRUPTED_NODE_UNKNOWN"
     elif disrupted_paths:
         verified = all(p["all_edges_verified"] for p in disrupted_paths)
@@ -923,7 +926,21 @@ def build_plan(fx, assessment, options, findings, rule_results, plan_id, label, 
                     used_fids.append(f)
     plf = plan_level_findings(fx, plan_id, lines, options_by_id)
     all_findings = {**findings, **{f["finding_id"]: f for f in plf}}
-    fin = financials(fx, assessment, lines, options_by_id, all_findings, rule_results, extra_costs)
+    applicable_extra_costs = dict(extra_costs or {})
+    if "lc_amendment_fee" in applicable_extra_costs:
+        quotes = index(fx["supplier_quotes"]["quotes"], "quote_id")
+        amended_lcs = {
+            lc["lc_id"] for lc in fx.get("letters_of_credit", {}).get("letters_of_credit", [])
+            if lc.get("version", 1) > 1
+        }
+        uses_amended_lc = any(
+            quotes.get(options_by_id[l["option_id"]]["quote_id"], {}).get("lc_id") in amended_lcs
+            for l in lines
+            if options_by_id.get(l["option_id"], {}).get("kind") == "supplier"
+        )
+        if not uses_amended_lc:
+            del applicable_extra_costs["lc_amendment_fee"]
+    fin = financials(fx, assessment, lines, options_by_id, all_findings, rule_results, applicable_extra_costs)
     fids = used_fids + [f["finding_id"] for f in plf]
     outcome = worst(all_findings[f]["outcome"] for f in fids)
     counts = {k: sum(1 for f in fids if all_findings[f]["outcome"] == k) for k in ("passed", "needs_review", "blocked")}

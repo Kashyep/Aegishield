@@ -81,3 +81,29 @@ def test_vc_sense_01():
     for s, out in case["expected"]["dependency_outcomes"].items():
         assert run(fx, s)[1]["outcome"] == out
         assert run(fx, s)[1]["reason_code"] == "DISRUPTED_NODE_UNKNOWN"
+
+
+def test_f01_cycle_and_unknown_disrupted_id_non_passed():
+    """F-01: product dependency check returns non-passed for cycle case and unknown-id case."""
+    # 1. Cycle with dropped E-008 (mirroring probe2)
+    case = next(c for c in CASES if c["case_id"] == "VC-DEP-05")
+    fx_cycle = apply_patches(load_fx(), case["patches"])
+    fx_cycle["supply_graph"]["edges"] = [e for e in fx_cycle["supply_graph"]["edges"] if e["edge_id"] != "E-008"]
+
+    # When FAC-VDIE is disrupted -> blocked (never passed)
+    _, r_vdie = run(fx_cycle, "SUP-C", disrupted=["FAC-VDIE"])
+    assert r_vdie["outcome"] != "passed"
+    assert r_vdie["outcome"] == "blocked"
+
+    # When normal disruption (FAC-FABZ), cyclic branch has no origin -> needs_review (never passed)
+    _, r_fabz = run(fx_cycle, "SUP-C", disrupted=["FAC-FABZ"])
+    assert r_fabz["outcome"] != "passed"
+    assert r_fabz["outcome"] == "needs_review"
+    assert not r_fabz["coverage"]["complete"]
+    assert any(g["node_id"] == "FAC-VDIE" for g in r_fabz["coverage"]["gaps"])
+
+    # 2. Unknown disrupted node id (not in graph) -> needs_review / DISRUPTED_NODE_UNKNOWN (never passed)
+    _, r_unknown = run(load_fx(), "SUP-C", disrupted=["FAC-NOT-IN-GRAPH"])
+    assert r_unknown["outcome"] != "passed"
+    assert r_unknown["outcome"] == "needs_review"
+    assert r_unknown["reason_code"] == "DISRUPTED_NODE_UNKNOWN"

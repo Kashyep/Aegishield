@@ -7,3 +7,5 @@ frontend/test-results
 frontend/playwright-report
 work
 aegisshield-docs-package.zip
+.env*
+!.env.example

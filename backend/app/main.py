@@ -328,10 +328,24 @@ def create_evaluation(
 
         append_event(con, "EVALUATION_REQUESTED", actor, {"type": "evaluation", "id": evaluation_id}, {"disruption_id": disruption_id})
         started_at = datetime.now(timezone.utc).isoformat()
+        extra_costs_verified = None
+        amendment_rows = con.execute(
+            "SELECT payload_json FROM amendment_requests WHERE status='simulated_accepted'"
+        ).fetchall()
+        if amendment_rows:
+            total_fee = sum(
+                json.loads(r["payload_json"]).get(
+                    "fee_inr",
+                    fx["policies"].get("cost_policy", {}).get("lc_amendment_fee_inr", 8000),
+                )
+                for r in amendment_rows
+            )
+            extra_costs_verified = {"lc_amendment_fee": total_fee}
         try:
             payload = build_evaluation_payload(
                 fx, disruption_id, evaluation_id, plan_ids, LLM_MODE,
                 started_at, max_depth=max_depth,
+                extra_costs_verified=extra_costs_verified,
             )
             completed_at = payload["completed_at"]
             evaluation_status = payload["status"]

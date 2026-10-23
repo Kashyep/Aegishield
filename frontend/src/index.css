@@ -1,2 +1,44 @@
+/* ==========================================================================
+   Global Overrides — Minimal, tokens.css handles the design system
+   ========================================================================== */
 
-/* Global styles are defined in App.css for this first screen. */
+/* Ensure root stacking context for fixed positioning */
+#root {
+  isolation: isolate;
+}
+
+/* Image handling */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* SVG in graph */
+.supply-graph {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Scrollbar styling (WebKit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-subtle);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-bg-subtle);
+}

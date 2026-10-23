@@ -27,7 +27,13 @@ def upstream_paths(graph: SupplyGraph, start: str, relevant: set[str], max_depth
 
     def dfs(node, depth, pnodes, pedges):
         ins = [e for e in graph.incoming(node) if e["part_id"] in relevant]
-        if not ins:
+        acyclic_ins = []
+        for e in ins:
+            if e["source"] in pnodes:
+                flags["cycle"] = True
+            else:
+                acyclic_ins.append(e)
+        if not acyclic_ins:
             if pedges:
                 supplied = pedges[-1]["part_id"]
                 if supplied not in graph.nodes[node]["origin_for_part_ids"]:
@@ -38,10 +44,7 @@ def upstream_paths(graph: SupplyGraph, start: str, relevant: set[str], max_depth
             flags["truncated"] = True
             paths.append((pnodes, pedges, "truncated"))
             return
-        for e in ins:
-            if e["source"] in pnodes:
-                flags["cycle"] = True
-                continue
+        for e in acyclic_ins:
             dfs(e["source"], depth + 1, pnodes + [e["source"]], pedges + [e])
 
     dfs(start, 0, [start], [])
@@ -105,7 +108,7 @@ def check_dependency(q: dict, graph: SupplyGraph, parts: list[dict], policy: dic
                          "excerpt": rec["linearized"]})
 
     # outcome rules, first match wins (docs/00 10.1)
-    if not disrupted:
+    if not disrupted or any(d not in graph.nodes for d in disrupted):
         outcome, reason = "needs_review", "DISRUPTED_NODE_UNKNOWN"
     elif disrupted_paths:
         verified = all(p["all_edges_verified"] for p in disrupted_paths)

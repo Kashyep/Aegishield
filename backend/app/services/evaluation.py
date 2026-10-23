@@ -468,7 +468,21 @@ def build_plan(fx, assessment, options, findings, rule_results, plan_id, label, 
                     used_fids.append(f)
     plf = plan_level_findings(fx, plan_id, lines, options_by_id)
     all_findings = {**findings, **{f["finding_id"]: f for f in plf}}
-    fin = financials(fx, assessment, lines, options_by_id, all_findings, rule_results, extra_costs)
+    applicable_extra_costs = dict(extra_costs or {})
+    if "lc_amendment_fee" in applicable_extra_costs:
+        quotes = index(fx["supplier_quotes"]["quotes"], "quote_id")
+        amended_lcs = {
+            lc["lc_id"] for lc in fx.get("letters_of_credit", {}).get("letters_of_credit", [])
+            if lc.get("version", 1) > 1
+        }
+        uses_amended_lc = any(
+            quotes.get(options_by_id[l["option_id"]]["quote_id"], {}).get("lc_id") in amended_lcs
+            for l in lines
+            if options_by_id.get(l["option_id"], {}).get("kind") == "supplier"
+        )
+        if not uses_amended_lc:
+            del applicable_extra_costs["lc_amendment_fee"]
+    fin = financials(fx, assessment, lines, options_by_id, all_findings, rule_results, applicable_extra_costs)
     fids = used_fids + [f["finding_id"] for f in plf]
     outcome = worst(all_findings[f]["outcome"] for f in fids)
     counts = {k: sum(1 for f in fids if all_findings[f]["outcome"] == k) for k in ("passed", "needs_review", "blocked")}
@@ -559,13 +573,14 @@ def build_evaluation_payload(
     completed_at: str | None = None,
     max_depth: int | None = None,
     gateway: LLMGateway | None = None,
+    extra_costs_verified: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Build a contract-shaped evaluation from fixture-derived domain results."""
     snapshot = input_snapshot_id(fx)
     if max_depth is not None:
         fx = json.loads(json.dumps(fx))
         fx["policies"]["dependency_policy"]["max_depth"] = max_depth
-    result = evaluate(fx, disruption_id, evaluation_id, plan_ids)
+    result = evaluate(fx, disruption_id, evaluation_id, plan_ids, extra_costs_verified=extra_costs_verified)
     if max_depth is not None:
         for plan in result["plans"]:
             plan["input_snapshot_id"] = snapshot

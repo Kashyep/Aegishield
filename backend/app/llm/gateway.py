@@ -106,6 +106,8 @@ class LLMGateway:
 
 
 def gateway_from_env(mode: str | None = None) -> LLMGateway:
+    timeout_str = os.getenv("AEGIS_LLM_TIMEOUT_S")
+    timeout_s = float(timeout_str) if timeout_str else 8.0
     return LLMGateway(mode=mode or os.getenv("AEGIS_LLM_MODE", "off"),
                       base_url=os.getenv("AEGIS_LLM_BASE_URL"), model=os.getenv("AEGIS_LLM_MODEL"),
-                      api_key=os.getenv("AEGIS_LLM_API_KEY"))
+                      api_key=os.getenv("AEGIS_LLM_API_KEY"), timeout_s=timeout_s)

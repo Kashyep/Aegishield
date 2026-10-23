@@ -70,6 +70,7 @@ export type Finding = {
   evidence_ids: string[]
   remedies: { action: string; text: string }[]
   details: Record<string, unknown>
+  explanations?: { mode: string; validation_status: string; text: string; cited_evidence_ids?: string[] }[]
 }
 
 export type Evidence = {

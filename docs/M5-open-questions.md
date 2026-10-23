@@ -18,9 +18,10 @@ Rules honored (same as the dispatch doc):
   resources that would answer it, and who/on when — never a recommendation.
 - Anything whose answer is not currently in a source we control is marked **NOT FOUND**.
 - No novelty, performance, or score claims (D-019). Numbers quoted are only re-verified ones.
-- Registration date: 15 Oct 2026 is the **conservative assumption;** the home page says
-  21 Oct 2026. Both pages read "Registration is closed." Until a human picks one date,
-  no hand-off draft may cite a registration date or treat the event as future.
+- Registration date: **21 Oct 2026 (home page)** supersedes the 15 Oct 2026 FAQ
+  placeholder. Both pages read "Registration is closed." Until a human confirms one
+  date in writing, no hand-off draft may cite a registration date or treat the event
+  as future; the FAQ-discrepancy flag stays raised (D-044).
 
 ## Question 1 — LLM credentials (OD-04, blocks live mode)
 
@@ -47,6 +48,8 @@ Which of the M1 hand-off drafts get the human sign-off, and who is present at th
 sign? Until a human confirms, no submission is made on the drafts' behalf and no draft is
 sent anywhere. The drafts live at `docs/decisions/OD-07-claim-check.md` and are referenced
 also by the PR #8 conversation.
+**Scope decision:** the sign-off covers r-11, and one owner signs every hand-off record;
+Q3 stays open until that human sign-off is recorded.
 
 ## Question 4 — Stretch item S-1 (OD-08) — deferred on purpose
 

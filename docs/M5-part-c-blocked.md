@@ -32,7 +32,7 @@ Each item names what a human must supply, why the agent is stuck, and where the 
 
 ### Before D8 **Mon 2026-11-02** (deck numbers lock)
 
-- [ ] **Registration-date choice: 15 vs 21 Oct** (owner: Member 5; raised). Wall pages show "Registration is closed"; FAQ closure "15 Oct 2026" was introduced by the agent only as a conservative placeholder and is NOT FOUND as an official date. **Why stuck:** citing either date in deck, email, or the BV-P2 chronology attestation without a human pick would violate D-025. **Where it shows up:** deck cover, Q&A prep sheet.
+- [ ] **Registration-date choice: 15 vs 21 Oct** (owner: Member 5; raised). Wall pages show "Registration is closed"; FAQ closure "15 Oct 2026" was introduced by the agent only as a conservative placeholder and is NOT FOUND as an official date. **Decision:** docs may cite 21 Oct 2026, matching official page content; no date is placed in the deck, email, or the BV-P2 attestation until a human confirms in writing (still D-025). The flag stays **raised**. **Where it shows up:** deck cover, Q&A prep sheet.
 - [ ] **OD-08 — stretch S-1 (arbitrary decision-language brands)** (owner: Member 1; raised, depends on OD-01 + OD-04). Blocked upstream: S-1 is useful only after the BTP trial account is up (OD-01) and LLM creds land (OD-04). No action until both close. **Where it shows up:** dispatch OD-08 row; nothing else owns it.
 
 ### Capture-prep items (D8/D9 window)

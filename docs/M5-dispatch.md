@@ -15,12 +15,12 @@ This document is that register, in one place, so the weekly checkpoint calls
 - "You prepare, humans decide." The protocol agent records positions; Member 5 decides.
 - "Prepared by" is always labelled; anything not in the source list stays NOT FOUND.
 - No novelty / performance / score claims (D-019).
-- Registration date: **15 Oct 2026** is used as the conservative assumption in any
-  date-stamped narrative (FAQ wording); the home page says 21 Oct 2026 and both
-  pages currently read "Registration is closed." Do **not** cite a date in a deck
-  or email until a human picks one.
+- Registration date: **21 Oct 2026** (home page) is the date to cite; the FAQ
+  placeholder of 15 Oct 2026 is superseded and both pages currently read
+  "Registration is closed." Do **not** cite a date in a deck or email until a human
+  confirms one date in writing; the FAQ-discrepancy flag stays raised (D-044).
 - Numbers quoted are only re-verified ones: MFN 15% = TR-0003 (from 1 Nov),
-  AIFTA 0% = TR-0005, SCN-DEMO-001 exposure ~⅍ 11.6 L.
+  AIFTA 0% = TR-0005, SCN-DEMO-001 exposure ~₹11.6 L.
 
 ## Raised items (status: raised)
 
@@ -32,7 +32,7 @@ This document is that register, in one place, so the weekly checkpoint calls
 | OD-04 | raised | Member 5 | Live LLM mode needs human credentials by Sun 2026-10-25: `AEGIS_LLM_BASE_URL`, `AEGIS_LLM_MODEL`, `AEGIS_LLM_API_KEY`. If missing, system degrades cleanly to recorded mode (D-024). |
 | OD-05 | raised | Member 1 | Phase 0 deadline passed Wed 2026-10-21. Decide whether to keep the pre-start frame (contracts + spikes) for this week. |
 | OD-06 | raised | Member 1 (BLOCKED) | Sir MVIT: NOT FOUND on the web. The "24 Oct, 10 min pitch + 5 min Q&A" line is unverified rumour. Need an offline artifact or a human call; never guess. |
-| OD-07 | raised | Member 1 | Hand-off record drafts (fictional receipts + claim-check) in `docs/decisions/OD-07-claim-check.md`. |
+| OD-07 | raised | Member 1 | Hand-off record drafts (fictional receipts + claim-check) in `docs/decisions/OD-07-claim-check.md`. Sign-off scope: include r-11 weekend availability; one owner signs every hand-off record at the OD-07 call. |
 | OD-08 | raised | Member 5 | Stretch S-1 vault/deal/integration module acceptance, before finale; cut for the base prototype unless time allows; depends on OD-01 + OD-04. |
 
 ## Draft positions (D-018 … D-044)
@@ -66,7 +66,14 @@ This document is that register, in one place, so the weekly checkpoint calls
 2. **OD-01** — human runs `cf login` on a BTP trial account; then
    `cf push -f ops/btp/manifest.yml`.
 3. **OD-05 / OD-06 / OD-07 / OD-08** — Member 1 decisions; OD-06 stays
-   NOT FOUND until an artifact or human input arrives.
+   NOT FOUND until an artifact or human input arrives. OD-05's pre-start
+   deadline (Wed 2026-10-21) has passed; keep the pre-start framing and
+   verify the date/agenda against D-025 only when the official Sir MVIT
+   notice is pasted. OD-07's scope includes r-11, and one owner signs
+   every hand-off record. OD-08 stays blocked until OD-01 and OD-04
+   close. The registration-date question is resolved for docs: cite
+   21 Oct 2026, which matches official page content; no date goes into
+   the deck or email until a human confirms in writing.
 4. **At R1 (Tue 27 Oct 17:00)** — walk this register; anything still "raised"
   after its deadline is bumped to the next checkpoint with a one-line reason.
 

@@ -654,7 +654,8 @@ def build_evaluation_payload(
     step7["attempts"] = max([1] + [i["attempts"] for i in infos])
     if any(i["degraded"] for i in infos):
         step7["status"] = "degraded"
-        step7["error"] = sorted({i["error"] for i in infos if i["error"]})[0]
+        errs = sorted({i["error"] for i in infos if i["error"]})
+        step7["error"] = {"code": "LLM_DEGRADED", "message": errs[0]} if errs else None
     return {
         "schema_version": "1.0.0",
         "evaluation_id": evaluation_id,

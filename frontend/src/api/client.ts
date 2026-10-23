@@ -6,6 +6,7 @@ import type {
   Decision,
   DecisionRequest,
   DemoResetResponse,
+  DisruptionList,
   Evaluation,
   EvaluationAccepted,
   Execution,
@@ -105,6 +106,20 @@ async function request<T>(
 
 export function getApiMode(): ApiMode {
   return apiMode
+}
+
+export async function listDisruptions(): Promise<DisruptionList> {
+  if (apiMode === 'stub') {
+    try {
+      return await getStub<DisruptionList>('/stubs/disruptions.json')
+    } catch {
+      const evaluation = await getEvaluation()
+      return {
+        items: evaluation?.disruption_id ? [{ disruption_id: evaluation.disruption_id }] : [],
+      }
+    }
+  }
+  return (await request<DisruptionList>('/api/v1/disruptions')).data
 }
 
 export function getEvaluation(): Promise<Evaluation> {

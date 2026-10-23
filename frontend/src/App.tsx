@@ -1,12 +1,50 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApiError, createEvaluation, getApiMode, getAuditEvents, getEvaluation, getEvaluationById, getExecution, getGraphView, getHealth, getPlan, getPolicies, resetDemo, startExecution, submitDecision, verifyAuditChain } from './api/client'
-import type { Acknowledgement, AuditEvent, AuditVerifyResult, Decision, DecisionRequest, DemoActor, Evaluation, Execution, Finding, GraphView, GraphViewNode, Health, Plan, Policies } from './api/types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ApiError, createEvaluation, getApiMode, getAuditEvents, getEvaluation, getEvaluationById, getExecution, getGraphView, getHealth, getPlan, getPolicies, listDisruptions, resetDemo, startExecution, submitDecision, verifyAuditChain } from './api/client'
+import type { Acknowledgement, AuditEvent, AuditVerifyResult, Decision, DecisionRequest, DemoActor, Evaluation, Execution, Finding, GraphView, GraphViewNode, Health, Plan, PlanComparisonItem, Policies } from './api/types'
 import { DependencyGraph } from './components/DependencyGraph'
 import { STATUS_TEXT } from './components/graphStatus'
 import { navItems, readScreenFromHash, screenLabel, writeScreenToHash, type Screen } from './app/navigation'
 import './App.css'
 
 const money = (amount: number) => `₹${amount.toLocaleString('en-IN')}`
+const formatPlanId = (id: string) => id.replace(/^PLN-0*/, 'P')
+
+const getWorstCaseExposure = (planItem: PlanComparisonItem, fullPlan?: Plan): number => {
+  if (typeof planItem.worst_case_exposure_inr === 'number') {
+    return planItem.worst_case_exposure_inr
+  }
+  if (fullPlan && typeof fullPlan.financials?.worst_case_exposure_inr === 'number') {
+    return fullPlan.financials.worst_case_exposure_inr
+  }
+  if (fullPlan?.financials?.exposures) {
+    const scenarioTotals = new Map<string, Map<string, number>>()
+    let ungrouped = 0
+    for (const exp of fullPlan.financials.exposures) {
+      if (exp.amount_inr == null) continue
+      if (!exp.mutually_exclusive_group) {
+        ungrouped += exp.amount_inr
+      } else {
+        let kindMap = scenarioTotals.get(exp.mutually_exclusive_group)
+        if (!kindMap) {
+          kindMap = new Map<string, number>()
+          scenarioTotals.set(exp.mutually_exclusive_group, kindMap)
+        }
+        kindMap.set(exp.kind, (kindMap.get(exp.kind) ?? 0) + exp.amount_inr)
+      }
+    }
+    let total = ungrouped
+    for (const kindMap of scenarioTotals.values()) {
+      let maxKind = 0
+      for (const amount of kindMap.values()) {
+        if (amount > maxKind) maxKind = amount
+      }
+      total += maxKind
+    }
+    return total
+  }
+  return 0
+}
+
 const displayOutcome = (outcome: string) => ({
   passed: 'Passed',
   needs_review: 'Needs review',
@@ -60,11 +98,13 @@ function App() {
   const [decisionSubmitting, setDecisionSubmitting] = useState(false)
   const [decisionJustification, setDecisionJustification] = useState('')
   const approvalDialogRef = useRef<HTMLDivElement>(null)
+  const evidenceDrawerRef = useRef<HTMLElement>(null)
   const pendingDecisionRef = useRef<{ body: string; key: string } | null>(null)
   const [evaluationState, setEvaluationState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [evaluationError, setEvaluationError] = useState('')
   const [graphError, setGraphError] = useState('')
 
+  const [availableDisruptionId, setAvailableDisruptionId] = useState<string | null>(null)
   const [evaluationId, setEvaluationId] = useState('EVAL-0001')
   const loadEvaluation = useCallback(async (id = evaluationId) => {
     setEvaluationState('loading')
@@ -140,8 +180,10 @@ function App() {
   const runEvaluation = async () => {
     setDemoBusy('evaluate')
     setDemoMessage('')
+    setEvaluationError('')
     try {
-      const disruptionId = evaluation?.disruption_id ?? 'DIS-2026-0042'
+      const disruptionId = evaluation?.disruption_id ?? availableDisruptionId
+      if (!disruptionId) return
       const accepted = await createEvaluation(actorId, crypto.randomUUID(), disruptionId)
       setEvaluationId(accepted.evaluation_id)
       navigate('evaluation-progress')
@@ -157,6 +199,10 @@ function App() {
 
   useEffect(() => {
     void loadEvaluation()
+    void listDisruptions().then((data) => {
+      const first = data.items[0]?.disruption_id
+      if (first) setAvailableDisruptionId(first)
+    }).catch(() => {})
     void getPolicies().then(setPolicies).catch((error: unknown) => {
       setPoliciesError(error instanceof Error ? error.message : 'Approval policy fixture could not be loaded.')
     })
@@ -274,6 +320,33 @@ function App() {
   const selectedRouteRules = selectedFinding?.subject.type === 'route_option'
     ? evaluation?.rule_results.find((result) => result.query.query_id === `RQ-${selectedFinding.subject.id}`)
     : undefined
+
+  const findingExposures = useMemo(() => {
+    if (!selectedFinding || !evaluation) return []
+    const seen = new Set<string>()
+    const list: (Plan['financials']['exposures'][number] & { plan_id?: string })[] = []
+    for (const p of evaluation.plans) {
+      for (const exp of p.financials?.exposures ?? []) {
+        if (exp.finding_id === selectedFinding.finding_id) {
+          const key = `${p.plan_id}:${exp.exposure_id}`
+          if (!seen.has(key)) {
+            seen.add(key)
+            list.push({ ...exp, plan_id: p.plan_id })
+          }
+        }
+      }
+    }
+    return list
+  }, [selectedFinding, evaluation])
+
+  const dutyAtRiskTotal = useMemo(() => {
+    if (!selectedFinding || !evaluation) return 0
+    const targetPlan = evaluation.plans.find((p) => p.finding_ids.includes(selectedFinding.finding_id))
+    if (!targetPlan?.financials?.exposures) return 0
+    return targetPlan.financials.exposures
+      .filter((exp) => exp.finding_id === selectedFinding.finding_id && exp.kind === 'duty_if_preference_denied' && typeof exp.amount_inr === 'number')
+      .reduce((sum, exp) => sum + (exp.amount_inr ?? 0), 0)
+  }, [selectedFinding, evaluation])
 
   const openApproval = (planId: string) => {
     const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
@@ -456,14 +529,25 @@ function App() {
         return
       }
       if (event.key !== 'Tab' || !dialog) return
-      const focusable = [...dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href]')]
-      if (focusable.length === 0) return
+      const focusable = [...dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex="0"]')]
+      if (focusable.length === 0) {
+        event.preventDefault()
+        return
+      }
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
+      const active = document.activeElement
+      if (active === dialog || !dialog.contains(active)) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          last.focus()
+        } else {
+          first.focus()
+        }
+      } else if (event.shiftKey && active === first) {
         event.preventDefault()
         last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && active === last) {
         event.preventDefault()
         first.focus()
       }
@@ -474,6 +558,47 @@ function App() {
       previouslyFocused?.focus()
     }
   }, [approvalPlan])
+
+  useEffect(() => {
+    if (!selectedFinding) return
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const drawer = evidenceDrawerRef.current
+    drawer?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedFinding(null)
+        return
+      }
+      if (event.key !== 'Tab' || !drawer) return
+      const focusable = [...drawer.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex="0"]')]
+      if (focusable.length === 0) {
+        event.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (active === drawer || !drawer.contains(active)) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          last.focus()
+        } else {
+          first.focus()
+        }
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      previouslyFocused?.focus()
+    }
+  }, [selectedFinding])
 
   return (
     <div className="app-shell">
@@ -496,21 +621,90 @@ function App() {
           {activeScreen === 'command' && (
             <>
               <div className="page-title-row"><div><p className="eyebrow">SUPPLY CHAIN RESILIENCE</p><h1>Command Center</h1><p className="subtitle">Assess disruption, compare recovery plans, and review evidence before approval.</p></div><span className="evaluation-status"><span className="status-dot" />{evaluation ? `Evaluation ${evaluation.status}` : 'No evaluation'}</span></div>
-              {getApiMode() === 'live' && <div className="demo-controls" aria-label="Demo controls"><button className="secondary-button" disabled={Boolean(demoBusy)} onClick={() => void runDemoReset()}>{demoBusy === 'reset' ? 'Resetting…' : 'Reset demo'}</button><button className="primary-button" disabled={Boolean(demoBusy)} onClick={() => void runEvaluation()}>{demoBusy === 'evaluate' ? 'Evaluating…' : 'Run evaluation'}</button>{demoMessage && <span role="status">{demoMessage}</span>}</div>}
-              <section className="disruption-card"><div className="disruption-icon">!</div><div className="disruption-copy"><span className="eyebrow">ACTIVE DISRUPTION · DIS-2026-0042</span><h2>Supplier delay detected</h2><p>A delay at supplier SUP-A affects downstream supply-chain commitments.</p></div><span className="severity-badge">High severity</span></section>
-              <div className="section-heading"><div><h2>Evaluation overview</h2><p>Evaluation {evaluation?.evaluation_id ?? 'EVAL-0001'} · {evaluation?.status ?? 'Loading'}</p></div><div className="command-actions"><button className="secondary-button" onClick={() => navigate('evaluations')}>View evaluation details ↗</button><button className="primary-button" onClick={openEvaluationProgress}>View evaluation progress</button></div></div>
+              {getApiMode() === 'live' && <div className="demo-controls" aria-label="Demo controls"><button className="secondary-button" disabled={Boolean(demoBusy)} onClick={() => void runDemoReset()}>{demoBusy === 'reset' ? 'Resetting…' : 'Reset demo'}</button><button className="primary-button" disabled={Boolean(demoBusy) || !(evaluation?.disruption_id ?? availableDisruptionId)} onClick={() => void runEvaluation()}>{demoBusy === 'evaluate' ? 'Evaluating…' : 'Run evaluation'}</button>{demoMessage && <span role="status">{demoMessage}</span>}</div>}
+              {!evaluation?.assessment ? (
+                <section className="disruption-card disruption-card-neutral">
+                  <div className="disruption-icon" aria-hidden="true">ℹ</div>
+                  <div className="disruption-copy">
+                    <span className="eyebrow">COMMAND CENTER</span>
+                    <h2>Run the evaluation</h2>
+                    <p>Assess disruption, compare recovery plans, and review evidence before approval.</p>
+                  </div>
+                </section>
+              ) : (
+                <section className="disruption-card">
+                  <div className="disruption-icon" aria-hidden="true">!</div>
+                  <div className="disruption-copy">
+                    <span className="eyebrow">ACTIVE DISRUPTION · {evaluation.assessment.disruption_id}</span>
+                    <h2>{evaluation.assessment.event_type.replace(/_/g, ' ')} detected</h2>
+                    <div className="disruption-facility-row">
+                      <span>Disrupted facility: <strong>{evaluation.assessment.disrupted_node_ids.join(', ') || 'Unknown'}</strong></span>
+                      <span>Affected supplier: <strong>{evaluation.assessment.affected_supplier_ids.join(', ')}</strong></span>
+                      {evaluation.assessment.evidence?.[0] && <span>Source: <strong>{evaluation.assessment.evidence[0].title}</strong></span>}
+                    </div>
+                    <div className="affected-orders-block">
+                      <strong>Affected orders:</strong>
+                      <ul className="affected-orders-list">
+                        {evaluation.assessment.affected_orders.map((order) => (
+                          <li key={order.order_id}>
+                            <strong>{order.order_id}</strong>: {order.days_late} days late
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <span className="severity-badge">{evaluation.assessment.severity} severity</span>
+                </section>
+              )}
+              <div className="section-heading"><div><h2>Evaluation overview</h2><p>{evaluation ? `Evaluation ${evaluation.evaluation_id} · ${evaluation.status}` : 'No evaluation'}</p></div><div className="command-actions"><button className="secondary-button" onClick={() => navigate('evaluations')}>View evaluation details ↗</button><button className="primary-button" onClick={openEvaluationProgress}>View evaluation progress</button></div></div>
               <section className="metrics-grid">
-                <article className="metric-card"><span className="metric-label">Baseline loss</span><strong>{money(evaluation?.comparison.baseline_loss_inr ?? 1160000)}</strong><span className="metric-note">Estimated disruption impact</span></article>
-                <article className="metric-card"><span className="metric-label">Recovery plans</span><strong>{evaluation?.comparison.plans.length ?? '—'}</strong><span className="metric-note">Evaluated against required checks</span></article>
-                <article className="metric-card"><span className="metric-label">Recommended plan</span><strong className="green-text">{evaluation?.comparison.recommended_plan_id === 'PLN-0002' ? 'P2' : evaluation?.comparison.recommended_plan_id ?? '—'}</strong><span className="metric-note">AegisShield verified</span></article>
+                <article className="metric-card"><span className="metric-label">Baseline loss</span><strong>{evaluation?.assessment ? money(evaluation.assessment.baseline_loss_inr) : evaluation ? money(evaluation.comparison.baseline_loss_inr) : '—'}</strong><span className="metric-note">Estimated disruption impact</span></article>
+                <article className="metric-card"><span className="metric-label">Recovery plans</span><strong>{evaluation ? evaluation.comparison.plans.length : '—'}</strong><span className="metric-note">Evaluated against required checks</span></article>
+                <article className="metric-card"><span className="metric-label">Recommended plan</span><strong className="green-text">{evaluation?.comparison.recommended_plan_id ? formatPlanId(evaluation.comparison.recommended_plan_id) : '—'}</strong><span className="metric-note">AegisShield verified</span></article>
               </section>
-              <div className="section-heading plans-heading"><div><h2>Recovery plan comparison</h2><p>Financial attractiveness alone does not establish executability.</p></div><span className="recommendation-label">P2 · Recommended</span></div>
+              <div className="section-heading plans-heading"><div><h2>Recovery plan comparison</h2><p>Financial attractiveness alone does not establish executability.</p></div>{evaluation?.comparison.recommended_plan_id && <span className="recommendation-label">{formatPlanId(evaluation.comparison.recommended_plan_id)} · Recommended</span>}</div>
               {evaluationError && <p className="load-error" role="alert">{evaluationError}</p>}
               <section className="plans-grid">{(evaluation?.comparison.plans ?? []).map((plan) => {
-                const passed = plan.outcome === 'passed'
                 const fullPlan = evaluation?.plans.find((candidate) => candidate.plan_id === plan.plan_id)
-                const isBlocked = fullPlan?.status === 'blocked'
-                return <article className="plan-card" key={plan.plan_id}><div className="plan-top"><div className="plan-id">{plan.plan_id.replace('PLN-', 'P')}</div><span className={`plan-status ${passed ? 'passed' : 'blocked'}`}>{fullPlan?.status?.replace(/_/g, ' ') ?? plan.outcome}</span></div><h3>{plan.label}</h3><p className="plan-detail">Recovery plan from evaluation {evaluation?.evaluation_id}.</p><div className="financial-block"><span>Net avoided loss{isBlocked ? ' · on paper' : ''}</span><strong>{money(plan.net_avoided_loss_inr)}</strong></div><div className="checks-row">{plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked</div><div className="plan-actions"><button className="secondary-button" onClick={() => fullPlan && setSelectedPlan(fullPlan)}>Review evidence</button>{fullPlan?.status === 'approved' || fullPlan?.status === 'completed' ? <button className="primary-button" disabled={executionSubmitting || getApiMode() === 'stub'} onClick={() => void startPlanExecution(fullPlan)}>{fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}</button> : <button className="primary-button" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={() => openApproval(plan.plan_id)}>Approve</button>}{isBlocked && fullPlan && hasAmendableLcFinding(fullPlan) && <button className="secondary-button" disabled={!actorCanAmend} title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'} onClick={() => openApproval(plan.plan_id)}>Request LC amendment</button>}</div>{isBlocked && <p className="blocked-reason" id={`blocked-reason-${plan.plan_id}`}>Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. P1 remains blocked.</p>}</article>
+                const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked'
+                const planStatus = fullPlan?.status ?? plan.outcome
+                const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-')
+                const worstCaseExposure = getWorstCaseExposure(plan, fullPlan)
+                return <article className="plan-card" key={plan.plan_id}>
+                  <div className="plan-top">
+                    <div className="plan-id">{formatPlanId(plan.plan_id)}</div>
+                    <span className={`plan-status ${planStatusClass}`}>{planStatus.replace(/_/g, ' ')}</span>
+                  </div>
+                  <h3>{plan.label}</h3>
+                  <p className="plan-detail">Recovery plan from evaluation {evaluation?.evaluation_id}.</p>
+                  <div className="financial-block">
+                    <div className="financial-row-main">
+                      <span>Net avoided loss{isBlocked ? ' · on paper' : ''}</span>
+                      <strong>{money(plan.net_avoided_loss_inr)}</strong>
+                    </div>
+                    <div className="financial-breakdown">
+                      <div className="financial-item">
+                        <span>Recovery cost</span>
+                        <strong>{money(plan.recovery_cost_inr)}</strong>
+                      </div>
+                      <div className="financial-item">
+                        <span>Residual loss</span>
+                        <strong>{money(plan.residual_loss_inr)}</strong>
+                      </div>
+                      <div className="financial-item">
+                        <span>Worst-case exposure</span>
+                        <strong>worst {money(worstCaseExposure)}</strong>
+                      </div>
+                      <div className="financial-item">
+                        <span>Outcome</span>
+                        <strong className={`outcome-val ${plan.outcome}`}>{plan.outcome.toUpperCase()}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="checks-row">{plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked</div>
+                  <div className="plan-actions"><button className="secondary-button" onClick={() => fullPlan && setSelectedPlan(fullPlan)}>Review evidence</button>{fullPlan?.status === 'approved' || fullPlan?.status === 'completed' ? <button className="primary-button" disabled={executionSubmitting || getApiMode() === 'stub'} onClick={() => void startPlanExecution(fullPlan)}>{fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}</button> : <button className="primary-button" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={() => openApproval(plan.plan_id)}>Approve</button>}{isBlocked && fullPlan && hasAmendableLcFinding(fullPlan) && <button className="secondary-button" disabled={!actorCanAmend} title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'} onClick={() => openApproval(plan.plan_id)}>Request LC amendment</button>}</div>
+                  {isBlocked && <p className="blocked-reason" id={`blocked-reason-${plan.plan_id}`}>Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. {formatPlanId(plan.plan_id)} remains blocked.</p>}
+                </article>
               })}</section>
               {executionError && <p className="load-error" role="alert">{executionError}</p>}
               {selectedPlan && <div className="evidence-panel"><div className="evidence-header"><h2>Evidence — {selectedPlan.plan_id}</h2><button className="secondary-button" onClick={() => setSelectedPlan(null)}>Close ✕</button></div><h3>{selectedPlan.label}</h3><p><strong>Validation status:</strong> {selectedPlan.status}</p><p><strong>Check results:</strong> {selectedPlan.check_outcome_counts.passed} passed · {selectedPlan.check_outcome_counts.needs_review} need review · {selectedPlan.check_outcome_counts.blocked} blocked</p><p><strong>Financial impact:</strong> {money(selectedPlan.financials.net_avoided_loss_inr)}</p><div className="evidence-findings"><h3>Plan findings</h3>{evaluation?.findings.filter((finding) => selectedPlan.finding_ids.includes(finding.finding_id)).map((finding) => <button key={finding.finding_id} className="finding-link" onClick={() => setSelectedFinding(finding)}>{finding.title}<span>{finding.finding_id} · {finding.outcome}</span></button>)}</div></div>}
@@ -521,13 +715,52 @@ function App() {
             <div className="page-title-row"><div><p className="eyebrow">WORKSPACE / EVALUATION</p><h1>Evaluation progress</h1><p className="subtitle">Step results returned for the loaded evaluation. Fixture mode displays the recorded EVAL-0001 response.</p></div><span className="evaluation-status"><span className="status-dot" />{evaluationState === 'loading' ? 'Loading' : evaluation?.status ?? 'Unavailable'}</span></div>
             {evaluationState === 'loading' && <div className="progress-state" role="status">Loading the recorded evaluation fixture…</div>}
             {evaluationState === 'error' && <div className="progress-state progress-error" role="alert"><p>{evaluationError}</p><button className="primary-button" onClick={() => void loadEvaluation()}>Retry fixture load</button></div>}
-            {evaluationState === 'ready' && evaluation && <><div className="evaluation-progress" aria-live="polite" aria-atomic="true"><p className="progress-announcement">Evaluation {evaluation.evaluation_id} is {evaluation.status}. {getApiMode() === 'stub' ? 'Stub mode displays recorded agent results; no live evaluation request was sent.' : 'Step results were returned by the live evaluation API.'}</p>{evaluation.steps?.map((step) => <article className={`progress-step ${step.status}`} key={step.seq}><span className="progress-step-icon" aria-hidden="true">{step.status === 'succeeded' ? '✓' : step.status === 'failed' ? '!' : '•'}</span><div><h2>{step.seq}. {step.step.replace(/_/g, ' ')}</h2><p>{step.owner} · {step.attempts > 1 ? `${step.attempts} attempts` : '1 attempt'}</p>{step.error && <p className="load-error">{typeof step.error === 'string' ? step.error : step.error.message ?? 'Step failed.'}</p>}</div><span className="mode-chip">{step.mode ?? 'not specified'}</span><time dateTime={step.finished_at ?? undefined}>{formatLocalTimestamp(step.finished_at)}</time></article>)}</div><div className="progress-actions"><button className="secondary-button" onClick={() => void loadEvaluation()}>{getApiMode() === 'stub' ? 'Reload fixture' : 'Refresh evaluation'}</button><button className="primary-button" onClick={() => navigate('evaluations')}>View plan comparison</button></div></>}
+            {evaluationState === 'ready' && evaluation && <><div className="evaluation-progress" aria-live="polite" aria-atomic="true"><p className="progress-announcement">Evaluation {evaluation.evaluation_id} is {evaluation.status}. {getApiMode() === 'stub' ? 'Stub mode displays recorded agent results; no live evaluation request was sent.' : 'Step results were returned by the live evaluation API.'}</p>{evaluation.steps?.map((step) => <article className={`progress-step ${step.status}`} key={step.seq}><span className="progress-step-icon" aria-hidden="true">{step.status === 'succeeded' ? '✓' : step.status === 'failed' ? '!' : '•'}</span><div><h2>{step.seq}. {step.step.replace(/_/g, ' ')}</h2><p><span className="step-status-badge">{step.status}</span> · {step.owner} · {step.attempts > 1 ? `${step.attempts} attempts` : '1 attempt'}</p>{step.error && <p className="load-error">{typeof step.error === 'string' ? step.error : step.error.message ?? 'Step failed.'}</p>}</div><span className="mode-chip">{step.mode ?? 'not specified'}</span><time dateTime={step.finished_at ?? undefined}>{formatLocalTimestamp(step.finished_at)}</time></article>)}</div><div className="progress-actions"><button className="secondary-button" onClick={() => void loadEvaluation()}>{getApiMode() === 'stub' ? 'Reload fixture' : 'Refresh evaluation'}</button><button className="primary-button" onClick={() => navigate('evaluations')}>View plan comparison</button></div></>}
           </>}
 
           {activeScreen === 'evaluations' && <>
             <div className="page-title-row"><div><p className="eyebrow">WORKSPACE / EVALUATIONS</p><h1>Evaluations</h1><p className="subtitle">Review the completed synthetic recovery evaluation and its findings.</p></div><span className="evaluation-status"><span className="status-dot" />{evaluation?.status ?? 'Loading'}</span></div>
             {evaluationError && <p className="load-error" role="alert">{evaluationError}</p>}
-            {evaluation ? <><div className="section-heading"><div><h2>{evaluation.evaluation_id} · {evaluation.status}</h2><p>Baseline loss: {money(evaluation.comparison.baseline_loss_inr)} · Recommended plan: {evaluation.comparison.recommended_plan_id}</p></div><button className="secondary-button" onClick={() => navigate('evaluation-progress')}>View evaluation progress</button></div><section className="plans-grid">{evaluation.comparison.plans.map((plan) => <article className="plan-card" key={plan.plan_id}><div className="plan-top"><div className="plan-id">{plan.plan_id}</div><span className={`plan-status ${plan.outcome === 'passed' ? 'passed' : 'blocked'}`}>{plan.outcome}</span></div><h3>{plan.label}</h3><p className="plan-detail">Net avoided loss: {money(plan.net_avoided_loss_inr)}</p><div className="checks-row">{plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked</div></article>)}</section><div className="section-heading"><div><h2>Findings</h2><p>{evaluation.findings.length} findings from the evaluation fixture.</p></div></div><div className="finding-list">{evaluation.findings.map((finding) => <button className="finding-link" key={finding.finding_id} onClick={() => setSelectedFinding(finding)}><strong>{finding.title}</strong><span>{finding.finding_id} · {finding.check_code} · {finding.outcome}</span></button>)}</div></> : evaluationState === 'loading' ? <p>Loading evaluation fixture…</p> : null}
+            {evaluation ? <><div className="section-heading"><div><h2>{evaluation.evaluation_id} · {evaluation.status}</h2><p>Baseline loss: {money(evaluation.comparison.baseline_loss_inr)} · Recommended plan: {evaluation.comparison.recommended_plan_id ? formatPlanId(evaluation.comparison.recommended_plan_id) : '—'}</p></div><button className="secondary-button" onClick={() => navigate('evaluation-progress')}>View evaluation progress</button></div><section className="plans-grid">{evaluation.comparison.plans.map((plan) => {
+              const fullPlan = evaluation.plans.find((candidate) => candidate.plan_id === plan.plan_id)
+              const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked'
+              const planStatus = fullPlan?.status ?? plan.outcome
+              const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-')
+              const worstCaseExposure = getWorstCaseExposure(plan, fullPlan)
+              return <article className="plan-card" key={plan.plan_id}>
+                <div className="plan-top">
+                  <div className="plan-id">{formatPlanId(plan.plan_id)}</div>
+                  <span className={`plan-status ${planStatusClass}`}>{planStatus.replace(/_/g, ' ')}</span>
+                </div>
+                <h3>{plan.label}</h3>
+                <p className="plan-detail">Net avoided loss: {money(plan.net_avoided_loss_inr)}</p>
+                <div className="financial-block">
+                  <div className="financial-row-main">
+                    <span>Net avoided loss{isBlocked ? ' · on paper' : ''}</span>
+                    <strong>{money(plan.net_avoided_loss_inr)}</strong>
+                  </div>
+                  <div className="financial-breakdown">
+                    <div className="financial-item">
+                      <span>Recovery cost</span>
+                      <strong>{money(plan.recovery_cost_inr)}</strong>
+                    </div>
+                    <div className="financial-item">
+                      <span>Residual loss</span>
+                      <strong>{money(plan.residual_loss_inr)}</strong>
+                    </div>
+                    <div className="financial-item">
+                      <span>Worst-case exposure</span>
+                      <strong>worst {money(worstCaseExposure)}</strong>
+                    </div>
+                    <div className="financial-item">
+                      <span>Outcome</span>
+                      <strong className={`outcome-val ${plan.outcome}`}>{plan.outcome.toUpperCase()}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div className="checks-row">{plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked</div>
+              </article>
+            })}</section><div className="section-heading"><div><h2>Findings</h2><p>{evaluation.findings.length} findings from the evaluation fixture.</p></div></div><div className="finding-list">{evaluation.findings.map((finding) => <button className="finding-link" key={finding.finding_id} onClick={() => setSelectedFinding(finding)}><strong>{finding.title}</strong><span>{finding.finding_id} · {finding.check_code} · {finding.outcome}</span></button>)}</div></> : evaluationState === 'loading' ? <p>Loading evaluation fixture…</p> : null}
           </>}
 
           {activeScreen === 'execution' && <>
@@ -592,8 +825,16 @@ function App() {
           </>}
         </section>
         {approvalPlan && <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setApprovalPlan(null) }}><section className="approval-dialog" role="dialog" aria-modal="true" aria-labelledby="approval-title" aria-describedby="approval-status" tabIndex={-1} ref={approvalDialogRef} onMouseDown={(event) => event.stopPropagation()}>
-          <div className="evidence-header"><div><p className="eyebrow">HUMAN APPROVAL · {approvalPlan.plan_id}</p><h2 id="approval-title">Review {approvalPlan.label}</h2></div><button className="secondary-button" onClick={() => setApprovalPlan(null)} aria-label="Close approval dialog">Close</button></div>
-          <dl className="finding-details"><div><dt>Plan status</dt><dd>{approvalPlan.status.replace(/_/g, ' ')}</dd></div><div><dt>Version</dt><dd>{approvalPlan.version}</dd></div><div><dt>Plan hash</dt><dd className="hash-value">{approvalPlan.plan_hash}</dd></div><div><dt>Net avoided loss</dt><dd>{money(approvalPlan.financials.net_avoided_loss_inr)}</dd></div></dl>
+          <div className="evidence-header"><div><p className="eyebrow">HUMAN APPROVAL · {formatPlanId(approvalPlan.plan_id)}</p><h2 id="approval-title">Review {approvalPlan.label}</h2></div><button className="secondary-button" onClick={() => setApprovalPlan(null)} aria-label="Close approval dialog">Close</button></div>
+          <dl className="finding-details">
+            <div><dt>Plan status</dt><dd>{approvalPlan.status.replace(/_/g, ' ')}</dd></div>
+            <div><dt>Version</dt><dd>{approvalPlan.version}</dd></div>
+            <div><dt>Plan hash</dt><dd className="hash-value">{approvalPlan.plan_hash}</dd></div>
+            <div><dt>Recovery cost</dt><dd>{money(approvalPlan.financials.recovery_cost_inr)}</dd></div>
+            <div><dt>Residual loss</dt><dd>{money(approvalPlan.financials.residual_loss_inr)}</dd></div>
+            <div><dt>Net avoided loss</dt><dd>{money(approvalPlan.financials.net_avoided_loss_inr)}</dd></div>
+            <div><dt>Worst-case exposure</dt><dd>{money(approvalPlan.financials.worst_case_exposure_inr ?? 0)}</dd></div>
+          </dl>
           <p id="approval-status" className={approvalPlan.status === 'blocked' ? 'blocked-reason' : 'approval-note'}>{approvalPlan.status === 'blocked' ? 'Cannot approve: this plan is blocked by its fixture checks.' : `Outcome: ${approvalPlan.outcome}. Confirm the current plan version and evidence before approval.`}</p>
           <label className="field-label" htmlFor="approval-justification">Justification <span>(optional for approval)</span></label>
           <textarea id="approval-justification" value={decisionJustification} onChange={(event) => setDecisionJustification(event.target.value)} maxLength={1000} rows={3} placeholder="Record the reason for this approval" />
@@ -626,12 +867,35 @@ function App() {
           <div className="approval-actions"><button className="secondary-button" disabled={decisionSubmitting} onClick={() => setApprovalPlan(null)}>Cancel</button><button className="primary-button" disabled={decisionSubmitting || Boolean(approvalDisabledReason) || getApiMode() === 'stub'} title={approvalDisabledReason || (getApiMode() === 'stub' ? 'Fixture mode has no decision endpoint response.' : undefined)} onClick={() => void submitApproval()}>{decisionSubmitting ? 'Submitting…' : 'Approve plan'}</button></div>
           {approvalDisabledReason && <p className="field-hint">{approvalDisabledReason}</p>}
         </section></div>}
-        {selectedFinding && <div className="drawer-backdrop" role="presentation" onClick={() => setSelectedFinding(null)}><aside className="evidence-drawer" role="dialog" aria-modal="true" aria-labelledby="finding-drawer-title" onClick={(event) => event.stopPropagation()}>
+        {selectedFinding && <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedFinding(null) }}><aside className="evidence-drawer" role="dialog" aria-modal="true" aria-labelledby="finding-drawer-title" tabIndex={-1} ref={evidenceDrawerRef} onMouseDown={(event) => event.stopPropagation()}>
           <div className="evidence-header"><div><p className="eyebrow">EVALUATION EVIDENCE</p><h2 id="finding-drawer-title">Finding details</h2></div><button className="secondary-button" onClick={() => setSelectedFinding(null)} aria-label="Close finding details">Close</button></div>
           <span className={`finding-outcome ${selectedFinding.outcome}`}>{displayOutcome(selectedFinding.outcome)}</span>
           <h3>{selectedFinding.title}</h3>
           <dl className="finding-details"><div><dt>Finding ID</dt><dd>{selectedFinding.finding_id}</dd></div><div><dt>Check</dt><dd>{selectedFinding.check_code}</dd></div><div><dt>Subject</dt><dd>{selectedFinding.subject.type}: {selectedFinding.subject.id}</dd></div><div><dt>Agent</dt><dd>{selectedFinding.agent.replace(/_/g, ' ')}</dd></div></dl>
           <section className="evidence-section"><h3>Why</h3><p>{selectedFinding.title}</p>{Object.entries(selectedFinding.details).length > 0 && <dl className="detail-list">{Object.entries(selectedFinding.details).map(([key, value]) => <div key={key}><dt>{key.replace(/_/g, ' ')}</dt><dd>{typeof value === 'string' ? value : JSON.stringify(value)}</dd></div>)}</dl>}</section>
+          {findingExposures.length > 0 && (
+            <section className="evidence-section exposure-section">
+              <h3>Financial exposures & duty at risk</h3>
+              {dutyAtRiskTotal > 0 && (
+                <div className="duty-at-risk-card">
+                  <strong>Duty at risk: {money(dutyAtRiskTotal)}</strong>
+                  <span> (kind: duty_if_preference_denied across {findingExposures.filter((e) => e.kind === 'duty_if_preference_denied').length} lines)</span>
+                </div>
+              )}
+              <div className="exposure-list">
+                {findingExposures.map((exp) => (
+                  <article className="evidence-record" key={`${exp.plan_id ?? ''}-${exp.exposure_id}`}>
+                    <div className="evidence-record-heading">
+                      <strong>{exp.exposure_id} · {exp.kind.replace(/_/g, ' ')}</strong>
+                      <span>{exp.amount_inr !== null ? money(exp.amount_inr) : 'Unquantified'}</span>
+                    </div>
+                    <p className="evidence-meta">Line {exp.line_id}{exp.mutually_exclusive_group ? ` · Group ${exp.mutually_exclusive_group}` : ''}</p>
+                    <p className="evidence-meta">{exp.basis}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
           <section className="evidence-section"><h3>Evidence records</h3>{missingEvidenceIds.length > 0 && <p className="evidence-missing" role="alert">Evidence missing: {missingEvidenceIds.join(', ')}. This referenced record could not be resolved from the evaluation payload.</p>}
             {linkedEvidence.length === 0 && missingEvidenceIds.length === 0 && <p>No evidence IDs are recorded for this finding.</p>}
             {linkedEvidence.map((item) => <article className="evidence-record" key={item.evidence_id}><div className="evidence-record-heading"><strong>{item.title}</strong><span>{item.evidence_id}</span></div><p className="evidence-meta">{item.kind.replace(/_/g, ' ')} · {item.authority}{item.synthetic ? ' · Synthetic' : item.authority === 'secondary' ? ' · Secondary source' : ''}</p>{item.source_ids.length > 0 && <p className="evidence-meta">Source IDs: {item.source_ids.join(', ')}</p>}{item.excerpt && <blockquote>{item.excerpt}</blockquote>}</article>)}

@@ -118,7 +118,59 @@ export type EvaluationStep = {
   error?: { message?: string } | string | null
 }
 
+export type AffectedShipment = {
+  shipment_id: string
+  po_id: string
+  planned_etd: string
+  revised_etd: string
+  planned_eta_plant: string
+  revised_eta_plant: string
+  delay_days: number
+}
+
+export type AffectedOrder = {
+  order_id: string
+  customer_id: string
+  qty_affected: number
+  order_value_inr: number
+  need_by: string
+  revised_arrival: string
+  days_late: number
+  baseline_penalty_inr: number
+}
+
+export type DisruptionEvent = {
+  disruption_id: string
+  received_at?: string
+  channel?: string
+  raw_text?: string
+  [key: string]: unknown
+}
+
+export type DisruptionList = {
+  items: DisruptionEvent[]
+}
+
+export type DisruptionAssessment = {
+  schema_version: string
+  assessment_id: string
+  disruption_id: string
+  outcome: 'passed' | 'needs_review'
+  issues: string[]
+  extraction_mode: 'gold' | 'recorded' | 'live'
+  event_type: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  severity_basis: string
+  disrupted_node_ids: string[]
+  affected_supplier_ids: string[]
+  affected_shipments: AffectedShipment[]
+  affected_orders: AffectedOrder[]
+  baseline_loss_inr: number
+  evidence: Evidence[]
+}
+
 export type Evaluation = {
+  assessment?: DisruptionAssessment
   evaluation_id: string
   disruption_id: string
   status: string

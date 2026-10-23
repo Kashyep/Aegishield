@@ -418,7 +418,9 @@ select:focus-visible {
   background: white;
 }
 
-.plan-card:has(.plan-status.passed) {
+.plan-card:has(.plan-status.passed),
+.plan-card:has(.plan-status.approved),
+.plan-card:has(.plan-status.completed) {
   border-color: #a7d7bd;
   box-shadow: 0 0 0 1px #d8eee1;
 }
@@ -447,14 +449,30 @@ select:focus-visible {
   font-weight: 750;
 }
 
-.plan-status.blocked {
+.plan-status.passed,
+.plan-status.approved,
+.plan-status.completed {
+  color: #187348;
+  background: #e8f7ef;
+}
+
+.plan-status.blocked,
+.plan-status.rejected,
+.plan-status.failed {
   color: #a12c20;
   background: #fff0ed;
 }
 
-.plan-status.passed {
-  color: #187348;
-  background: #e8f7ef;
+.plan-status.executing,
+.plan-status.pending-approval,
+.plan-status.pending_approval {
+  color: #805300;
+  background: #fff5d9;
+}
+
+.plan-status.superseded {
+  color: #52657a;
+  background: #eef2f6;
 }
 
 .plan-card h3 {
@@ -481,7 +499,7 @@ select:focus-visible {
 }
 
 .financial-block span {
-  color: #697b8f;
+  color: #475569;
   font-size: 11px;
 }
 
@@ -901,7 +919,7 @@ footer {
 
 .progress-step p {
   margin: 0;
-  color: #68788c;
+  color: #475569;
   font-size: 12px;
 }
 
@@ -915,7 +933,7 @@ footer {
 }
 
 .progress-step time {
-  color: #718298;
+  color: #475569;
   font-size: 11px;
   text-align: right;
 }
@@ -1028,3 +1046,145 @@ marker.arrow-focus path { fill: #0a6ed1; }
 .demo-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .amendment-section { margin-top: 18px; padding: 14px; border: 1px solid #dbe4ee; border-radius: 8px; }
 .amendment-section table { width: 100%; font-size: 12px; }
+
+/* Accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Disruption Card details */
+.disruption-card-neutral {
+  border-color: #d1dbe5;
+  background: #f8fafc;
+}
+
+.disruption-card-neutral .disruption-icon {
+  color: #4a637d;
+  background: #e9f0f7;
+}
+
+.disruption-facility-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 6px 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.affected-orders-block {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.affected-orders-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.affected-orders-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fdf2f0;
+  border: 1px solid #fed7d2;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+}
+
+/* Plan card status & financial breakdown */
+
+.financial-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.financial-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.financial-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.financial-item span {
+  color: #475569;
+  font-size: 11px;
+}
+
+.financial-item strong {
+  color: #20364e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.financial-item strong.outcome-val.blocked {
+  color: #a12c20;
+}
+
+.financial-item strong.outcome-val.passed {
+  color: #187348;
+}
+
+/* Step status label in evaluation progress */
+.step-status-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #187348;
+  background: #e8f7ef;
+}
+
+.progress-step.failed .step-status-badge {
+  color: #a12c20;
+  background: #fff0ed;
+}
+
+.progress-step.degraded .step-status-badge {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+/* Duty at risk & exposures in evidence drawer */
+.exposure-section {
+  margin-top: 20px;
+}
+
+.duty-at-risk-card {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #fff0ed;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.duty-at-risk-card strong {
+  font-size: 14px;
+}

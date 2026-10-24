@@ -3,6 +3,10 @@ import { expect, test } from '@playwright/test'
 test('reset, evaluate, graph, LC amendment and P2 approval against the live API', async ({ page }) => {
   await page.goto('/#command')
   await page.getByRole('button', { name: 'Reset demo' }).click()
+  const resetDialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Close dialog' }) })
+  if (await resetDialog.count()) {
+    await resetDialog.getByRole('button', { name: 'Reset demo', exact: true }).click()
+  }
   await expect(page.getByRole('status').filter({ hasText: 'Demo reset' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Run evaluation' }).click()

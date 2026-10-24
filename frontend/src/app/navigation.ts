@@ -1,11 +1,13 @@
+import { LayoutDashboard, ClipboardCheck, PlayCircle, Network, ScrollText, type LucideIcon } from 'lucide-react'
+
 export type Screen = 'command' | 'evaluation-progress' | 'evaluations' | 'execution' | 'supply-graph' | 'audit-trail'
 
-export const navItems: { id: Exclude<Screen, 'evaluation-progress'>; label: string; icon: string }[] = [
-  { id: 'command', label: 'Command Center', icon: '▦' },
-  { id: 'evaluations', label: 'Evaluations', icon: '◉' },
-  { id: 'execution', label: 'Execution', icon: '▶' },
-  { id: 'supply-graph', label: 'Supply graph', icon: '◇' },
-  { id: 'audit-trail', label: 'Audit trail', icon: '▤' },
+export const navItems: { id: Exclude<Screen, 'evaluation-progress'>; label: string; icon: LucideIcon }[] = [
+  { id: 'command', label: 'Command Center', icon: LayoutDashboard },
+  { id: 'evaluations', label: 'Evaluations', icon: ClipboardCheck },
+  { id: 'execution', label: 'Execution', icon: PlayCircle },
+  { id: 'supply-graph', label: 'Supply graph', icon: Network },
+  { id: 'audit-trail', label: 'Audit trail', icon: ScrollText },
 ]
 
 const labels: Record<Screen, string> = {

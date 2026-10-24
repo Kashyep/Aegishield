@@ -55,27 +55,28 @@ export function DependencyGraph({ view, result, candidates, onFocusSupplier, sel
   const blockedPath = view.paths.find((path) => path.kind === 'shared_disrupted_dependency')
   const focusLabel = candidates.find((c) => c.supplierId === view.focus_supplier_id)?.label ?? view.focus_supplier_id
 
-  return <>
-    <div className="graph-focus" role="group" aria-label="Candidate supplier to explain">
-      <span>Explain candidate:</span>
-      {candidates.map((c) => <button key={c.supplierId} className={`focus-button ${c.supplierId === view.focus_supplier_id ? 'active' : ''}`} aria-pressed={c.supplierId === view.focus_supplier_id} onClick={() => onFocusSupplier(c.supplierId)}>{c.supplierId} · {c.label}</button>)}
-    </div>
-    {result && <section className={`dependency-verdict ${result.outcome}`} aria-live="polite" aria-label="Dependency check result">
-      <strong>{view.focus_supplier_id} · {OUTCOME_TEXT[result.outcome] ?? result.outcome}</strong>
-      <span>{result.reason_code.replace(/_/g, ' ').toLowerCase()} · searched {result.max_depth} hops upstream · coverage {result.coverage.complete ? 'complete' : 'incomplete'}</span>
-      {blockedPath && <p>{focusLabel} is not independent: its path {blockedPath.path_id} reaches the disrupted site {blockedPath.node_ids.slice(1).map((id) => nodeById[id]?.label ?? id).join(' ← ')}. The red links show this path.</p>}
-      {!blockedPath && result.outcome === 'passed' && <p>No upstream path from {focusLabel} reaches the disrupted site within {result.max_depth} hops. Blue links show its verified upstream paths.</p>}
-    </section>}
-    <div className="graph-legend">
-      <span><i className="legend-dot disrupted" />Disrupted site</span>
-      <span><i className="legend-dot blocked" />Blocked candidate</span>
-      <span><i className="legend-dot passed" />Passed candidate</span>
-      <span><i className="legend-dot affected" />Affected primary supplier</span>
-      <span><i className="legend-line path" />Evidence path to disruption</span>
-      <span><i className="legend-line focus" />Upstream path of selected candidate</span>
-      <span><i className="legend-line candidate" />Proposed supply (candidate)</span>
-    </div>
-    <div className="graph-scroll">
+  return (
+    <section className="dependency-graph" aria-label="Dependency evidence graph">
+      <div className="graph-focus" role="group" aria-label="Candidate supplier to explain">
+        <span>Explain candidate:</span>
+        {candidates.map((c) => <button key={c.supplierId} className={`focus-button ${c.supplierId === view.focus_supplier_id ? 'active' : ''}`} aria-pressed={c.supplierId === view.focus_supplier_id} onClick={() => onFocusSupplier(c.supplierId)}>{c.supplierId} · {c.label}</button>)}
+      </div>
+      {result && <section className={`dependency-verdict ${result.outcome}`} aria-live="polite" aria-label="Dependency check result">
+        <strong>{view.focus_supplier_id} · {OUTCOME_TEXT[result.outcome] ?? result.outcome}</strong>
+        <span>{result.reason_code.replace(/_/g, ' ').toLowerCase()} · searched {result.max_depth} hops upstream · coverage {result.coverage.complete ? 'complete' : 'incomplete'}</span>
+        {blockedPath && <p>{focusLabel} is not independent: its path {blockedPath.path_id} reaches the disrupted site {blockedPath.node_ids.slice(1).map((id) => nodeById[id]?.label ?? id).join(' ← ')}. The red links show this path.</p>}
+        {!blockedPath && result.outcome === 'passed' && <p>No upstream path from {focusLabel} reaches the disrupted site within {result.max_depth} hops. Blue links show its verified upstream paths.</p>}
+      </section>}
+      <div className="graph-legend" role="group" aria-label="Graph legend">
+        <span><i className="legend-dot disrupted" />Disrupted site</span>
+        <span><i className="legend-dot blocked" />Blocked candidate</span>
+        <span><i className="legend-dot passed" />Passed candidate</span>
+        <span><i className="legend-dot affected" />Affected primary supplier</span>
+        <span><i className="legend-line path" />Evidence path to disruption</span>
+        <span><i className="legend-line focus" />Upstream path of selected candidate</span>
+        <span><i className="legend-line candidate" />Proposed supply (candidate)</span>
+      </div>
+      <div className="graph-scroll">
       <svg className="supply-graph" viewBox={`0 0 1215 ${height}`} role="img" aria-labelledby="supply-graph-title" aria-describedby="supply-graph-description">
         <title id="supply-graph-title">Dependency evidence graph for {view.focus_supplier_id}</title>
         <desc id="supply-graph-description">Arrows show goods flowing from provider to consumer. The evidence paths and every link are also listed as text below the graphic.</desc>
@@ -123,6 +124,7 @@ export function DependencyGraph({ view, result, candidates, onFocusSupplier, sel
       })}</ol>
       <div className="table-scroll" role="region" aria-label="Scrollable facility records table" tabIndex={0}><table className="audit-table"><caption>Facility records in this graph fixture</caption><thead><tr><th scope="col">Facility</th><th scope="col">Organization</th><th scope="col">Country</th><th scope="col">Role</th><th scope="col">Status</th></tr></thead><tbody>{view.nodes.map((node) => <tr key={node.id}><td>{node.label}<small>{node.id}</small></td><td>{node.org_name}</td><td>{node.country}</td><td>{node.role.replace(/_/g, ' ')}</td><td>{STATUS_TEXT[node.status] ?? node.status}</td></tr>)}</tbody></table></div>
     </section>
-  </>
+    </section>
+  )
 }
 

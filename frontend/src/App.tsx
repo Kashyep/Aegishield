@@ -438,10 +438,7 @@ function App() {
             evaluation={evaluation}
             evaluationError={evaluationError}
             runEvaluation={runEvaluation}
-            runDemoReset={runDemoReset}
             confirmReset={confirmReset}
-            showResetConfirm={showResetConfirm}
-            setShowResetConfirm={setShowResetConfirm}
             demoBusy={demoBusy}
             availableDisruptionId={availableDisruptionId}
             navigate={navigate}

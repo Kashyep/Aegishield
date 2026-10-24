@@ -11,10 +11,7 @@ interface CommandCenterProps {
   evaluation: Evaluation | null;
   evaluationError: string;
   runEvaluation: () => void;
-  runDemoReset: () => void;
   confirmReset: () => void;
-  showResetConfirm: boolean;
-  setShowResetConfirm: (v: boolean) => void;
   demoBusy: string;
   availableDisruptionId: string | null;
   navigate: (screen: Screen) => void;
@@ -36,10 +33,7 @@ export function CommandCenter({
   evaluation,
   evaluationError,
   runEvaluation,
-  runDemoReset,
   confirmReset,
-  showResetConfirm,
-  setShowResetConfirm,
   demoBusy,
   availableDisruptionId,
   navigate,
@@ -83,25 +77,6 @@ export function CommandCenter({
           )}
         </div>
       </PageHeader>
-
-      {/* Reset confirmation modal */}
-      {showResetConfirm && (
-        <div className="neu-backdrop" onClick={() => setShowResetConfirm(false)} role="presentation">
-          <section className="neu-modal" style={{ maxWidth: '400px' }} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-            <div className="neu-dialog-header">
-              <h2 id="reset-confirm-title">Reset demo?</h2>
-              <button className="neu-dialog-close" onClick={() => setShowResetConfirm(false)} aria-label="Close">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
-            <p className="approval-note">This will clear the current evaluation and restart the audit chain. This action cannot be undone.</p>
-            <div className="neu-dialog-actions">
-              <NeuButton variant="secondary" onClick={() => setShowResetConfirm(false)}>Cancel</NeuButton>
-              <NeuButton variant="primary" onClick={runDemoReset}>Reset demo</NeuButton>
-            </div>
-          </section>
-        </div>
-      )}
 
       <PageBody>
         {/* Disruption Card */}

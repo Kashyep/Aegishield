@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
@@ -23,10 +24,11 @@ export function SupplyGraphScreen({
   setSelectedGraphNode,
   evaluation,
 }: SupplyGraphScreenProps) {
-  const candidates = (evaluation?.dependency_results ?? []).map((result) => ({
+  // ⚡ Bolt Optimization: Memoize props passed to DependencyGraph to prevent re-rendering it
+  const candidates = useMemo(() => (evaluation?.dependency_results ?? []).map((result) => ({
     supplierId: result.supplier_id,
     label: graphView?.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
-  }));
+  })), [evaluation?.dependency_results, graphView?.nodes]);
 
   return (
     <>

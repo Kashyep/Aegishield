@@ -1,0 +1,2355 @@
+{
+  "schema_version": "1.0.0",
+  "evaluation_id": "EVAL-0001",
+  "disruption_id": "DIS-2026-0042",
+  "status": "completed",
+  "data_mode": "synthetic",
+  "llm_mode": "off",
+  "input_snapshot_id": "sha256:d52c7ecc366a66470bd9e04cf43d4f913d31b729c5f2bf1ce3932622b9f3d6c0",
+  "created_at": "2026-10-26T09:00:00+05:30",
+  "completed_at": "2026-10-26T09:00:07+05:30",
+  "steps": [
+    {
+      "seq": 1,
+      "step": "disruption_sensing",
+      "owner": "member_1",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 10000,
+      "started_at": "2026-10-26T09:00:00+05:30",
+      "finished_at": "2026-10-26T09:00:01+05:30",
+      "duration_ms": 120,
+      "mode": "gold",
+      "error": null
+    },
+    {
+      "seq": 2,
+      "step": "supplier_dependency",
+      "owner": "member_4",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 5000,
+      "started_at": "2026-10-26T09:00:01+05:30",
+      "finished_at": "2026-10-26T09:00:02+05:30",
+      "duration_ms": 120,
+      "mode": "deterministic",
+      "error": null
+    },
+    {
+      "seq": 3,
+      "step": "routing",
+      "owner": "member_1",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 5000,
+      "started_at": "2026-10-26T09:00:02+05:30",
+      "finished_at": "2026-10-26T09:00:03+05:30",
+      "duration_ms": 120,
+      "mode": "deterministic",
+      "error": null
+    },
+    {
+      "seq": 4,
+      "step": "inventory_rebalancing",
+      "owner": "member_1",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 5000,
+      "started_at": "2026-10-26T09:00:03+05:30",
+      "finished_at": "2026-10-26T09:00:04+05:30",
+      "duration_ms": 120,
+      "mode": "deterministic",
+      "error": null
+    },
+    {
+      "seq": 5,
+      "step": "trade_compliance",
+      "owner": "member_4",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 5000,
+      "started_at": "2026-10-26T09:00:04+05:30",
+      "finished_at": "2026-10-26T09:00:05+05:30",
+      "duration_ms": 120,
+      "mode": "deterministic",
+      "error": null
+    },
+    {
+      "seq": 6,
+      "step": "plan_assembly",
+      "owner": "member_4",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 5000,
+      "started_at": "2026-10-26T09:00:05+05:30",
+      "finished_at": "2026-10-26T09:00:06+05:30",
+      "duration_ms": 120,
+      "mode": "deterministic",
+      "error": null
+    },
+    {
+      "seq": 7,
+      "step": "explanation",
+      "owner": "member_3",
+      "status": "succeeded",
+      "attempts": 1,
+      "timeout_ms": 10000,
+      "started_at": "2026-10-26T09:00:06+05:30",
+      "finished_at": "2026-10-26T09:00:07+05:30",
+      "duration_ms": 120,
+      "mode": "template",
+      "error": null
+    }
+  ],
+  "assessment": {
+    "schema_version": "1.0.0",
+    "assessment_id": "DA-DIS-2026-0042",
+    "disruption_id": "DIS-2026-0042",
+    "outcome": "passed",
+    "issues": [],
+    "extraction_mode": "gold",
+    "event_type": "supplier_delay",
+    "severity": "high",
+    "severity_basis": "baseline_loss_inr=1160000; max_days_late=6",
+    "disrupted_node_ids": [
+      "FAC-FABZ"
+    ],
+    "affected_supplier_ids": [
+      "SUP-A"
+    ],
+    "affected_shipments": [
+      {
+        "shipment_id": "SHP-A-0901",
+        "po_id": "PO-7001",
+        "planned_etd": "2026-10-26",
+        "revised_etd": "2026-11-02",
+        "planned_eta_plant": "2026-11-02",
+        "revised_eta_plant": "2026-11-09",
+        "delay_days": 7
+      }
+    ],
+    "affected_orders": [
+      {
+        "order_id": "SO-1001",
+        "customer_id": "CUS-NRC",
+        "qty_affected": 400,
+        "order_value_inr": 8400000,
+        "need_by": "2026-11-03",
+        "revised_arrival": "2026-11-09",
+        "days_late": 6,
+        "baseline_penalty_inr": 600000
+      },
+      {
+        "order_id": "SO-1002",
+        "customer_id": "CUS-DWU",
+        "qty_affected": 300,
+        "order_value_inr": 6300000,
+        "need_by": "2026-11-05",
+        "revised_arrival": "2026-11-09",
+        "days_late": 4,
+        "baseline_penalty_inr": 360000
+      },
+      {
+        "order_id": "SO-1003",
+        "customer_id": "CUS-KCL",
+        "qty_affected": 200,
+        "order_value_inr": 4200000,
+        "need_by": "2026-11-07",
+        "revised_arrival": "2026-11-09",
+        "days_late": 2,
+        "baseline_penalty_inr": 200000
+      }
+    ],
+    "baseline_loss_inr": 1160000,
+    "evidence": [
+      {
+        "evidence_id": "EVD-NOTICE-DIS-2026-0042",
+        "kind": "source_document",
+        "source_ids": [
+          "SRC-NOTICE-0042"
+        ],
+        "title": "Delay notice from Penang PowerTech logistics desk (synthetic)",
+        "authority": "contractual",
+        "synthetic": true,
+        "locator": {
+          "record_id": "DIS-2026-0042"
+        },
+        "excerpt": "Shipment SHP-A-0901 will depart Port Klang on 02 Nov 2026 instead of 26 Oct 2026."
+      }
+    ]
+  },
+  "dependency_results": [
+    {
+      "schema_version": "1.0.0",
+      "supplier_id": "SUP-B",
+      "part_id": "PRT-PM750",
+      "start_node_id": "FAC-B-CHB",
+      "max_depth": 3,
+      "disrupted_node_ids": [
+        "FAC-FABZ"
+      ],
+      "outcome": "blocked",
+      "reason_code": "SHARED_DISRUPTED_DEPENDENCY",
+      "paths": [
+        {
+          "path_id": "PATH-SUP-B-1",
+          "kind": "shared_disrupted_dependency",
+          "node_ids": [
+            "FAC-B-CHB",
+            "FAC-Q-KDH",
+            "FAC-FABZ"
+          ],
+          "edge_ids": [
+            "E-004",
+            "E-005"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]"
+        },
+        {
+          "path_id": "PATH-SUP-B-2",
+          "kind": "clean",
+          "node_ids": [
+            "FAC-B-CHB",
+            "FAC-TSUB"
+          ],
+          "edge_ids": [
+            "E-006"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+        }
+      ],
+      "upstream_node_ids": [
+        "FAC-FABZ",
+        "FAC-Q-KDH",
+        "FAC-TSUB"
+      ],
+      "shared_with_primary_node_ids": [
+        "FAC-FABZ"
+      ],
+      "coverage": {
+        "complete": true,
+        "gaps": []
+      },
+      "truncated": false,
+      "cycle_detected": false,
+      "notes": [],
+      "evidence": [
+        {
+          "evidence_id": "EVD-PATH-SUP-B-1",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-AUD-B-2026Q2"
+          ],
+          "title": "Upstream path from Chonburi module assembly to disrupted Zenith Kulim wafer fab",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-B-1",
+            "node_ids": [
+              "FAC-B-CHB",
+              "FAC-Q-KDH",
+              "FAC-FABZ"
+            ],
+            "edge_ids": [
+              "E-004",
+              "E-005"
+            ]
+          },
+          "excerpt": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]"
+        },
+        {
+          "evidence_id": "EVD-PATH-SUP-B-2",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-AUD-B-2026Q2"
+          ],
+          "title": "Upstream path from Chonburi module assembly to Rayong substrate works",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-B-2",
+            "node_ids": [
+              "FAC-B-CHB",
+              "FAC-TSUB"
+            ],
+            "edge_ids": [
+              "E-006"
+            ]
+          },
+          "excerpt": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0.0",
+      "supplier_id": "SUP-C",
+      "part_id": "PRT-PM750",
+      "start_node_id": "FAC-C-BDG",
+      "max_depth": 3,
+      "disrupted_node_ids": [
+        "FAC-FABZ"
+      ],
+      "outcome": "passed",
+      "reason_code": "NO_PATH_TO_DISRUPTED_NODE",
+      "paths": [
+        {
+          "path_id": "PATH-SUP-C-1",
+          "kind": "clean",
+          "node_ids": [
+            "FAC-C-BDG",
+            "FAC-VDIE",
+            "FAC-FABK"
+          ],
+          "edge_ids": [
+            "E-007",
+            "E-008"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)"
+        },
+        {
+          "path_id": "PATH-SUP-C-2",
+          "kind": "clean",
+          "node_ids": [
+            "FAC-C-BDG",
+            "FAC-SUBS"
+          ],
+          "edge_ids": [
+            "E-009"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)"
+        }
+      ],
+      "upstream_node_ids": [
+        "FAC-FABK",
+        "FAC-SUBS",
+        "FAC-VDIE"
+      ],
+      "shared_with_primary_node_ids": [
+        "FAC-SUBS"
+      ],
+      "coverage": {
+        "complete": true,
+        "gaps": []
+      },
+      "truncated": false,
+      "cycle_detected": false,
+      "notes": [
+        {
+          "code": "SHARED_NON_DISRUPTED_DEPENDENCY",
+          "node_id": "FAC-SUBS",
+          "text": "Shah Alam ceramic substrates also supplies the primary supplier; not disrupted, recorded as concentration risk."
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EVD-PATH-SUP-C-1",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-DECL-C-2026"
+          ],
+          "title": "Upstream path from Binh Duong module assembly to Kumgang Gumi wafer fab",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-C-1",
+            "node_ids": [
+              "FAC-C-BDG",
+              "FAC-VDIE",
+              "FAC-FABK"
+            ],
+            "edge_ids": [
+              "E-007",
+              "E-008"
+            ]
+          },
+          "excerpt": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)"
+        },
+        {
+          "evidence_id": "EVD-PATH-SUP-C-2",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-DECL-C-2026"
+          ],
+          "title": "Upstream path from Binh Duong module assembly to Shah Alam ceramic substrates",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-C-2",
+            "node_ids": [
+              "FAC-C-BDG",
+              "FAC-SUBS"
+            ],
+            "edge_ids": [
+              "E-009"
+            ]
+          },
+          "excerpt": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)"
+        }
+      ]
+    }
+  ],
+  "rule_results": [
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-B-CMB",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "TH",
+        "transit_countries": [
+          "LK"
+        ],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-01",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-B-DIR",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "TH",
+        "transit_countries": [],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-06",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-C-DIR",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "VN",
+        "transit_countries": [],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-03",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "query": {
+        "query_id": "RQ-RT-C-SIN",
+        "jurisdiction": "IN",
+        "rule_types": [
+          "tariff_mfn",
+          "tariff_preferential",
+          "origin_consignment"
+        ],
+        "hs_code": "HS-SYN-8504.90",
+        "origin_country": "VN",
+        "transit_countries": [
+          "SG"
+        ],
+        "agreement_id": "AIFTA",
+        "applicable_on": "2026-11-02",
+        "known_as_of": "2026-10-26"
+      },
+      "outcome": "resolved",
+      "applicable": [
+        {
+          "rule_id": "TR-0003",
+          "rule_type": "tariff_mfn",
+          "family_id": "FAM-IN-BCD-MFN-850490",
+          "effective_from": "2026-11-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 1500
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0003",
+            "title": "Synthetic Customs Notification SYN-14/2026",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0005",
+          "rule_type": "tariff_preferential",
+          "family_id": "FAM-IN-AIFTA-PREF-850490",
+          "effective_from": "2024-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "ad_valorem_rate",
+            "rate_bps": 0,
+            "conditions": [
+              "certificate_of_origin",
+              "direct_consignment"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0005",
+            "title": "Synthetic Customs Notification SYN-02/2024",
+            "synthetic": true
+          }
+        },
+        {
+          "rule_id": "TR-0001",
+          "rule_type": "origin_consignment",
+          "family_id": "FAM-AIFTA-DIRECT-CONSIGNMENT",
+          "effective_from": "2010-01-01",
+          "effective_to": null,
+          "authority_level": "official_gazette",
+          "structured": {
+            "kind": "direct_consignment",
+            "party_transit": "allowed",
+            "non_party_transit": "conditional",
+            "non_party_conditions": [
+              "transit_justified_geographic_or_transport",
+              "not_entered_trade_or_consumption",
+              "no_operation_beyond_unloading_reloading_preservation"
+            ],
+            "evidence_required": [
+              "through_bill_of_lading",
+              "transit_customs_documentation"
+            ]
+          },
+          "citation": {
+            "source_id": "SRC-RULE-TR-0001",
+            "title": "Synthetic encoding of the AIFTA direct consignment rule",
+            "synthetic": true
+          }
+        }
+      ],
+      "excluded": [
+        {
+          "rule_id": "TR-0002",
+          "reason": "superseded"
+        },
+        {
+          "rule_id": "TR-0004",
+          "reason": "draft"
+        },
+        {
+          "rule_id": "TR-0006",
+          "reason": "lower_authority"
+        }
+      ],
+      "conflicts": [],
+      "missing_rule_types": [],
+      "retrieval_trace": {
+        "selection": "deterministic_metadata_filter",
+        "ranker_used_for_selection": false
+      }
+    }
+  ],
+  "options": [
+    {
+      "option_id": "OPT-INV-BLR",
+      "kind": "inventory",
+      "inventory_source_id": "INV-BLR",
+      "quote_id": null,
+      "supplier_id": null,
+      "route_option_id": null,
+      "capacity_group": "INV-BLR",
+      "capacity_units": 150,
+      "eta_plant": "2026-10-26",
+      "unit_incremental_cost_inr": 0,
+      "cost_components_per_unit": {
+        "inventory_transfer": 0
+      },
+      "finding_ids": [
+        "FND-INV-ATP-INV-BLR"
+      ],
+      "outcome": "passed"
+    },
+    {
+      "option_id": "OPT-INV-PNQ",
+      "kind": "inventory",
+      "inventory_source_id": "INV-PNQ",
+      "quote_id": null,
+      "supplier_id": null,
+      "route_option_id": null,
+      "capacity_group": "INV-PNQ",
+      "capacity_units": 150,
+      "eta_plant": "2026-10-29",
+      "unit_incremental_cost_inr": 40,
+      "cost_components_per_unit": {
+        "inventory_transfer": 40
+      },
+      "finding_ids": [
+        "FND-INV-ATP-INV-PNQ"
+      ],
+      "outcome": "passed"
+    },
+    {
+      "option_id": "OPT-RT-B-CMB",
+      "kind": "supplier",
+      "inventory_source_id": null,
+      "quote_id": "QT-B-01",
+      "supplier_id": "SUP-B",
+      "route_option_id": "RT-B-CMB",
+      "capacity_group": "QT-B-01",
+      "capacity_units": 400,
+      "eta_plant": "2026-11-03",
+      "unit_incremental_cost_inr": 460,
+      "cost_components_per_unit": {
+        "supplier_price_premium": 300,
+        "freight": 160
+      },
+      "finding_ids": [
+        "FND-DEP-SUP-B",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-CMB"
+      ],
+      "outcome": "blocked"
+    },
+    {
+      "option_id": "OPT-RT-B-DIR",
+      "kind": "supplier",
+      "inventory_source_id": null,
+      "quote_id": "QT-B-01",
+      "supplier_id": "SUP-B",
+      "route_option_id": "RT-B-DIR",
+      "capacity_group": "QT-B-01",
+      "capacity_units": 400,
+      "eta_plant": "2026-11-08",
+      "unit_incremental_cost_inr": 440,
+      "cost_components_per_unit": {
+        "supplier_price_premium": 300,
+        "freight": 140
+      },
+      "finding_ids": [
+        "FND-DEP-SUP-B",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-B-DIR",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-DIR"
+      ],
+      "outcome": "blocked"
+    },
+    {
+      "option_id": "OPT-RT-C-SIN",
+      "kind": "supplier",
+      "inventory_source_id": null,
+      "quote_id": "QT-C-01",
+      "supplier_id": "SUP-C",
+      "route_option_id": "RT-C-SIN",
+      "capacity_group": "QT-C-01",
+      "capacity_units": 600,
+      "eta_plant": "2026-11-04",
+      "unit_incremental_cost_inr": 720,
+      "cost_components_per_unit": {
+        "supplier_price_premium": 600,
+        "freight": 120
+      },
+      "finding_ids": [
+        "FND-DEP-SUP-C",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-C-SIN",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-SIN",
+        "FND-LC-TRANSHIPMENT-RT-C-SIN",
+        "FND-LC-LATEST_SHIPMENT-RT-C-SIN",
+        "FND-LC-PORT_OF_LOADING-RT-C-SIN",
+        "FND-LC-PORT_OF_DISCHARGE-RT-C-SIN",
+        "FND-LC-PRESENTATION-RT-C-SIN"
+      ],
+      "outcome": "blocked"
+    },
+    {
+      "option_id": "OPT-RT-C-DIR",
+      "kind": "supplier",
+      "inventory_source_id": null,
+      "quote_id": "QT-C-01",
+      "supplier_id": "SUP-C",
+      "route_option_id": "RT-C-DIR",
+      "capacity_group": "QT-C-01",
+      "capacity_units": 600,
+      "eta_plant": "2026-11-05",
+      "unit_incremental_cost_inr": 810,
+      "cost_components_per_unit": {
+        "supplier_price_premium": 600,
+        "freight": 210
+      },
+      "finding_ids": [
+        "FND-DEP-SUP-C",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-C-DIR",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-DIR",
+        "FND-LC-TRANSHIPMENT-RT-C-DIR",
+        "FND-LC-LATEST_SHIPMENT-RT-C-DIR",
+        "FND-LC-PORT_OF_LOADING-RT-C-DIR",
+        "FND-LC-PORT_OF_DISCHARGE-RT-C-DIR",
+        "FND-LC-PRESENTATION-RT-C-DIR"
+      ],
+      "outcome": "passed"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FND-DEP-SUP-B",
+      "check_code": "DEP.SHARED_DISRUPTED_DEPENDENCY",
+      "agent": "supplier_dependency",
+      "outcome": "blocked",
+      "subject": {
+        "type": "supplier",
+        "id": "SUP-B"
+      },
+      "title": "Alternate supplier depends on the disrupted node",
+      "evidence_ids": [
+        "EVD-PATH-SUP-B-1",
+        "EVD-PATH-SUP-B-2"
+      ],
+      "remedies": [
+        {
+          "action": "choose_other_supplier",
+          "text": "Do not count this supplier as independent supply for this disruption."
+        }
+      ],
+      "details": {
+        "reason_code": "SHARED_DISRUPTED_DEPENDENCY",
+        "shared_with_primary_node_ids": [
+          "FAC-FABZ"
+        ],
+        "coverage_complete": true
+      }
+    },
+    {
+      "finding_id": "FND-DEP-SUP-C",
+      "check_code": "DEP.SHARED_DISRUPTED_DEPENDENCY",
+      "agent": "supplier_dependency",
+      "outcome": "passed",
+      "subject": {
+        "type": "supplier",
+        "id": "SUP-C"
+      },
+      "title": "No upstream path to the disrupted node within depth",
+      "evidence_ids": [
+        "EVD-PATH-SUP-C-1",
+        "EVD-PATH-SUP-C-2"
+      ],
+      "remedies": [],
+      "details": {
+        "reason_code": "NO_PATH_TO_DISRUPTED_NODE",
+        "shared_with_primary_node_ids": [
+          "FAC-SUBS"
+        ],
+        "coverage_complete": true
+      }
+    },
+    {
+      "finding_id": "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-CMB",
+      "check_code": "FTA.CERTIFICATE_OF_ORIGIN",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-B-CMB"
+      },
+      "title": "Certificate of origin available from supplier",
+      "evidence_ids": [
+        "EVD-QT-QT-B-01"
+      ],
+      "remedies": [],
+      "details": {
+        "status": "available"
+      }
+    },
+    {
+      "finding_id": "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-DIR",
+      "check_code": "FTA.CERTIFICATE_OF_ORIGIN",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-B-DIR"
+      },
+      "title": "Certificate of origin available from supplier",
+      "evidence_ids": [
+        "EVD-QT-QT-B-01"
+      ],
+      "remedies": [],
+      "details": {
+        "status": "available"
+      }
+    },
+    {
+      "finding_id": "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-DIR",
+      "check_code": "FTA.CERTIFICATE_OF_ORIGIN",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Certificate of origin available from supplier",
+      "evidence_ids": [
+        "EVD-QT-QT-C-01"
+      ],
+      "remedies": [],
+      "details": {
+        "status": "available"
+      }
+    },
+    {
+      "finding_id": "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-SIN",
+      "check_code": "FTA.CERTIFICATE_OF_ORIGIN",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Certificate of origin available from supplier",
+      "evidence_ids": [
+        "EVD-QT-QT-C-01"
+      ],
+      "remedies": [],
+      "details": {
+        "status": "available"
+      }
+    },
+    {
+      "finding_id": "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+      "check_code": "FTA.DIRECT_CONSIGNMENT",
+      "agent": "trade_compliance",
+      "outcome": "needs_review",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-B-CMB"
+      },
+      "title": "Non-party transit: preference depends on evidence that direct-consignment conditions are met",
+      "evidence_ids": [
+        "EVD-RULE-TR-0001",
+        "EVD-ROUTE-RT-B-CMB"
+      ],
+      "remedies": [
+        {
+          "action": "provide_evidence",
+          "text": "Obtain a through bill of lading and transit customs documentation, or choose a direct route."
+        }
+      ],
+      "details": {
+        "transit_countries": [
+          "LK"
+        ],
+        "non_party_transit_countries": [
+          "LK"
+        ]
+      }
+    },
+    {
+      "finding_id": "FND-FTA-DIRECT_CONSIGNMENT-RT-B-DIR",
+      "check_code": "FTA.DIRECT_CONSIGNMENT",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-B-DIR"
+      },
+      "title": "Transit only through agreement parties (or direct): direct consignment satisfied",
+      "evidence_ids": [
+        "EVD-RULE-TR-0001",
+        "EVD-ROUTE-RT-B-DIR"
+      ],
+      "remedies": [],
+      "details": {
+        "transit_countries": [],
+        "non_party_transit_countries": []
+      }
+    },
+    {
+      "finding_id": "FND-FTA-DIRECT_CONSIGNMENT-RT-C-DIR",
+      "check_code": "FTA.DIRECT_CONSIGNMENT",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Transit only through agreement parties (or direct): direct consignment satisfied",
+      "evidence_ids": [
+        "EVD-RULE-TR-0001",
+        "EVD-ROUTE-RT-C-DIR"
+      ],
+      "remedies": [],
+      "details": {
+        "transit_countries": [],
+        "non_party_transit_countries": []
+      }
+    },
+    {
+      "finding_id": "FND-FTA-DIRECT_CONSIGNMENT-RT-C-SIN",
+      "check_code": "FTA.DIRECT_CONSIGNMENT",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Transit only through agreement parties (or direct): direct consignment satisfied",
+      "evidence_ids": [
+        "EVD-RULE-TR-0001",
+        "EVD-ROUTE-RT-C-SIN"
+      ],
+      "remedies": [],
+      "details": {
+        "transit_countries": [
+          "SG"
+        ],
+        "non_party_transit_countries": []
+      }
+    },
+    {
+      "finding_id": "FND-INV-ALLOCATION-PLN-0001-INV-BLR",
+      "check_code": "INV.ALLOCATION_FEASIBLE",
+      "agent": "inventory_rebalancing",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0001"
+      },
+      "title": "Allocates 150 of 150 available units",
+      "evidence_ids": [
+        "EVD-INV-INV-BLR"
+      ],
+      "remedies": [],
+      "details": {
+        "allocated": 150,
+        "atp": 150
+      }
+    },
+    {
+      "finding_id": "FND-INV-ALLOCATION-PLN-0001-INV-PNQ",
+      "check_code": "INV.ALLOCATION_FEASIBLE",
+      "agent": "inventory_rebalancing",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0001"
+      },
+      "title": "Allocates 150 of 150 available units",
+      "evidence_ids": [
+        "EVD-INV-INV-PNQ"
+      ],
+      "remedies": [],
+      "details": {
+        "allocated": 150,
+        "atp": 150
+      }
+    },
+    {
+      "finding_id": "FND-INV-ALLOCATION-PLN-0002-INV-BLR",
+      "check_code": "INV.ALLOCATION_FEASIBLE",
+      "agent": "inventory_rebalancing",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0002"
+      },
+      "title": "Allocates 150 of 150 available units",
+      "evidence_ids": [
+        "EVD-INV-INV-BLR"
+      ],
+      "remedies": [],
+      "details": {
+        "allocated": 150,
+        "atp": 150
+      }
+    },
+    {
+      "finding_id": "FND-INV-ALLOCATION-PLN-0002-INV-PNQ",
+      "check_code": "INV.ALLOCATION_FEASIBLE",
+      "agent": "inventory_rebalancing",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0002"
+      },
+      "title": "Allocates 150 of 150 available units",
+      "evidence_ids": [
+        "EVD-INV-INV-PNQ"
+      ],
+      "remedies": [],
+      "details": {
+        "allocated": 150,
+        "atp": 150
+      }
+    },
+    {
+      "finding_id": "FND-INV-ATP-INV-BLR",
+      "check_code": "INV.AVAILABLE_TO_PROMISE",
+      "agent": "inventory_rebalancing",
+      "outcome": "passed",
+      "subject": {
+        "type": "inventory_source",
+        "id": "INV-BLR"
+      },
+      "title": "150 units available to promise above protected floor",
+      "evidence_ids": [
+        "EVD-INV-INV-BLR"
+      ],
+      "remedies": [],
+      "details": {
+        "on_hand": 250,
+        "reserved": 0,
+        "protected_floor": 100,
+        "atp": 150
+      }
+    },
+    {
+      "finding_id": "FND-INV-ATP-INV-PNQ",
+      "check_code": "INV.AVAILABLE_TO_PROMISE",
+      "agent": "inventory_rebalancing",
+      "outcome": "passed",
+      "subject": {
+        "type": "inventory_source",
+        "id": "INV-PNQ"
+      },
+      "title": "150 units available to promise above protected floor",
+      "evidence_ids": [
+        "EVD-INV-INV-PNQ"
+      ],
+      "remedies": [],
+      "details": {
+        "on_hand": 300,
+        "reserved": 100,
+        "protected_floor": 50,
+        "atp": 150
+      }
+    },
+    {
+      "finding_id": "FND-LC-AMOUNT-PLN-0001-LC-SYN-0117",
+      "check_code": "LC.AMOUNT",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0001"
+      },
+      "title": "Drawing fits the available LC balance",
+      "evidence_ids": [
+        "EVD-LCB-LC-SYN-0117"
+      ],
+      "remedies": [],
+      "details": {
+        "drawing_inr": 1320000,
+        "available_balance_inr": 4500000
+      }
+    },
+    {
+      "finding_id": "FND-LC-AMOUNT-PLN-0002-LC-SYN-0117",
+      "check_code": "LC.AMOUNT",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0002"
+      },
+      "title": "Drawing fits the available LC balance",
+      "evidence_ids": [
+        "EVD-LCB-LC-SYN-0117"
+      ],
+      "remedies": [],
+      "details": {
+        "drawing_inr": 3960000,
+        "available_balance_inr": 4500000
+      }
+    },
+    {
+      "finding_id": "FND-LC-LATEST_SHIPMENT-RT-C-DIR",
+      "check_code": "LC.LATEST_SHIPMENT_DATE",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Shipment date is within 44C",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-44C",
+        "EVD-ROUTE-RT-C-DIR"
+      ],
+      "remedies": [],
+      "details": {
+        "etd": "2026-10-29",
+        "latest_shipment_date": "2026-11-05",
+        "note": "Arrival date is not an LC shipment condition and is not checked here."
+      }
+    },
+    {
+      "finding_id": "FND-LC-LATEST_SHIPMENT-RT-C-SIN",
+      "check_code": "LC.LATEST_SHIPMENT_DATE",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Shipment date is within 44C",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-44C",
+        "EVD-ROUTE-RT-C-SIN"
+      ],
+      "remedies": [],
+      "details": {
+        "etd": "2026-10-28",
+        "latest_shipment_date": "2026-11-05",
+        "note": "Arrival date is not an LC shipment condition and is not checked here."
+      }
+    },
+    {
+      "finding_id": "FND-LC-PARTIAL-PLN-0001-LC-SYN-0117",
+      "check_code": "LC.PARTIAL_SHIPMENTS",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0001"
+      },
+      "title": "Partial drawing permitted by 43P",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-43P"
+      ],
+      "remedies": [],
+      "details": {}
+    },
+    {
+      "finding_id": "FND-LC-PARTIAL-PLN-0002-LC-SYN-0117",
+      "check_code": "LC.PARTIAL_SHIPMENTS",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "plan",
+        "id": "PLN-0002"
+      },
+      "title": "Partial drawing permitted by 43P",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-43P"
+      ],
+      "remedies": [],
+      "details": {}
+    },
+    {
+      "finding_id": "FND-LC-PORT_OF_DISCHARGE-RT-C-DIR",
+      "check_code": "LC.PORT_OF_DISCHARGE",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Port of discharge matches 44F",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-44F",
+        "EVD-ROUTE-RT-C-DIR"
+      ],
+      "remedies": [],
+      "details": {}
+    },
+    {
+      "finding_id": "FND-LC-PORT_OF_DISCHARGE-RT-C-SIN",
+      "check_code": "LC.PORT_OF_DISCHARGE",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Port of discharge matches 44F",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-44F",
+        "EVD-ROUTE-RT-C-SIN"
+      ],
+      "remedies": [],
+      "details": {}
+    },
+    {
+      "finding_id": "FND-LC-PORT_OF_LOADING-RT-C-DIR",
+      "check_code": "LC.PORT_OF_LOADING",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Port of loading matches 44E",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-44E",
+        "EVD-ROUTE-RT-C-DIR"
+      ],
+      "remedies": [],
+      "details": {}
+    },
+    {
+      "finding_id": "FND-LC-PORT_OF_LOADING-RT-C-SIN",
+      "check_code": "LC.PORT_OF_LOADING",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Port of loading matches 44E",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-44E",
+        "EVD-ROUTE-RT-C-SIN"
+      ],
+      "remedies": [],
+      "details": {}
+    },
+    {
+      "finding_id": "FND-LC-PRESENTATION-RT-C-DIR",
+      "check_code": "LC.PRESENTATION_PERIOD",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Presentation deadline falls before expiry",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-48",
+        "EVD-LCF-LC-SYN-0117-31D"
+      ],
+      "remedies": [],
+      "details": {
+        "last_presentation_date": "2026-11-19",
+        "expiry_date": "2026-11-26"
+      }
+    },
+    {
+      "finding_id": "FND-LC-PRESENTATION-RT-C-SIN",
+      "check_code": "LC.PRESENTATION_PERIOD",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Presentation deadline falls before expiry",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-48",
+        "EVD-LCF-LC-SYN-0117-31D"
+      ],
+      "remedies": [],
+      "details": {
+        "last_presentation_date": "2026-11-18",
+        "expiry_date": "2026-11-26"
+      }
+    },
+    {
+      "finding_id": "FND-LC-TRANSHIPMENT-RT-C-DIR",
+      "check_code": "LC.TRANSHIPMENT",
+      "agent": "trade_compliance",
+      "outcome": "passed",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-DIR"
+      },
+      "title": "Transhipment terms satisfied",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-43T",
+        "EVD-ROUTE-RT-C-DIR"
+      ],
+      "remedies": [],
+      "details": {
+        "transshipment_port_ids": [],
+        "note": null
+      }
+    },
+    {
+      "finding_id": "FND-LC-TRANSHIPMENT-RT-C-SIN",
+      "check_code": "LC.TRANSHIPMENT",
+      "agent": "trade_compliance",
+      "outcome": "blocked",
+      "subject": {
+        "type": "route_option",
+        "id": "RT-C-SIN"
+      },
+      "title": "Route transships while the credit prohibits transhipment and excludes UCP 600 20(c)",
+      "evidence_ids": [
+        "EVD-LCF-LC-SYN-0117-43T",
+        "EVD-ROUTE-RT-C-SIN",
+        "EVD-LCF-LC-SYN-0117-47A"
+      ],
+      "remedies": [
+        {
+          "action": "request_lc_amendment",
+          "text": "Ask the issuing bank to amend 43T to ALLOWED and delete the 47A exclusion, or choose a direct route."
+        }
+      ],
+      "details": {
+        "transshipment_port_ids": [
+          "SGSIN"
+        ],
+        "note": null
+      }
+    },
+    {
+      "finding_id": "FND-SENSE-DIS-2026-0042",
+      "check_code": "SENSE.EVENT_RESOLUTION",
+      "agent": "disruption_sensing",
+      "outcome": "passed",
+      "subject": {
+        "type": "disruption",
+        "id": "DIS-2026-0042"
+      },
+      "title": "Disruption mapped to graph nodes and affected orders",
+      "evidence_ids": [
+        "EVD-NOTICE-DIS-2026-0042"
+      ],
+      "remedies": [],
+      "details": {
+        "issues": []
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EVD-INV-INV-BLR",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-INV-SNAPSHOT"
+      ],
+      "title": "Inventory position INV-BLR",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "record_id": "INV-BLR"
+      },
+      "excerpt": "on_hand 250, reserved 0, protected_floor 100"
+    },
+    {
+      "evidence_id": "EVD-INV-INV-PNQ",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-INV-SNAPSHOT"
+      ],
+      "title": "Inventory position INV-PNQ",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "record_id": "INV-PNQ"
+      },
+      "excerpt": "on_hand 300, reserved 100, protected_floor 50"
+    },
+    {
+      "evidence_id": "EVD-LCB-LC-SYN-0117",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-LC-0117-LEDGER"
+      ],
+      "title": "Available balance of LC-SYN-0117",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117"
+      },
+      "excerpt": "available_balance_inr 4500000"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-31D",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 31D",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "31D"
+      },
+      "excerpt": ":31D:261126VIETNAM"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-43P",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 43P",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "43P"
+      },
+      "excerpt": ":43P:ALLOWED"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-43T",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 43T",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "43T"
+      },
+      "excerpt": ":43T:NOT ALLOWED"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-44C",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 44C",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "44C"
+      },
+      "excerpt": ":44C:261105"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-44E",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 44E",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "44E"
+      },
+      "excerpt": ":44E:ANY PORT IN VIETNAM"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-44F",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 44F",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "44F"
+      },
+      "excerpt": ":44F:CHENNAI, INDIA"
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-47A",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 47A",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "47A"
+      },
+      "excerpt": ":47A:UCP 600 SUB-ARTICLE 20(C) IS EXCLUDED."
+    },
+    {
+      "evidence_id": "EVD-LCF-LC-SYN-0117-48",
+      "kind": "lc_field",
+      "source_ids": [
+        "SRC-LC-SYN-0117"
+      ],
+      "title": "LC-SYN-0117 field 48",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "lc_id": "LC-SYN-0117",
+        "lc_version": 1,
+        "field_tag": "48"
+      },
+      "excerpt": ":48:21/DAYS AFTER DATE OF SHIPMENT"
+    },
+    {
+      "evidence_id": "EVD-NOTICE-DIS-2026-0042",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-NOTICE-0042"
+      ],
+      "title": "Delay notice from Penang PowerTech logistics desk (synthetic)",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "record_id": "DIS-2026-0042"
+      },
+      "excerpt": "Shipment SHP-A-0901 will depart Port Klang on 02 Nov 2026 instead of 26 Oct 2026."
+    },
+    {
+      "evidence_id": "EVD-PATH-SUP-B-1",
+      "kind": "graph_path",
+      "source_ids": [
+        "SRC-AUD-B-2026Q2"
+      ],
+      "title": "Upstream path from Chonburi module assembly to disrupted Zenith Kulim wafer fab",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "path_id": "PATH-SUP-B-1",
+        "node_ids": [
+          "FAC-B-CHB",
+          "FAC-Q-KDH",
+          "FAC-FABZ"
+        ],
+        "edge_ids": [
+          "E-004",
+          "E-005"
+        ]
+      },
+      "excerpt": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]"
+    },
+    {
+      "evidence_id": "EVD-PATH-SUP-B-2",
+      "kind": "graph_path",
+      "source_ids": [
+        "SRC-AUD-B-2026Q2"
+      ],
+      "title": "Upstream path from Chonburi module assembly to Rayong substrate works",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "path_id": "PATH-SUP-B-2",
+        "node_ids": [
+          "FAC-B-CHB",
+          "FAC-TSUB"
+        ],
+        "edge_ids": [
+          "E-006"
+        ]
+      },
+      "excerpt": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+    },
+    {
+      "evidence_id": "EVD-PATH-SUP-C-1",
+      "kind": "graph_path",
+      "source_ids": [
+        "SRC-DECL-C-2026"
+      ],
+      "title": "Upstream path from Binh Duong module assembly to Kumgang Gumi wafer fab",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "path_id": "PATH-SUP-C-1",
+        "node_ids": [
+          "FAC-C-BDG",
+          "FAC-VDIE",
+          "FAC-FABK"
+        ],
+        "edge_ids": [
+          "E-007",
+          "E-008"
+        ]
+      },
+      "excerpt": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)"
+    },
+    {
+      "evidence_id": "EVD-PATH-SUP-C-2",
+      "kind": "graph_path",
+      "source_ids": [
+        "SRC-DECL-C-2026"
+      ],
+      "title": "Upstream path from Binh Duong module assembly to Shah Alam ceramic substrates",
+      "authority": "internal",
+      "synthetic": true,
+      "locator": {
+        "path_id": "PATH-SUP-C-2",
+        "node_ids": [
+          "FAC-C-BDG",
+          "FAC-SUBS"
+        ],
+        "edge_ids": [
+          "E-009"
+        ]
+      },
+      "excerpt": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)"
+    },
+    {
+      "evidence_id": "EVD-QT-QT-B-01",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-QT-B-01"
+      ],
+      "title": "Supplier quote QT-B-01",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "record_id": "QT-B-01"
+      },
+      "excerpt": "certificate_of_origin AIFTA available"
+    },
+    {
+      "evidence_id": "EVD-QT-QT-C-01",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-QT-C-01"
+      ],
+      "title": "Supplier quote QT-C-01",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "record_id": "QT-C-01"
+      },
+      "excerpt": "certificate_of_origin AIFTA available"
+    },
+    {
+      "evidence_id": "EVD-ROUTE-RT-B-CMB",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-SCHED-2026W44"
+      ],
+      "title": "Route option RT-B-CMB",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "record_id": "RT-B-CMB"
+      },
+      "excerpt": "THLCH -> LKCMB -> INMAA; ETD 2026-10-27; ETA port 2026-11-01"
+    },
+    {
+      "evidence_id": "EVD-ROUTE-RT-B-DIR",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-SCHED-2026W44"
+      ],
+      "title": "Route option RT-B-DIR",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "record_id": "RT-B-DIR"
+      },
+      "excerpt": "THLCH -> INMAA; ETD 2026-11-01; ETA port 2026-11-06"
+    },
+    {
+      "evidence_id": "EVD-ROUTE-RT-C-DIR",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-SCHED-2026W44"
+      ],
+      "title": "Route option RT-C-DIR",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "record_id": "RT-C-DIR"
+      },
+      "excerpt": "VNSGN -> INMAA; ETD 2026-10-29; ETA port 2026-11-03"
+    },
+    {
+      "evidence_id": "EVD-ROUTE-RT-C-SIN",
+      "kind": "fixture_record",
+      "source_ids": [
+        "SRC-SCHED-2026W44"
+      ],
+      "title": "Route option RT-C-SIN",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "record_id": "RT-C-SIN"
+      },
+      "excerpt": "VNSGN -> SGSIN -> INMAA; ETD 2026-10-28; ETA port 2026-11-02"
+    },
+    {
+      "evidence_id": "EVD-RULE-TR-0001",
+      "kind": "rule_passage",
+      "source_ids": [
+        "SRC-RULE-TR-0001"
+      ],
+      "title": "Synthetic encoding of the AIFTA direct consignment rule",
+      "authority": "official_gazette",
+      "synthetic": true,
+      "locator": {
+        "rule_id": "TR-0001",
+        "effective_from": "2010-01-01",
+        "effective_to": null
+      },
+      "excerpt": null
+    },
+    {
+      "evidence_id": "EVD-RULE-TR-0003",
+      "kind": "rule_passage",
+      "source_ids": [
+        "SRC-RULE-TR-0003"
+      ],
+      "title": "Synthetic Customs Notification SYN-14/2026",
+      "authority": "official_gazette",
+      "synthetic": true,
+      "locator": {
+        "rule_id": "TR-0003",
+        "effective_from": "2026-11-01",
+        "effective_to": null
+      },
+      "excerpt": null
+    },
+    {
+      "evidence_id": "EVD-RULE-TR-0005",
+      "kind": "rule_passage",
+      "source_ids": [
+        "SRC-RULE-TR-0005"
+      ],
+      "title": "Synthetic Customs Notification SYN-02/2024",
+      "authority": "official_gazette",
+      "synthetic": true,
+      "locator": {
+        "rule_id": "TR-0005",
+        "effective_from": "2024-01-01",
+        "effective_to": null
+      },
+      "excerpt": null
+    }
+  ],
+  "plans": [
+    {
+      "schema_version": "1.0.0",
+      "plan_id": "PLN-0001",
+      "evaluation_id": "EVAL-0001",
+      "version": 1,
+      "label": "P1 Fastest-cheapest (cost and time only)",
+      "strategy": "cost_time_only",
+      "lines": [
+        {
+          "line_id": "L01",
+          "order_id": "SO-1001",
+          "option_id": "OPT-INV-BLR",
+          "qty": 150,
+          "need_by": "2026-11-03",
+          "eta_plant": "2026-10-26",
+          "days_late": 0
+        },
+        {
+          "line_id": "L02",
+          "order_id": "SO-1001",
+          "option_id": "OPT-INV-PNQ",
+          "qty": 150,
+          "need_by": "2026-11-03",
+          "eta_plant": "2026-10-29",
+          "days_late": 0
+        },
+        {
+          "line_id": "L03",
+          "order_id": "SO-1001",
+          "option_id": "OPT-RT-B-CMB",
+          "qty": 100,
+          "need_by": "2026-11-03",
+          "eta_plant": "2026-11-03",
+          "days_late": 0
+        },
+        {
+          "line_id": "L04",
+          "order_id": "SO-1002",
+          "option_id": "OPT-RT-B-CMB",
+          "qty": 300,
+          "need_by": "2026-11-05",
+          "eta_plant": "2026-11-03",
+          "days_late": 0
+        },
+        {
+          "line_id": "L05",
+          "order_id": "SO-1003",
+          "option_id": "OPT-RT-C-SIN",
+          "qty": 200,
+          "need_by": "2026-11-07",
+          "eta_plant": "2026-11-04",
+          "days_late": 0
+        }
+      ],
+      "finding_ids": [
+        "FND-SENSE-DIS-2026-0042",
+        "FND-INV-ATP-INV-BLR",
+        "FND-INV-ATP-INV-PNQ",
+        "FND-DEP-SUP-B",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-B-CMB",
+        "FND-DEP-SUP-C",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-C-SIN",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-SIN",
+        "FND-LC-TRANSHIPMENT-RT-C-SIN",
+        "FND-LC-LATEST_SHIPMENT-RT-C-SIN",
+        "FND-LC-PORT_OF_LOADING-RT-C-SIN",
+        "FND-LC-PORT_OF_DISCHARGE-RT-C-SIN",
+        "FND-LC-PRESENTATION-RT-C-SIN",
+        "FND-LC-AMOUNT-PLN-0001-LC-SYN-0117",
+        "FND-LC-PARTIAL-PLN-0001-LC-SYN-0117",
+        "FND-INV-ALLOCATION-PLN-0001-INV-BLR",
+        "FND-INV-ALLOCATION-PLN-0001-INV-PNQ"
+      ],
+      "check_outcome_counts": {
+        "passed": 15,
+        "needs_review": 1,
+        "blocked": 2
+      },
+      "outcome": "blocked",
+      "status": "blocked",
+      "financials": {
+        "currency": "INR",
+        "baseline_loss_inr": 1160000,
+        "recovery_cost_inr": 334000,
+        "residual_loss_inr": 0,
+        "net_avoided_loss_inr": 826000,
+        "cost_breakdown": [
+          {
+            "category": "supplier_price_premium",
+            "amount_inr": 240000
+          },
+          {
+            "category": "freight",
+            "amount_inr": 88000
+          },
+          {
+            "category": "inventory_transfer",
+            "amount_inr": 6000
+          },
+          {
+            "category": "lc_amendment_fee",
+            "amount_inr": 0
+          },
+          {
+            "category": "duty_incremental",
+            "amount_inr": 0
+          }
+        ],
+        "residual_breakdown": [],
+        "exposures": [
+          {
+            "exposure_id": "EXP-DEP-L03",
+            "line_id": "L03",
+            "finding_id": "FND-DEP-SUP-B",
+            "kind": "penalty_if_supply_fails",
+            "amount_inr": 150000,
+            "mutually_exclusive_group": "supply:QT-B-01",
+            "basis": "100 units fall back to delayed primary arrival 2026-11-09"
+          },
+          {
+            "exposure_id": "EXP-FTA-L03",
+            "line_id": "L03",
+            "finding_id": "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+            "kind": "duty_if_preference_denied",
+            "amount_inr": 96900,
+            "mutually_exclusive_group": "supply:QT-B-01",
+            "basis": "(unit price + freight) x 100 x (MFN 1500 bps - preferential 0 bps)"
+          },
+          {
+            "exposure_id": "EXP-DEP-L04",
+            "line_id": "L04",
+            "finding_id": "FND-DEP-SUP-B",
+            "kind": "penalty_if_supply_fails",
+            "amount_inr": 360000,
+            "mutually_exclusive_group": "supply:QT-B-01",
+            "basis": "300 units fall back to delayed primary arrival 2026-11-09"
+          },
+          {
+            "exposure_id": "EXP-FTA-L04",
+            "line_id": "L04",
+            "finding_id": "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+            "kind": "duty_if_preference_denied",
+            "amount_inr": 290700,
+            "mutually_exclusive_group": "supply:QT-B-01",
+            "basis": "(unit price + freight) x 300 x (MFN 1500 bps - preferential 0 bps)"
+          },
+          {
+            "exposure_id": "EXP-LC-L05",
+            "line_id": "L05",
+            "finding_id": "FND-LC-TRANSHIPMENT-RT-C-SIN",
+            "kind": "documentary_discrepancy",
+            "amount_inr": null,
+            "mutually_exclusive_group": "lc:LC-SYN-0117",
+            "basis": "Not quantified: shipment cannot proceed as planned without an LC amendment."
+          }
+        ],
+        "worst_case_exposure_inr": 510000,
+        "formula": "net_avoided_loss = baseline_loss - recovery_cost - residual_loss; exposures are reported separately and never added to recovery_cost"
+      },
+      "input_snapshot_id": "sha256:d52c7ecc366a66470bd9e04cf43d4f913d31b729c5f2bf1ce3932622b9f3d6c0",
+      "amendment_request_ids": [],
+      "plan_hash": "sha256:e51b38ab2d777e233666de107d9871bc88c42bf59cf39f31891d6ff12927f6f2"
+    },
+    {
+      "schema_version": "1.0.0",
+      "plan_id": "PLN-0002",
+      "evaluation_id": "EVAL-0001",
+      "version": 1,
+      "label": "P2 AegisShield verified",
+      "strategy": "constraint_verified",
+      "lines": [
+        {
+          "line_id": "L01",
+          "order_id": "SO-1001",
+          "option_id": "OPT-INV-BLR",
+          "qty": 150,
+          "need_by": "2026-11-03",
+          "eta_plant": "2026-10-26",
+          "days_late": 0
+        },
+        {
+          "line_id": "L02",
+          "order_id": "SO-1001",
+          "option_id": "OPT-INV-PNQ",
+          "qty": 150,
+          "need_by": "2026-11-03",
+          "eta_plant": "2026-10-29",
+          "days_late": 0
+        },
+        {
+          "line_id": "L03",
+          "order_id": "SO-1001",
+          "option_id": "OPT-RT-C-DIR",
+          "qty": 100,
+          "need_by": "2026-11-03",
+          "eta_plant": "2026-11-05",
+          "days_late": 2
+        },
+        {
+          "line_id": "L04",
+          "order_id": "SO-1002",
+          "option_id": "OPT-RT-C-DIR",
+          "qty": 300,
+          "need_by": "2026-11-05",
+          "eta_plant": "2026-11-05",
+          "days_late": 0
+        },
+        {
+          "line_id": "L05",
+          "order_id": "SO-1003",
+          "option_id": "OPT-RT-C-DIR",
+          "qty": 200,
+          "need_by": "2026-11-07",
+          "eta_plant": "2026-11-05",
+          "days_late": 0
+        }
+      ],
+      "finding_ids": [
+        "FND-SENSE-DIS-2026-0042",
+        "FND-INV-ATP-INV-BLR",
+        "FND-INV-ATP-INV-PNQ",
+        "FND-DEP-SUP-C",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-C-DIR",
+        "FND-FTA-CERTIFICATE_OF_ORIGIN-RT-C-DIR",
+        "FND-LC-TRANSHIPMENT-RT-C-DIR",
+        "FND-LC-LATEST_SHIPMENT-RT-C-DIR",
+        "FND-LC-PORT_OF_LOADING-RT-C-DIR",
+        "FND-LC-PORT_OF_DISCHARGE-RT-C-DIR",
+        "FND-LC-PRESENTATION-RT-C-DIR",
+        "FND-LC-AMOUNT-PLN-0002-LC-SYN-0117",
+        "FND-LC-PARTIAL-PLN-0002-LC-SYN-0117",
+        "FND-INV-ALLOCATION-PLN-0002-INV-BLR",
+        "FND-INV-ALLOCATION-PLN-0002-INV-PNQ"
+      ],
+      "check_outcome_counts": {
+        "passed": 15,
+        "needs_review": 0,
+        "blocked": 0
+      },
+      "outcome": "passed",
+      "status": "pending_approval",
+      "financials": {
+        "currency": "INR",
+        "baseline_loss_inr": 1160000,
+        "recovery_cost_inr": 492000,
+        "residual_loss_inr": 50000,
+        "net_avoided_loss_inr": 618000,
+        "cost_breakdown": [
+          {
+            "category": "supplier_price_premium",
+            "amount_inr": 360000
+          },
+          {
+            "category": "freight",
+            "amount_inr": 126000
+          },
+          {
+            "category": "inventory_transfer",
+            "amount_inr": 6000
+          },
+          {
+            "category": "lc_amendment_fee",
+            "amount_inr": 0
+          },
+          {
+            "category": "duty_incremental",
+            "amount_inr": 0
+          }
+        ],
+        "residual_breakdown": [
+          {
+            "line_id": "L03",
+            "order_id": "SO-1001",
+            "qty": 100,
+            "days_late": 2,
+            "amount_inr": 50000
+          }
+        ],
+        "exposures": [],
+        "worst_case_exposure_inr": 0,
+        "formula": "net_avoided_loss = baseline_loss - recovery_cost - residual_loss; exposures are reported separately and never added to recovery_cost"
+      },
+      "input_snapshot_id": "sha256:d52c7ecc366a66470bd9e04cf43d4f913d31b729c5f2bf1ce3932622b9f3d6c0",
+      "amendment_request_ids": [],
+      "plan_hash": "sha256:3324f97f2eb3e8bc5c9f759e50d99488656e70a8ec194faea6848df207b0adf0"
+    }
+  ],
+  "comparison": {
+    "baseline_loss_inr": 1160000,
+    "plans": [
+      {
+        "plan_id": "PLN-0001",
+        "label": "P1 Fastest-cheapest (cost and time only)",
+        "outcome": "blocked",
+        "executable": false,
+        "recovery_cost_inr": 334000,
+        "residual_loss_inr": 0,
+        "net_avoided_loss_inr": 826000,
+        "worst_case_exposure_inr": 510000,
+        "check_outcome_counts": {
+          "passed": 15,
+          "needs_review": 1,
+          "blocked": 2
+        }
+      },
+      {
+        "plan_id": "PLN-0002",
+        "label": "P2 AegisShield verified",
+        "outcome": "passed",
+        "executable": true,
+        "recovery_cost_inr": 492000,
+        "residual_loss_inr": 50000,
+        "net_avoided_loss_inr": 618000,
+        "worst_case_exposure_inr": 0,
+        "check_outcome_counts": {
+          "passed": 15,
+          "needs_review": 0,
+          "blocked": 0
+        }
+      }
+    ],
+    "recommended_plan_id": "PLN-0002",
+    "recommendation_rule": "Exclude blocked plans; prefer outcome passed over needs_review; then highest net_avoided_loss_inr; then lowest worst_case_exposure_inr.",
+    "paper_advantage_of_best_blocked_plan_inr": 208000
+  },
+  "explanations": [
+    {
+      "explanation_id": "XPL-PLN-0001",
+      "subject_id": "PLN-0001",
+      "mode": "template",
+      "prompt_id": null,
+      "model": null,
+      "text": "PLN-0001 outcome blocked. FND-DEP-SUP-B is blocked; FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB is needs_review; FND-LC-TRANSHIPMENT-RT-C-SIN is blocked. Net avoided loss INR 826000.",
+      "cited_ids": [
+        "FND-DEP-SUP-B",
+        "FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB",
+        "FND-LC-TRANSHIPMENT-RT-C-SIN"
+      ],
+      "validation": {
+        "passed": true,
+        "errors": []
+      },
+      "generated_at": "2026-10-26T09:00:04+05:30"
+    },
+    {
+      "explanation_id": "XPL-PLN-0002",
+      "subject_id": "PLN-0002",
+      "mode": "template",
+      "prompt_id": null,
+      "model": null,
+      "text": "PLN-0002 outcome passed. All checks passed. Net avoided loss INR 618000.",
+      "cited_ids": [
+        "FND-SENSE-DIS-2026-0042",
+        "FND-INV-ATP-INV-BLR",
+        "FND-INV-ATP-INV-PNQ"
+      ],
+      "validation": {
+        "passed": true,
+        "errors": []
+      },
+      "generated_at": "2026-10-26T09:00:04+05:30"
+    }
+  ],
+  "error": null
+}

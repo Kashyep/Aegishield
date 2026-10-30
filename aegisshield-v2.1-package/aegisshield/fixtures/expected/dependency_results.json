@@ -1,0 +1,306 @@
+{
+  "schema_version": "1.0.0",
+  "results": [
+    {
+      "schema_version": "1.0.0",
+      "supplier_id": "SUP-B",
+      "part_id": "PRT-PM750",
+      "start_node_id": "FAC-B-CHB",
+      "max_depth": 3,
+      "disrupted_node_ids": [
+        "FAC-FABZ"
+      ],
+      "outcome": "blocked",
+      "reason_code": "SHARED_DISRUPTED_DEPENDENCY",
+      "paths": [
+        {
+          "path_id": "PATH-SUP-B-1",
+          "kind": "shared_disrupted_dependency",
+          "node_ids": [
+            "FAC-B-CHB",
+            "FAC-Q-KDH",
+            "FAC-FABZ"
+          ],
+          "edge_ids": [
+            "E-004",
+            "E-005"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]"
+        },
+        {
+          "path_id": "PATH-SUP-B-2",
+          "kind": "clean",
+          "node_ids": [
+            "FAC-B-CHB",
+            "FAC-TSUB"
+          ],
+          "edge_ids": [
+            "E-006"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+        }
+      ],
+      "upstream_node_ids": [
+        "FAC-FABZ",
+        "FAC-Q-KDH",
+        "FAC-TSUB"
+      ],
+      "shared_with_primary_node_ids": [
+        "FAC-FABZ"
+      ],
+      "coverage": {
+        "complete": true,
+        "gaps": []
+      },
+      "truncated": false,
+      "cycle_detected": false,
+      "notes": [],
+      "evidence": [
+        {
+          "evidence_id": "EVD-PATH-SUP-B-1",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-AUD-B-2026Q2"
+          ],
+          "title": "Upstream path from Chonburi module assembly to disrupted Zenith Kulim wafer fab",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-B-1",
+            "node_ids": [
+              "FAC-B-CHB",
+              "FAC-Q-KDH",
+              "FAC-FABZ"
+            ],
+            "edge_ids": [
+              "E-004",
+              "E-005"
+            ]
+          },
+          "excerpt": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]"
+        },
+        {
+          "evidence_id": "EVD-PATH-SUP-B-2",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-AUD-B-2026Q2"
+          ],
+          "title": "Upstream path from Chonburi module assembly to Rayong substrate works",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-B-2",
+            "node_ids": [
+              "FAC-B-CHB",
+              "FAC-TSUB"
+            ],
+            "edge_ids": [
+              "E-006"
+            ]
+          },
+          "excerpt": "(Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0.0",
+      "supplier_id": "SUP-C",
+      "part_id": "PRT-PM750",
+      "start_node_id": "FAC-C-BDG",
+      "max_depth": 3,
+      "disrupted_node_ids": [
+        "FAC-FABZ"
+      ],
+      "outcome": "passed",
+      "reason_code": "NO_PATH_TO_DISRUPTED_NODE",
+      "paths": [
+        {
+          "path_id": "PATH-SUP-C-1",
+          "kind": "clean",
+          "node_ids": [
+            "FAC-C-BDG",
+            "FAC-VDIE",
+            "FAC-FABK"
+          ],
+          "edge_ids": [
+            "E-007",
+            "E-008"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)"
+        },
+        {
+          "path_id": "PATH-SUP-C-2",
+          "kind": "clean",
+          "node_ids": [
+            "FAC-C-BDG",
+            "FAC-SUBS"
+          ],
+          "edge_ids": [
+            "E-009"
+          ],
+          "all_edges_verified": true,
+          "linearized": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)"
+        }
+      ],
+      "upstream_node_ids": [
+        "FAC-FABK",
+        "FAC-SUBS",
+        "FAC-VDIE"
+      ],
+      "shared_with_primary_node_ids": [
+        "FAC-SUBS"
+      ],
+      "coverage": {
+        "complete": true,
+        "gaps": []
+      },
+      "truncated": false,
+      "cycle_detected": false,
+      "notes": [
+        {
+          "code": "SHARED_NON_DISRUPTED_DEPENDENCY",
+          "node_id": "FAC-SUBS",
+          "text": "Shah Alam ceramic substrates also supplies the primary supplier; not disrupted, recorded as concentration risk."
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EVD-PATH-SUP-C-1",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-DECL-C-2026"
+          ],
+          "title": "Upstream path from Binh Duong module assembly to Kumgang Gumi wafer fab",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-C-1",
+            "node_ids": [
+              "FAC-C-BDG",
+              "FAC-VDIE",
+              "FAC-FABK"
+            ],
+            "edge_ids": [
+              "E-007",
+              "E-008"
+            ]
+          },
+          "excerpt": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)"
+        },
+        {
+          "evidence_id": "EVD-PATH-SUP-C-2",
+          "kind": "graph_path",
+          "source_ids": [
+            "SRC-DECL-C-2026"
+          ],
+          "title": "Upstream path from Binh Duong module assembly to Shah Alam ceramic substrates",
+          "authority": "internal",
+          "synthetic": true,
+          "locator": {
+            "path_id": "PATH-SUP-C-2",
+            "node_ids": [
+              "FAC-C-BDG",
+              "FAC-SUBS"
+            ],
+            "edge_ids": [
+              "E-009"
+            ]
+          },
+          "excerpt": "(Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)"
+        }
+      ]
+    }
+  ],
+  "linearized_contexts": [
+    {
+      "schema_version": "1.0.0",
+      "context_id": "CTX-DEP-SUP-B",
+      "format": "aegis-path-v1",
+      "subject_id": "SUP-B",
+      "lines": [
+        "QUERY supplier=SUP-B part=PRT-PM750 max_depth=3 disrupted=FAC-FABZ",
+        "RESULT outcome=blocked reason=SHARED_DISRUPTED_DEPENDENCY coverage_complete=true truncated=false",
+        "PATH PATH-SUP-B-1 [shared_disrupted_dependency] (Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[IGBT semiconductor die; E-004; SRC-AUD-B-2026Q2; verified]- (Kedah die sort and dicing | Kedah Die Services Sdn Bhd (synthetic) | MY | FAC-Q-KDH) <-SUPPLIES[IGBT semiconductor die; E-005; SRC-AUD-B-2026Q2; verified]- (Zenith Kulim wafer fab | Zenith Wafer Fab Sdn Bhd (synthetic) | MY | FAC-FABZ) [DISRUPTED]",
+        "PATH PATH-SUP-B-2 [clean] (Chonburi module assembly | Chao Phraya Power Devices Co (synthetic) | TH | FAC-B-CHB) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-006; SRC-AUD-B-2026Q2; verified]- (Rayong substrate works | Rayong Substrate Works Co (synthetic) | TH | FAC-TSUB)"
+      ],
+      "triples": [
+        {
+          "s": "FAC-Q-KDH",
+          "p": "SUPPLIES:PRT-IGBT-DIE",
+          "o": "FAC-B-CHB",
+          "edge_id": "E-004",
+          "confidence": "verified"
+        },
+        {
+          "s": "FAC-FABZ",
+          "p": "SUPPLIES:PRT-IGBT-DIE",
+          "o": "FAC-Q-KDH",
+          "edge_id": "E-005",
+          "confidence": "verified"
+        },
+        {
+          "s": "FAC-TSUB",
+          "p": "SUPPLIES:PRT-DBC-SUB",
+          "o": "FAC-B-CHB",
+          "edge_id": "E-006",
+          "confidence": "verified"
+        }
+      ],
+      "allowed_citation_ids": [
+        "E-004",
+        "E-005",
+        "E-006",
+        "PATH-SUP-B-1",
+        "PATH-SUP-B-2"
+      ],
+      "truncated": false
+    },
+    {
+      "schema_version": "1.0.0",
+      "context_id": "CTX-DEP-SUP-C",
+      "format": "aegis-path-v1",
+      "subject_id": "SUP-C",
+      "lines": [
+        "QUERY supplier=SUP-C part=PRT-PM750 max_depth=3 disrupted=FAC-FABZ",
+        "RESULT outcome=passed reason=NO_PATH_TO_DISRUPTED_NODE coverage_complete=true truncated=false",
+        "PATH PATH-SUP-C-1 [clean] (Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[IGBT semiconductor die; E-007; SRC-DECL-C-2026; verified]- (Hanoi die distribution | Vina Die Distribution Co (synthetic) | VN | FAC-VDIE) <-SUPPLIES[IGBT semiconductor die; E-008; SRC-DECL-C-2026; verified]- (Kumgang Gumi wafer fab | Kumgang Semiconductor Co (synthetic) | KR | FAC-FABK)",
+        "PATH PATH-SUP-C-2 [clean] (Binh Duong module assembly | Saigon Precision Electronics JSC (synthetic) | VN | FAC-C-BDG) <-SUPPLIES[Direct-bonded copper ceramic substrate; E-009; SRC-DECL-C-2026; verified]- (Shah Alam ceramic substrates | Selangor Ceramic Substrates Sdn Bhd (synthetic) | MY | FAC-SUBS)",
+        "NOTE SHARED_NON_DISRUPTED_DEPENDENCY FAC-SUBS"
+      ],
+      "triples": [
+        {
+          "s": "FAC-VDIE",
+          "p": "SUPPLIES:PRT-IGBT-DIE",
+          "o": "FAC-C-BDG",
+          "edge_id": "E-007",
+          "confidence": "verified"
+        },
+        {
+          "s": "FAC-FABK",
+          "p": "SUPPLIES:PRT-IGBT-DIE",
+          "o": "FAC-VDIE",
+          "edge_id": "E-008",
+          "confidence": "verified"
+        },
+        {
+          "s": "FAC-SUBS",
+          "p": "SUPPLIES:PRT-DBC-SUB",
+          "o": "FAC-C-BDG",
+          "edge_id": "E-009",
+          "confidence": "verified"
+        }
+      ],
+      "allowed_citation_ids": [
+        "E-007",
+        "E-008",
+        "E-009",
+        "PATH-SUP-C-1",
+        "PATH-SUP-C-2"
+      ],
+      "truncated": false
+    }
+  ]
+}

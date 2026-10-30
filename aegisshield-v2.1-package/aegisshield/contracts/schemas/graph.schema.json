@@ -1,0 +1,724 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Supplier/BOM graph, dependency results and graph view",
+  "description": "Owners: Member 4 (SupplyGraph, DependencyQuery, DependencyResult, DependencyPath), Member 3 (LinearizedContext, GraphView). Reviewers: the other of the two; Member 2 consulted on GraphView. Contract version 1.1.0. Edge direction is provider_to_consumer everywhere; upstream traversal follows incoming edges.",
+  "$defs": {
+    "GraphNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "kind",
+        "label",
+        "org_name",
+        "supplier_id",
+        "country",
+        "role",
+        "origin_for_part_ids",
+        "aliases"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "common.schema.json#/$defs/NodeId"
+        },
+        "kind": {
+          "const": "facility"
+        },
+        "label": {
+          "type": "string"
+        },
+        "org_name": {
+          "type": "string"
+        },
+        "supplier_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/SupplierId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "country": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "buyer_plant",
+            "module_assembly",
+            "die_processing",
+            "wafer_fab",
+            "material_supplier"
+          ]
+        },
+        "origin_for_part_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/PartId"
+          },
+          "description": "Parts this node produces from raw inputs; a path may end here without a data gap."
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names used to resolve free-text disruption reports to this node (exact, case-insensitive)."
+        }
+      }
+    },
+    "GraphEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "type",
+        "source",
+        "target",
+        "part_id",
+        "source_ref",
+        "confidence"
+      ],
+      "properties": {
+        "edge_id": {
+          "$ref": "common.schema.json#/$defs/EdgeId"
+        },
+        "type": {
+          "const": "SUPPLIES"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/NodeId",
+          "description": "Provider facility."
+        },
+        "target": {
+          "$ref": "common.schema.json#/$defs/NodeId",
+          "description": "Consumer facility."
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "source_ref": {
+          "$ref": "common.schema.json#/$defs/SourceId"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "unverified"
+          ]
+        }
+      }
+    },
+    "GraphSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "title",
+        "kind",
+        "as_of",
+        "authority",
+        "synthetic"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "common.schema.json#/$defs/SourceId"
+        },
+        "title": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "erp_record",
+            "supplier_declaration",
+            "audit_report",
+            "trade_record"
+          ]
+        },
+        "as_of": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "authority": {
+          "$ref": "common.schema.json#/$defs/EvidenceAuthority"
+        },
+        "synthetic": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SupplyGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "dataset_id",
+        "synthetic",
+        "edge_direction",
+        "edge_direction_note",
+        "nodes",
+        "edges",
+        "sources"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "dataset_id": {
+          "type": "string"
+        },
+        "synthetic": {
+          "const": true
+        },
+        "edge_direction": {
+          "const": "provider_to_consumer"
+        },
+        "edge_direction_note": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GraphNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GraphEdge"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GraphSource"
+          }
+        }
+      }
+    },
+    "DependencyQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supplier_id",
+        "part_id",
+        "disrupted_node_ids",
+        "max_depth"
+      ],
+      "properties": {
+        "supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "disrupted_node_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/NodeId"
+          }
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      }
+    },
+    "DependencyPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_id",
+        "kind",
+        "node_ids",
+        "edge_ids",
+        "all_edges_verified",
+        "linearized"
+      ],
+      "description": "node_ids[0] is the candidate supplier's facility; each later node is one hop further upstream. A disrupted path ends at the first disrupted node.",
+      "properties": {
+        "path_id": {
+          "type": "string",
+          "pattern": "^PATH-SUP-[A-Z0-9]+-[0-9]+$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "shared_disrupted_dependency",
+            "clean",
+            "truncated"
+          ]
+        },
+        "node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/NodeId"
+          }
+        },
+        "edge_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/EdgeId"
+          }
+        },
+        "all_edges_verified": {
+          "type": "boolean"
+        },
+        "linearized": {
+          "type": "string",
+          "description": "aegis-path-v1 text, compared exactly in golden tests."
+        }
+      }
+    },
+    "DependencyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "supplier_id",
+        "part_id",
+        "start_node_id",
+        "max_depth",
+        "disrupted_node_ids",
+        "outcome",
+        "reason_code",
+        "paths",
+        "upstream_node_ids",
+        "shared_with_primary_node_ids",
+        "coverage",
+        "truncated",
+        "cycle_detected",
+        "notes",
+        "evidence"
+      ],
+      "description": "Outcome rules (in order): no disrupted node known -> needs_review; any path reaches a disrupted node -> blocked if every edge on those paths is verified, else needs_review; any coverage gap -> needs_review; traversal truncated -> needs_review; otherwise passed. Missing data is never treated as independence.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "start_node_id": {
+          "$ref": "common.schema.json#/$defs/NodeId"
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "disrupted_node_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/NodeId"
+          }
+        },
+        "outcome": {
+          "$ref": "common.schema.json#/$defs/Outcome"
+        },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "SHARED_DISRUPTED_DEPENDENCY",
+            "UNVERIFIED_PATH_TO_DISRUPTED_NODE",
+            "INCOMPLETE_DEPENDENCY_DATA",
+            "TRAVERSAL_TRUNCATED",
+            "NO_PATH_TO_DISRUPTED_NODE",
+            "DISRUPTED_NODE_UNKNOWN"
+          ]
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DependencyPath"
+          }
+        },
+        "upstream_node_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/NodeId"
+          }
+        },
+        "shared_with_primary_node_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/NodeId"
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "gaps"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "gaps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "node_id",
+                  "part_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "missing_critical_input",
+                      "upstream_unknown"
+                    ]
+                  },
+                  "node_id": {
+                    "$ref": "common.schema.json#/$defs/NodeId"
+                  },
+                  "part_id": {
+                    "$ref": "common.schema.json#/$defs/PartId"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "cycle_detected": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "node_id",
+              "text"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "SHARED_NON_DISRUPTED_DEPENDENCY",
+                  "CYCLE_DETECTED"
+                ]
+              },
+              "node_id": {
+                "oneOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/NodeId"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Evidence"
+          }
+        }
+      }
+    },
+    "LinearizedContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "context_id",
+        "format",
+        "subject_id",
+        "lines",
+        "triples",
+        "allowed_citation_ids",
+        "truncated"
+      ],
+      "description": "Deterministic text handed to the LLM for explanation only. The LLM may cite only allowed_citation_ids.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "context_id": {
+          "type": "string",
+          "pattern": "^CTX-DEP-SUP-[A-Z0-9]+$"
+        },
+        "format": {
+          "const": "aegis-path-v1"
+        },
+        "subject_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "triples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "s",
+              "p",
+              "o",
+              "edge_id",
+              "confidence"
+            ],
+            "properties": {
+              "s": {
+                "type": "string"
+              },
+              "p": {
+                "type": "string"
+              },
+              "o": {
+                "type": "string"
+              },
+              "edge_id": {
+                "$ref": "common.schema.json#/$defs/EdgeId"
+              },
+              "confidence": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "allowed_citation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DependencyResultsFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "results",
+        "linearized_contexts"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DependencyResult"
+          }
+        },
+        "linearized_contexts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LinearizedContext"
+          }
+        }
+      }
+    },
+    "GraphView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "view_id",
+        "evaluation_id",
+        "focus_supplier_id",
+        "edge_direction",
+        "nodes",
+        "edges",
+        "paths",
+        "text_alternative"
+      ],
+      "description": "Frontend payload for Cytoscape.js. Draw arrows source -> target (goods flow). Status must be shown with icon + text, not colour alone.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "view_id": {
+          "type": "string"
+        },
+        "evaluation_id": {
+          "$ref": "common.schema.json#/$defs/EvaluationId"
+        },
+        "focus_supplier_id": {
+          "$ref": "common.schema.json#/$defs/SupplierId"
+        },
+        "edge_direction": {
+          "const": "provider_to_consumer"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "org_name",
+              "country",
+              "role",
+              "status",
+              "synthetic"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/NodeId"
+              },
+              "label": {
+                "type": "string"
+              },
+              "org_name": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "buyer",
+                  "disrupted",
+                  "affected_primary",
+                  "blocked",
+                  "needs_review",
+                  "candidate_passed",
+                  "normal"
+                ]
+              },
+              "synthetic": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "source",
+              "target",
+              "type",
+              "part_id",
+              "confidence",
+              "source_ref",
+              "highlighted",
+              "candidate"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "source": {
+                "$ref": "common.schema.json#/$defs/NodeId"
+              },
+              "target": {
+                "$ref": "common.schema.json#/$defs/NodeId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SUPPLIES",
+                  "CANDIDATE_SUPPLY"
+                ]
+              },
+              "part_id": {
+                "$ref": "common.schema.json#/$defs/PartId"
+              },
+              "confidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "highlighted": {
+                "type": "boolean"
+              },
+              "candidate": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path_id",
+              "kind",
+              "node_ids",
+              "edge_ids"
+            ],
+            "properties": {
+              "path_id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "node_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "edge_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "text_alternative": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "One line per path for screen readers and for the evidence drawer."
+        }
+      }
+    }
+  }
+}

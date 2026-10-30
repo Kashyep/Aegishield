@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "note": "Registry of non-graph, non-rule sources referenced by source_ref fields. Graph sources live in supply_graph.json; rule sources live inside each trade rule.",
+  "sources": [
+    {
+      "source_id": "SRC-NOTICE-0042",
+      "title": "Delay notice from Penang PowerTech logistics desk (synthetic)",
+      "kind": "supplier_notice",
+      "as_of": "2026-10-26",
+      "authority": "contractual",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-QT-B-01",
+      "title": "Spot quote QT-B-01 from Chao Phraya Power Devices (synthetic)",
+      "kind": "supplier_quote",
+      "as_of": "2026-10-26",
+      "authority": "contractual",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-QT-C-01",
+      "title": "Spot quote QT-C-01 from Saigon Precision Electronics (synthetic)",
+      "kind": "supplier_quote",
+      "as_of": "2026-10-26",
+      "authority": "contractual",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-SCHED-2026W44",
+      "title": "Carrier sailing schedules, week 44 of 2026 (synthetic)",
+      "kind": "carrier_schedule",
+      "as_of": "2026-10-25",
+      "authority": "secondary",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-LC-0117-LEDGER",
+      "title": "Bank LC utilisation ledger for LC-SYN-0117 (synthetic)",
+      "kind": "erp_record",
+      "as_of": "2026-10-25",
+      "authority": "internal",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-INV-SNAPSHOT",
+      "title": "Inventory snapshot 26 Oct 2026 09:00 IST (synthetic)",
+      "kind": "erp_record",
+      "as_of": "2026-10-26",
+      "authority": "internal",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-SO-CONTRACTS",
+      "title": "Customer order contracts SO-1001 to SO-1003 (synthetic)",
+      "kind": "contract",
+      "as_of": "2026-09-01",
+      "authority": "contractual",
+      "synthetic": true
+    },
+    {
+      "source_id": "SRC-LC-SYN-0117",
+      "title": "Letter of credit LC-SYN-0117 as issued (synthetic MT700-style text)",
+      "kind": "contract",
+      "as_of": "2026-10-05",
+      "authority": "contractual",
+      "synthetic": true
+    }
+  ]
+}

@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Disruption events and assessments",
+  "description": "Input and output of the Disruption Sensing Agent. Owner: Member 1. Reviewer: Member 4. Contract version 1.1.0.",
+  "$defs": {
+    "DisruptionId": {
+      "type": "string",
+      "pattern": "^DIS-[0-9]{4}-[0-9]{4}$"
+    },
+    "GoldExtraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_type",
+        "root_cause",
+        "affected_shipment_ids",
+        "affected_po_ids",
+        "delay_days",
+        "new_etd",
+        "force_majeure_invoked"
+      ],
+      "description": "Structured fields that a bounded LLM extraction must reproduce from raw_text. In gold mode the agent uses these directly.",
+      "properties": {
+        "event_type": {
+          "type": "string",
+          "enum": [
+            "supplier_delay",
+            "port_closure",
+            "route_advisory",
+            "tariff_change",
+            "capacity_loss"
+          ]
+        },
+        "root_cause": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "facility_alias",
+            "event_date"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "facility_outage",
+                "port_congestion",
+                "weather",
+                "regulatory",
+                "other"
+              ]
+            },
+            "facility_alias": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "event_date": {
+              "$ref": "common.schema.json#/$defs/Date"
+            }
+          }
+        },
+        "affected_shipment_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SHP-[A-Z0-9-]+$"
+          }
+        },
+        "affected_po_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^PO-[0-9]{4}$"
+          }
+        },
+        "delay_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "new_etd": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "force_majeure_invoked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DisruptionEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disruption_id",
+        "received_at",
+        "channel",
+        "source",
+        "raw_text",
+        "gold_extraction"
+      ],
+      "properties": {
+        "disruption_id": {
+          "$ref": "#/$defs/DisruptionId"
+        },
+        "received_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "supplier_notice",
+            "news_feed",
+            "carrier_advisory",
+            "regulatory_feed",
+            "manual"
+          ]
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_id",
+            "title",
+            "authority",
+            "uri",
+            "synthetic"
+          ],
+          "properties": {
+            "source_id": {
+              "$ref": "common.schema.json#/$defs/SourceId"
+            },
+            "title": {
+              "type": "string"
+            },
+            "authority": {
+              "$ref": "common.schema.json#/$defs/EvidenceAuthority"
+            },
+            "uri": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "synthetic": {
+              "type": "boolean"
+            }
+          }
+        },
+        "raw_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gold_extraction": {
+          "$ref": "#/$defs/GoldExtraction"
+        }
+      }
+    },
+    "AffectedShipment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shipment_id",
+        "po_id",
+        "planned_etd",
+        "revised_etd",
+        "planned_eta_plant",
+        "revised_eta_plant",
+        "delay_days"
+      ],
+      "properties": {
+        "shipment_id": {
+          "type": "string"
+        },
+        "po_id": {
+          "type": "string"
+        },
+        "planned_etd": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "revised_etd": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "planned_eta_plant": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "revised_eta_plant": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "delay_days": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "AffectedOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "customer_id",
+        "qty_affected",
+        "order_value_inr",
+        "need_by",
+        "revised_arrival",
+        "days_late",
+        "baseline_penalty_inr"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "common.schema.json#/$defs/OrderId"
+        },
+        "customer_id": {
+          "type": "string"
+        },
+        "qty_affected": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "order_value_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "need_by": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "revised_arrival": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "days_late": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "baseline_penalty_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        }
+      }
+    },
+    "DisruptionAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "assessment_id",
+        "disruption_id",
+        "outcome",
+        "issues",
+        "extraction_mode",
+        "event_type",
+        "severity",
+        "severity_basis",
+        "disrupted_node_ids",
+        "affected_supplier_ids",
+        "affected_shipments",
+        "affected_orders",
+        "baseline_loss_inr",
+        "evidence"
+      ],
+      "description": "baseline_loss_inr = sum of penalties if no recovery action is taken. An unresolved root-cause alias yields outcome needs_review and an empty disrupted_node_ids list, which forces every dependency check to needs_review.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "assessment_id": {
+          "type": "string",
+          "pattern": "^DA-DIS-[0-9]{4}-[0-9]{4}$"
+        },
+        "disruption_id": {
+          "$ref": "#/$defs/DisruptionId"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "needs_review"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ROOT_CAUSE_ALIAS_UNRESOLVED",
+              "NEW_ETD_INCONSISTENT_WITH_DELAY",
+              "EXTRACTION_MISMATCH",
+              "UNKNOWN_SHIPMENT"
+            ]
+          }
+        },
+        "extraction_mode": {
+          "type": "string",
+          "enum": [
+            "gold",
+            "recorded",
+            "live"
+          ]
+        },
+        "event_type": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "severity_basis": {
+          "type": "string"
+        },
+        "disrupted_node_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/NodeId"
+          }
+        },
+        "affected_supplier_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/SupplierId"
+          }
+        },
+        "affected_shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AffectedShipment"
+          }
+        },
+        "affected_orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AffectedOrder"
+          }
+        },
+        "baseline_loss_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Evidence"
+          }
+        }
+      }
+    }
+  }
+}

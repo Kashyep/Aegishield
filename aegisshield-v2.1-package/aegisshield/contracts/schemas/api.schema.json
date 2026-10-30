@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Service-level API payloads",
+  "description": "Owner: Member 4. Reviewer: Member 2. Contract version 1.1.0.",
+  "$defs": {
+    "Health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "api_version",
+        "contract_version",
+        "data_mode",
+        "llm_mode",
+        "demo_mode",
+        "scenario_id",
+        "input_snapshot_id"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "degraded"
+          ]
+        },
+        "api_version": {
+          "const": "v1"
+        },
+        "contract_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "data_mode": {
+          "const": "synthetic"
+        },
+        "llm_mode": {
+          "type": "string",
+          "enum": [
+            "live",
+            "recorded",
+            "off"
+          ]
+        },
+        "demo_mode": {
+          "type": "boolean"
+        },
+        "scenario_id": {
+          "type": "string"
+        },
+        "input_snapshot_id": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        }
+      }
+    },
+    "DemoResetResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "input_snapshot_id",
+        "reset_at",
+        "counters_reset",
+        "audit_event_id"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string"
+        },
+        "input_snapshot_id": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "reset_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "counters_reset": {
+          "const": true
+        },
+        "audit_event_id": {
+          "$ref": "common.schema.json#/$defs/AuditEventId"
+        }
+      }
+    },
+    "ScenarioResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario",
+        "customer_orders",
+        "purchase_orders",
+        "shipments",
+        "suppliers",
+        "inventory",
+        "letters_of_credit",
+        "actors"
+      ],
+      "properties": {
+        "scenario": {
+          "$ref": "master-data.schema.json#/$defs/Scenario"
+        },
+        "customer_orders": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/CustomerOrder"
+          }
+        },
+        "purchase_orders": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/PurchaseOrder"
+          }
+        },
+        "shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Shipment"
+          }
+        },
+        "suppliers": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/Supplier"
+          }
+        },
+        "inventory": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/InventoryPosition"
+          }
+        },
+        "letters_of_credit": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/LetterOfCredit"
+          }
+        },
+        "actors": {
+          "type": "array",
+          "items": {
+            "$ref": "master-data.schema.json#/$defs/DemoActor"
+          }
+        }
+      }
+    },
+    "DisruptionList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "disruption.schema.json#/$defs/DisruptionEvent"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "description": "Golden end-to-end API sequence for the demo. Owner: Member 3 (backend e2e test tests/e2e/test_golden_flow.py). Reviewer: Member 5. Assertions use dotted paths on the JSON body. Every request and response body must also validate against contracts/openapi.yaml. Hash values are written as {{name}} and captured from earlier responses.",
+  "description": "Golden end-to-end API sequence for the demo. Owner: Member 3 (golden-flow e2e test backend/tests/e2e/test_golden_flow.py). Reviewer: Member 4. Assertions use dotted paths on the JSON body. Every request and response body must also validate against contracts/openapi.yaml. Hash values are written as {{name}} and captured from earlier responses.",
   "preconditions": [
     "Backend started with AEGIS_DEMO_MODE=1 and AEGIS_LLM_MODE=off",
     "Fixtures loaded from fixtures/demo without modification",

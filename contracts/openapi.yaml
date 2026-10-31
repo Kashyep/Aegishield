@@ -1,10 +1,11 @@
 openapi: 3.1.0
 info:
   title: AegisShield AI prototype API
-  version: 1.0.0
+  version: 1.1.0
   summary: Supply-chain recovery preflight with supplier-dependency GraphRAG, temporal trade-rule retrieval, deterministic LC/FTA checks and human approval.
   description: |
-    Contract owner: Member 3 (backend). Reviewer: Member 2 (frontend consumer). Final decision on breaking changes: Member 5.
+    Contract owner: Member 4 (backend). Reviewer: Member 2 (frontend consumer). Early-warning path owner: Member 1.
+    Contract change control and final decision on breaking changes: Member 3 (docs/00 §15).
 
     Conventions (see docs/00-source-of-truth.md section 7):
     - All data is SYNTHETIC. Every response that carries business data includes data_mode "synthetic" or synthetic flags.
@@ -28,6 +29,7 @@ tags:
   - name: execution
   - name: audit
   - name: rules
+  - name: early-warning
 paths:
   /api/v1/health:
     get:
@@ -454,6 +456,35 @@ paths:
               schema: {$ref: '#/components/schemas/AuditVerifyResult'}
               examples:
                 valid: {value: {valid: true, checked_events: 26, first_invalid_seq: null}}
+  /api/v1/early-warnings:
+    get:
+      tags: [early-warning]
+      operationId: getEarlyWarnings
+      summary: Heuristic early-warning index per facility and port from external signals known at as_of
+      description: |
+        Owner: Member 1 (MOD-21). Advisory only: never changes evaluations, plans, money or plan hashes.
+        The index (0-100) is a deterministic heuristic from synthetic weights, not a probability.
+        Signals observed after as_of are excluded (no look-ahead); signals older than the window are excluded;
+        signals for unknown areas are listed in excluded_signals with reason unmapped_area.
+      parameters:
+        - name: as_of
+          in: query
+          required: false
+          description: RFC 3339 timestamp with offset. Defaults to the scenario clock (scenario.as_of).
+          schema: {type: string, format: date-time}
+      responses:
+        '200':
+          description: Early-warning result. Goldens in fixtures/expected/early_warnings_pre_notice.json (as_of 2026-10-23T21:00:00+05:30) and early_warnings_scenario_time.json.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EarlyWarningResult'}
+              examples:
+                preNotice:
+                  externalValue: ../fixtures/expected/early_warnings_pre_notice.json
+                scenarioTime:
+                  externalValue: ../fixtures/expected/early_warnings_scenario_time.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /api/v1/rules/applicability:
     post:
       tags: [rules]
@@ -579,3 +610,4 @@ components:
     AuditVerifyResult: {$ref: './schemas/decision.schema.json#/$defs/AuditVerifyResult'}
     RuleQuery: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleQuery'}
     RuleApplicabilityResult: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleApplicabilityResult'}
+    EarlyWarningResult: {$ref: './schemas/signals.schema.json#/$defs/EarlyWarningResult'}

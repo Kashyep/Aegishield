@@ -339,6 +339,17 @@ function App() {
     return targetPlan.financials.exposures.filter((exp) => exp.finding_id === selectedFinding.finding_id && exp.kind === 'duty_if_preference_denied' && typeof exp.amount_inr === 'number').reduce((sum, exp) => sum + (exp.amount_inr ?? 0), 0)
   }, [selectedFinding, evaluation])
 
+  // ⚡ Bolt Optimization: Memoize props passed to DependencyGraph to prevent re-rendering it
+  const graphCandidates = useMemo(() => (evaluation?.dependency_results ?? []).map((result) => ({
+    supplierId: result.supplier_id,
+    label: graphView?.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
+  })), [evaluation?.dependency_results, graphView?.nodes])
+
+  const handleFocusSupplier = useCallback((supplierId: string) => {
+    setSelectedGraphNode(null)
+    setFocusSupplierId(supplierId)
+  }, [])
+
   const openApproval = (planId: string) => {
     const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
     if (!plan) return
@@ -765,11 +776,8 @@ function App() {
               <DependencyGraph
                 view={graphView}
                 result={evaluation?.dependency_results?.find((result) => result.supplier_id === graphView.focus_supplier_id)}
-                candidates={(evaluation?.dependency_results ?? []).map((result) => ({
-                  supplierId: result.supplier_id,
-                  label: graphView.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
-                }))}
-                onFocusSupplier={(supplierId) => { setSelectedGraphNode(null); setFocusSupplierId(supplierId) }}
+                candidates={graphCandidates}
+                onFocusSupplier={handleFocusSupplier}
                 selectedNodeId={selectedGraphNode?.id ?? null}
                 onSelectNode={setSelectedGraphNode}
               />

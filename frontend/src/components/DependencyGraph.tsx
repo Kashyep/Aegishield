@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react'
 import type { DependencyResult, GraphView, GraphViewNode } from '../api/types'
 import { STATUS_TEXT } from './graphStatus'
 
@@ -39,7 +40,12 @@ function layoutGraph(view: GraphView): Record<string, { x: number; y: number }> 
   return positions
 }
 
-export function DependencyGraph({ view, result, candidates, onFocusSupplier, selectedNodeId, onSelectNode }: {
+// ⚡ Bolt Optimization:
+// Wrapped DependencyGraph in React.memo to prevent expensive re-renders
+// when parent state changes (e.g. active tab switching).
+// Extracted heavy computations like layoutGraph and array transformations
+// into useMemo hooks. Expected impact: Eliminates layout recalculation on every tab switch/selection.
+export const DependencyGraph = React.memo(function DependencyGraph({ view, result, candidates, onFocusSupplier, selectedNodeId, onSelectNode }: {
   view: GraphView
   result?: DependencyResult
   candidates: { supplierId: string; label: string }[]
@@ -47,10 +53,10 @@ export function DependencyGraph({ view, result, candidates, onFocusSupplier, sel
   selectedNodeId: string | null
   onSelectNode: (node: GraphViewNode) => void
 }) {
-  const positions = layoutGraph(view)
-  const nodeById = Object.fromEntries(view.nodes.map((node) => [node.id, node]))
-  const focusEdgeIds = new Set(view.paths.flatMap((path) => path.edge_ids))
-  const height = Math.max(...Object.values(positions).map((p) => p.y)) + NODE_H + 40
+  const positions = useMemo(() => layoutGraph(view), [view])
+  const nodeById = useMemo(() => Object.fromEntries(view.nodes.map((node) => [node.id, node])), [view.nodes])
+  const focusEdgeIds = useMemo(() => new Set(view.paths.flatMap((path) => path.edge_ids)), [view.paths])
+  const height = useMemo(() => Math.max(...Object.values(positions).map((p) => p.y)) + NODE_H + 40, [positions])
   const isConnected = (nodeId: string) => view.edges.some((edge) => (edge.source === selectedNodeId && edge.target === nodeId) || (edge.target === selectedNodeId && edge.source === nodeId))
   const blockedPath = view.paths.find((path) => path.kind === 'shared_disrupted_dependency')
   const focusLabel = candidates.find((c) => c.supplierId === view.focus_supplier_id)?.label ?? view.focus_supplier_id
@@ -126,5 +132,5 @@ export function DependencyGraph({ view, result, candidates, onFocusSupplier, sel
     </section>
     </section>
   )
-}
+})
 

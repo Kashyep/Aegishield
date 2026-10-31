@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Supplier/BOM graph, dependency results and graph view",
-  "description": "Owner: Member 4. Reviewers: Member 3 (DependencyResult), Member 2 (GraphView). Contract version 1.0.0. Edge direction is provider_to_consumer everywhere; upstream traversal follows incoming edges.",
+  "description": "Owners: Member 4 (SupplyGraph, DependencyQuery, DependencyResult, DependencyPath), Member 3 (LinearizedContext, GraphView). Reviewers: the other of the two; Member 2 consulted on GraphView. Contract version 1.1.0. Edge direction is provider_to_consumer everywhere; upstream traversal follows incoming edges.",
   "$defs": {
     "GraphNode": {
       "type": "object",

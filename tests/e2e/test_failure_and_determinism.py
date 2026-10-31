@@ -41,7 +41,10 @@ def test_execution_failure_stops_later_steps_and_is_audited(client, monkeypatch)
     assert client.get("/api/v1/audit-events/verify").json()["valid"] is True
 
 
-def test_llm_modes_leave_outcomes_financials_and_plan_hashes_unchanged():
+def test_llm_modes_leave_outcomes_financials_and_plan_hashes_unchanged(monkeypatch):
+    # Hermetic: the live leg must never reach a real provider with a local .env key; an unreachable endpoint exercises degradation.
+    monkeypatch.setenv("AEGIS_LLM_BASE_URL", "http://127.0.0.1:9/v1")
+    monkeypatch.setenv("AEGIS_LLM_TIMEOUT_S", "1")
     fx = load_fixtures(Path(__file__).resolve().parents[2] / "fixtures")
     started = "2026-10-26T09:00:00+05:30"
     completed = "2026-10-26T09:00:07+05:30"

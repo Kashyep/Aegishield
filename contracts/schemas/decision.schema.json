@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Human decisions, amendment requests, simulated execution and audit log",
-  "description": "Owner: Member 3. Reviewer: Member 5. Contract version 1.0.0. Mutating requests carry headers X-Actor-Id (simulated identity) and Idempotency-Key.",
+  "description": "Owner: Member 4. Reviewer: Member 3. Contract version 1.1.0. Mutating requests carry headers X-Actor-Id (simulated identity) and Idempotency-Key.",
   "$defs": {
     "Acknowledgement": {
       "type": "object",

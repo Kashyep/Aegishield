@@ -1,524 +1,618 @@
-# AegisShield AI — Shared Source of Truth
+# AegisShield AI — Shared Source of Truth (v2)
 
 | | |
 |---|---|
-| Document | `docs/00-source-of-truth.md` (canonical for every shared decision, contract summary, formula and date) |
-| Version | 1.0.0 — 19 Oct 2026 |
-| Final decision authority | Member 5, after consulting the owner of the affected module (section 15) |
-| Maintainers | Member 5 (scope, decisions, sections 1–5, 12–16); Member 3 (sections 7–11 contract summaries, kept in sync with `contracts/`) |
-| Machine-readable truth | `contracts/` and `fixtures/`. If this document and a contract file disagree, the contract file wins and this document is corrected in the same pull request. |
-| Verification of numbers | Every figure in sections 10 and 12 is recomputed by `python3 tools/check_contracts.py` (last run: PASSED, 19 Oct 2026). |
+| Document | `docs/00-source-of-truth.md`: canonical for every shared decision, owner, formula, date and demo number |
+| Version | 2.1.0 — Fri 30 Oct 2026, 20:30 (2.0.0 the same day; replaces 1.0.0 of 19 Oct) |
+| Team | ChainGang, Sir M. Visvesvaraya Institute of Technology, Bengaluru |
+| Final decision authority | Member 3, after consulting the owner of the affected module (§15.4) |
+| Maintainer | Member 3 (whole document); Member 4 keeps §9–§11 and Appendix A in sync with `contracts/` |
+| Machine-readable truth | `contracts/` 1.1.1 and `fixtures/`. If this document and a contract file disagree, the contract file wins and this document is corrected in the same pull request. |
+| Verification | Every figure in §10, §12 and Appendix F is recomputed by `python3 tools/check_contracts.py`. Last run: PASSED on 30 Oct 2026, with 45/45 automated validation cases. |
 
-**Human team vs software agents.** In this package *Member 1–5* always means a person. *Agent* always means one of the five software components in section 8. No person is "an agent".
+**People vs software.** *Member 1–5* always means a person on the team. *Agent* always means one of the software components in §8.
+
+---
+
+## Read me first: what changed in v2
+
+1. **Team split.** Member numbers now follow the team context file. Member 5 stops all UI/UX work and only prepares the final pitch, presentation and scripts. UI/UX and the frontend move to **Member 2**. **Member 3** becomes the final decision-maker. Ownership is in §7.
+   - **v2.1 (30 Oct, 20:30):** the enterprise data pipeline (MOD-22: fixture ingestion, validation, input snapshot, `/scenario` and `/disruptions`) moves from Member 2 to **Member 1**, so Member 2 works only on UI/UX and the frontend (D-031).
+2. **v1 role documents are retired.** `docs/01…05` used a different numbering (in v1, "Member 3 — Backend" is the person who is now Member 4). Delete them or move them to `docs/archive/v1/`. Their technical content is folded into the appendices of this document (§19), and the per-person plans now live in `prompts/`.
+3. **Contracts 1.1.0 (additive).** They add the early-warning feature for Member 1 (`signals.schema.json`, `external_signals.json`, `GET /api/v1/early-warnings`, VC-EWS-01…06) and remap owner metadata. All 12 existing demo fixtures are byte-identical, so `input_snapshot_id` and both plan hashes are unchanged. The one code change needed elsewhere is the step → owner map in the orchestrator (`contracts/CHANGELOG.md`). **1.1.1** (v2.1) changes owner metadata only, for the data-pipeline move.
+4. **Corrections to the team context file.** The context file proposed a "Disruption Probability Score", a net-profitability formula and per-member "SAP integrations". Each is reconciled in §2.3–§2.4. The most important rule: never call the early-warning index a probability.
+5. **Schedule.** The plan covers the 4½ days left: feature freeze **Sun 1 Nov 20:00**, finale **Wed 4 Nov**. Because both halves of the app are partly built, every module starts with a handover and an inventory (§7.5).
 
 ---
 
 ## Contents
 1. Product in one page
-2. How to read evidence labels, and what we changed from the PDF
-3. Event facts and tentative calendar
-4. MVP scope, exclusions, stretch goals, success criteria
+2. Evidence labels and reconciliation
+3. Event facts and calendar
+4. Scope, cut list, success criteria
 5. Requirements
 6. Technology stack
-7. Architecture, module boundaries and ownership
-8. The five logical agents and orchestration
+7. Team, architecture, modules, ownership, handover
+8. Agents and orchestration
 9. Contracts overview
-10. Deterministic behaviour: dependency, temporal rules, LC, FTA, inventory, plans, money
-11. Human approval, simulated execution and audit
-12. The single demo scenario and demo script
-13. Integration plan, milestones, critical path, daily plan
+10. Deterministic behaviour
+11. Human approval, simulated execution, audit
+12. Demo scenario and demo script
+13. Integration plan, critical path, daily plan, contingencies
 14. Tests, demo acceptance, risks, assumptions, open decisions
-15. Repository conventions, contract versioning, change control, decision authority
+15. Repository conventions, versioning, change control, decision authority
 16. Traceability
 17. Glossary
 18. Sources
+19. Module specifications (Appendices A–F)
+20. Decision log
 
 ---
 
 ## 1. Product in one page
 
-**What we are building.** AegisShield AI is a supply-chain recovery *preflight*. When a disruption delays critical components, it proposes recovery plans, then checks each plan before anyone acts on it:
+**What it is.** AegisShield AI is a preflight layer for supply-chain recovery decisions. It was designed for SAP BTP; hosting status is tracked in §2.4. It watches external signals around supplier sites. When a disruption lands, it proposes recovery plans and checks each plan before anyone acts:
 
-1. Does the "alternate" supplier secretly depend on the same disrupted upstream factory? (Supplier/BOM GraphRAG)
-2. Which trade rules actually apply on the import date, in this jurisdiction, after supersession? (Temporal RAG)
-3. Does the proposed route break the documentary credit (letter of credit) or the FTA direct-consignment condition? (Deterministic checks)
-4. Can inventory cover the gap without breaching protected stock? (Deterministic allocation)
-5. What does each plan really cost, what loss remains, and what is merely at risk? (Deterministic financials)
+0. **Early warning (advisory):** are there signals (grid, weather, news, port congestion) around a supplier site that feeds our orders?
+1. **Disruption sensing:** what broke, which shipments slip, which customer orders are late, and what penalties apply if we do nothing?
+2. **Supplier dependency (GraphRAG):** does the "alternate" supplier secretly depend on the same broken upstream factory?
+3. **Routing:** which sailings can each candidate supplier actually use?
+4. **Inventory rebalancing:** how much usable stock above protected levels can cover the gap?
+5. **Trade compliance:** do the route and documents fit the letter of credit and the FTA direct-consignment rule that applies on the import date?
 
-A human approves one plan, the system simulates execution, and every step lands in a hash-chained audit log.
+Then it compares the plans with honest money, waits for a recorded human decision, simulates execution and writes a hash-chained audit trail.
 
-**Target users** (proto-personas; Member 1 validates them, see `docs/01-research-and-deck.md`):
+**Principle: code decides, AI explains.** Deterministic code produces every `passed` / `needs_review` / `blocked` outcome, quantity, date and rupee amount. The LLM only extracts fields into a fixed schema (checked against the record) and writes explanations that may cite only proven evidence. Missing or unverified data becomes `needs_review`, never `passed`. Nothing executes without a human decision.
 
-| User | Problem today |
-|---|---|
-| Supply planner (synthetic persona "Priya") | Has to recover three customer orders within hours; route and supplier tools optimise cost and time but cannot see sub-tier dependencies or documentary-credit terms. |
-| Trade compliance officer ("Arjun") | Learns about a route change after it is booked; must then deal with a discrepant bill of lading or an FTA preference that may be denied. |
-| Plant/operations head and customers | Bear late-delivery penalties and service failures (in our scenario: a rail supplier, a water utility and a cold-chain operator). |
+**Target segment (hypothesis):** mid-size Indian manufacturers importing critical electronic components from ASEAN under FTAs and documentary credits.
+**Revenue model (hypothesis):** B2B SaaS per plant or legal entity, with an optional per-evaluation tier.
 
-**End-to-end example in plain words (the demo).** A wafer fab in Kulim (synthetic "Zenith Wafer Fab") shuts down. Our primary module supplier in Penang ships 7 days late, so three customer orders will be 6, 4 and 2 days late: ₹11,60,000 of penalties if we do nothing. A cost-and-time optimiser proposes plan **P1**: use plant and Pune stock, buy 400 modules from a cheap Thai supplier shipping via Colombo, and 200 from a Vietnamese supplier via Singapore. On paper P1 avoids ₹8,26,000. AegisShield finds that (a) the Thai supplier's dies come from the *same* disrupted fab through a Kedah die processor, (b) the Singapore transhipment breaks the Vietnamese supplier's letter of credit (43T "not allowed" and UCP 600 sub-article 20(c) excluded), and (c) Colombo is not an AIFTA party, so the preference needs evidence. P1 is **blocked**. Plan **P2** uses plant and Pune stock plus the Vietnamese supplier on a direct sailing: ₹6,18,000 net avoided loss, every check passed, 100 units two days late. Priya approves P2; execution is simulated; the audit chain verifies.
+**Users in the demo (simulated identities):** Priya R., supply planner, and Arjun M., trade compliance officer, both synthetic. The personas and empathy maps from Member 5's UX research are canonical for the pitch.
 
-All companies, prices, rates, penalties, schedules and the letter of credit are **synthetic**.
+**End-to-end example (all SYNTHETIC; numbers from `fixtures/expected/`):**
+- **Early warning.** On 23 Oct at 21:00, three signals (a grid-operator bulletin, a weather warning and a local news report) push the Zenith wafer fab in Kulim to early-warning index **97/100 (warning)**. AegisShield links that fab to PO-7001, to three customer orders, and to the Thai candidate supplier.
+- **Disruption.** The Penang supplier's delay notice arrives 59 h 40 min later (26 Oct, 08:40). Shipment slips 7 days, so the three orders will be 6, 4 and 2 days late: **₹11,60,000** of penalties if we do nothing.
+- **Plan P1, the obvious fix.** A cost-and-time optimiser proposes plant and Pune stock, 400 modules from Thailand via Colombo, and 200 from Vietnam via Singapore. On paper it avoids **₹8,26,000**. AegisShield **blocks** it:
+  - the Thai supplier's dies come from the same Kulim fab, through a Kedah die processor;
+  - the Singapore transhipment breaks this letter of credit, because 43T says "not allowed" and 47A excludes the UCP 600 20(c) container exception;
+  - the Colombo transit leaves the AIFTA preference **needing review**, with **₹3,87,600** of duty at risk at the 15% rate in force on arrival.
+- **Plan P2, the verified fix.** 150 units of Bengaluru stock, 150 from Pune, and 600 from Vietnam on a direct sailing. All checks pass; net avoided loss is **₹6,18,000**; 100 units arrive 2 days late (₹50,000 residual).
+- **Decision.** Priya approves P2. Execution is simulated, and the audit chain verifies.
 
 ---
 
-## 2. How to read evidence labels, and what we changed from the PDF
+## 2. Evidence labels and reconciliation
 
-### 2.1 Labels used in all six documents
-
+### 2.1 Labels used across docs and prompts
 | Label | Meaning |
 |---|---|
-| **[REQ]** | Requirement given directly in the team's instruction prompt (19 Oct 2026). Not negotiable without Member 5. |
-| **[PDF p.N]** | Proposal from the attached planning conversation (`SAP Hackfest Bengaluru 2026 Overview.pdf`, 22 pages). Planning material, not an authority. |
-| **[VERIFIED: source]** | Checked against an external source on 19 Oct 2026 (section 18). "official" = SAP or ICC page; "secondary" = reproduction or commentary. |
-| **[ASSUMPTION A-nn]** | Our reversible decision where information is missing (section 14.4). |
-| **[OPEN OD-nn]** | Unresolved; has an owner and a deadline (section 14.5). |
+| **[REQ]** | Requirement given directly by the team (prompts of 19 Oct and 30 Oct 2026). |
+| **[CTX]** | Statement from the team context file (30 Oct). Planning material; reconciled in §2.3. |
+| **[PDF p.N]** | Statement from the original planning conversation (22 pages). Historical. |
+| **[VERIFIED: source]** | Checked against an external source (§18). "official" = SAP or ICC page; "secondary" = reproduction or commentary. |
+| **[ASSUMPTION A-nn]** | Our reversible decision where information is missing (§14.4). |
+| **[OPEN OD-nn]** | Unresolved; has an owner and a deadline (§14.5). |
 | **SYNTHETIC** | Fictional demo data. Never present it as real. |
 
-### 2.2 Findings and conflict resolution (PDF vs this package)
+### 2.2 v1 corrections still in force (from the planning PDF)
+| # | Rule | Why |
+|---|---|---|
+| C3 | In MT700, **43T = transhipment, 43P = partial shipments**. | The PDF had "43P (transshipment prohibited)" [VERIFIED secondary: MT700 field list; ICC eUCP briefing]. |
+| C4 | LC transhipment is **blocked only if** 43T is "not allowed" **and** 20(c) is excluded (or the container / single-B/L exception does not apply). Non-party transit under AIFTA → **needs_review**, never automatic loss. | UCP 600 Art. 20(c) [VERIFIED secondary]; AIFTA Rule 8 direct consignment [VERIFIED secondary]. |
+| C5 | 44C is a **shipment** date. Arrival is never an LC input. | Field definition. |
+| C6 | One synthetic fixture for all numbers. | PDF amounts were irreconcilable. |
+| C7 | No novelty, "never", "<100 ms" or score-out-of-10 claims. | Unverifiable; other 2026 teams built similar systems [VERIFIED: public repos]. |
+| C9 | SAP products are "proposed mapping" unless built (§2.4). | No access was verified. |
 
-| # | PDF said | Problem | Decision here |
+### 2.3 Reconciliation of the team context file [CTX]
+| # | Context file says | Problem | Canonical decision |
 |---|---|---|---|
-| C1 | Final idea "AegisShield AI" [PDF p.18–22] | — | Kept. Five logical agents and HITL kept. Idea selection is closed [REQ]. |
-| C2 | Work split: 1 pitch lead + tech lead + backend + "domain engine" + frontend [PDF p.13, p.21–22] | Conflicts with the team's real roles | Replaced by [REQ] roles: M1 research/deck, M2 UI/UX+frontend, M3 backend, M4 GraphRAG, M5 temporal RAG + UI review + final decisions (section 7.3). |
-| C3 | "Letter of Credit Clause 43P (Transshipment Prohibited)" [PDF p.12, p.20] | In SWIFT MT700, **43P is Partial Shipments; 43T is Transhipment** [VERIFIED: iotafinance MT700 field list; ICC eUCP MT700 briefing] | All contracts use 43T for transhipment and 43P for partial shipments. |
-| C4 | Transhipment "violates" the LC and "voids" the FTA [PDF p.12, p.19–20] | Too strong. UCP 600 sub-article 20(c) lets a bill of lading show transhipment even when the credit prohibits it, if goods are in a container and one B/L covers the carriage [VERIFIED secondary: ICC Forum; Univ. of Southampton lecture]. ICC's ISBP revision draft notes a prohibition usually needs 20(c) excluded to bite [VERIFIED: ISBP 821 draft — verify final text]. AIFTA direct consignment allows transit through non-parties under conditions [VERIFIED secondary: India's 2009 AIFTA origin rules, Rule 8]. | LC transhipment is **blocked only if** 43T = not allowed **and** 20(c) is excluded (or the container exception does not apply). Non-party transit gives FTA **needs_review**, never automatic loss. Party transit (e.g. Singapore) passes. |
-| C5 | "Shipment dates vs arrival dates" mixed [PDF p.9 `latestShipmentDate` with "latest_arrival_date" p.13] | 44C is a **shipment** date; arrival is not an LC shipment condition | LC checks compare ETD with 44C and ETD + presentation period with 31D expiry. Arrival is never an LC pass/fail input (validation case VC-LC-04). |
-| C6 | Inconsistent money: ₹42 L penalty [p.12], ₹34 L [p.20], ₹8 L freight [p.19], ₹12,000 freight [p.12], ₹29.5 L saving [p.20], ₹1.8 Cr orders [p.19] | Irreconcilable | One synthetic fixture (section 12). Every number in deck and UI comes from `fixtures/expected/`. |
-| C7 | "In <100 ms", "never uses repealed rules", "impossible to dismiss", scores 9.7/10, "no major company works on this" [p.18–20, p.2] | Unmeasured or unverifiable. Other 2026 Hackfest teams publicly built multi-agent supply-chain systems with graph traversal and compliance agents [VERIFIED: public GitHub repositories, section 18] | Banned from deck and UI. Performance numbers are **targets** until measured (D8). We claim "rule applicability is decided by dates and authority, not similarity" and show tests, not "never". |
-| C8 | Graph store Neo4j/Memgraph; LangGraph/CrewAI; Llama-3/Granite [p.21] | Operational load for 9 days | NetworkX in-process, plain Python orchestrator, provider-agnostic LLM gateway with recorded/off modes (section 6). |
-| C9 | SAP IBP / TM / Ariba / GTS / Joule "integration" [p.13, p.19–20] | No access verified | Shown only as **proposed SAP mapping**. The finale requires a working prototype that uses SAP technologies [VERIFIED official, North and South-East regional pages; Bengaluru text not visible] → [OPEN OD-01]. |
-| C10 | "Prototype must be built Oct 26–Nov 3" [p.1, p.9] | Bengaluru page snippet did not show this line; sibling regional pages show such windows | [ASSUMPTION A-01] tentative 9-day window; [OPEN OD-05] confirms whether pre-window work is allowed. |
-| C11 | Beneficial ownership / shell entities in the graph [p.17–18] | Not needed for the final idea's checks | Excluded from MVP (stretch S-6). |
-| C12 | Instructions embedded in the PDF ("give me…", "explain…") | Historical prompts | Treated as source material only. |
+| F1 | "Disruption Probability Score… before an official outage is declared" | We have no historical outage data, so any probability would be invented. | Call it the **early-warning index (0–100)**. It is a deterministic heuristic with synthetic, team-chosen weights (§10.9). Allowed: "raised a warning 59 h 40 min before the supplier's notice in our synthetic scenario". Banned: "probability", "predicts outages", any accuracy percentage. |
+| F2 | "External feeds vectorized into a temporal database… compared against historical patterns" | There is no pattern model, and similarity would decide nothing. | Signals are filtered by time window and area, with no look-ahead. Vector similarity is not used to score. Optional text search is for display only. |
+| F3 | `Net Profitability = Base Revenue − (Recovery/Shipping + Potential Late Penalty Risk + Compliance/Tariff Penalties − FTA Tax Savings)` | It mixes certain costs with uncertain risks, and counts "FTA savings" as a gain even though the baseline already assumes the preference. Base revenue (₹1,89,00,000 of orders) is the same in every plan, so it carries no information. | Use the canonical definitions (§10.7). The term-by-term mapping is in §10.10. Risk appears as **worst-case exposure**, shown separately. Without calibrated probabilities we never net "expected" penalties into cost. |
+| F4 | "Singapore transhipment route violates LC terms" | True only because of this LC's wording. | Say: "this LC sets 43T NOT ALLOWED and its 47A clause excludes the UCP 600 20(c) container exception". |
+| F5 | "Colombo route lacks required trade compliance documentation" | The route is not blocked. | Say "**needs review**": the AIFTA preference depends on evidence that the direct-consignment conditions are met; ₹3,87,600 of duty is at risk at 15%. |
+| F6 | "P2 uses Pune stock plus a direct Vietnamese supplier" | Incomplete. | P2 = 150 Bengaluru plant stock + 150 Pune stock + 600 from Vietnam direct (RT-C-DIR). |
+| F7 | "P2 routes the exception for explicit human approval" | Approval is not an exception path. | Every plan needs human approval. P2 passes all checks and shows the 100 late units as ₹50,000 residual loss. |
+| F8 | "Hosted on SAP BTP"; per-member SAP IBP / Ariba / S/4HANA / TM / GTS / Integration Suite / Event Mesh / Fiori | Unbuilt integrations stated as fact. | Status table §2.4. Only items marked **Built** may be called integrations. |
+| F9 | "Power outage starting 24 Oct" | The fixture notice says "unplanned shutdown on 24 Oct". | "Power-related shutdown" is consistent with signals SIG-0001 and SIG-0006. Do not edit the notice text: that would change every plan hash. |
+| F10 | "Monitors weather, power grids, geopolitics, port congestion" | No live feeds exist. | The demo uses six synthetic signals in four categories. Stretch S-5 may display one real public feed but never score it. |
+| F11 | M5 owns "UI/UX, dashboard & presentation" | Superseded [REQ 30 Oct]. | M5 owns the pitch, deck, scripts and Q&A only. M2 owns UI/UX and the frontend. |
+| F12 | M1 "anchors research and pitch narrative" | Conflicts with M5 owning the pitch. | M1 keeps the domain evidence register and fact-checks claims (MOD-24). M5 owns the narrative and slides. |
+| F13 | "Identical inputs always yield identical outputs" | Fine, but it is a claim. | Present it as a **tested** property: two runs after reset give identical plan hashes (DA-15). |
+
+### 2.4 SAP mapping status (owners confirm by Sat 31 Oct 12:00; see OD-01)
+| SAP offering | Proposed fit in AegisShield | Owner | Demo status | Allowed wording |
+|---|---|---|---|---|
+| SAP BTP, Cloud Foundry runtime | Hosts the backend (Python buildpack documented by SAP [VERIFIED official]) | M4 | **In progress (OD-01)** | Built: "runs on SAP BTP". Otherwise: "designed for SAP BTP". |
+| SAP Integration Suite | ERP → AegisShield data integration | M4 | Proposed | "would connect through" |
+| SAP Event Mesh | Asynchronous disruption and signal events | M4 | Proposed | "would publish to" |
+| SAP S/4HANA (OData APIs) | Purchase orders, inventory, master data | M1 | Proposed. The demo reads synthetic fixtures; an OData-shaped mock adapter is stretch S-9. | "shaped for S/4HANA-style APIs (mock)" |
+| SAP IBP | Supply plans, inventory context | M1 | Proposed | "would read from" |
+| SAP TM | Freight orders, sailings | M1 | Proposed | "would book through" |
+| SAP Ariba | Supplier and sub-tier documents | M3 | Proposed | "would source declarations from" |
+| SAP GTS | Customs, FTA and LC data | M3 | Proposed | "would align with" |
+| SAP Fiori design / UI5 | Planner UI patterns | M2 | Fiori-inspired design language. Say "UI5" only if UI5 Web Components are actually in the frontend. | "Fiori-inspired" unless built |
+| SAP Generative AI Hub | Live LLM for explanations | M3 | Optional (OD-04) | Only if live mode used it |
 
 ---
 
-## 3. Event facts and tentative calendar
+## 3. Event facts and calendar
 
 | Fact | Status | Source |
 |---|---|---|
-| Registration for SAP Hackfest Bengaluru 2026 and SAP Learning Hub, student edition: 24 Sep – **21 Oct 2026**. Learning Hub sign-up is mandatory for **every student individually**. | VERIFIED (official, search snippet; page blocks automated fetch) | SAP Hackfest Bengaluru page |
-| Regional round 5–24 Oct 2026; regional round evaluates **ideas only**, based on SAP Learning Hub student-edition courses; no working prototype required. | VERIFIED (official) | same |
-| Round 1 is Design Thinking and Business Model Canvas; code is not required. | VERIFIED (official) | same |
-| Top 5 teams per regional college round shortlisted on **25 Oct 2026**. | VERIFIED (official) | same |
-| Finale and winners: **4 Nov 2026**, New Horizon College of Engineering (NHCE), Bengaluru; finalists pay their own travel. | VERIFIED (official) | same |
-| Faculty coordinators must confirm regional-round dates with SAP; unapproved rounds do not qualify. | VERIFIED (official) | same |
-| Eligibility: AICTE-approved colleges / recognised universities in Bengaluru Urban and Bengaluru Rural districts. | VERIFIED (official) | same |
-| Team size 4–5. | VERIFIED for the national/North page; assumed same for Bengaluru | Hackfest 2026 page |
-| Finale: teams must design, build and demonstrate a working prototype that uses SAP technologies. | VERIFIED on North and South-East pages; Bengaluru text not visible → **OD-01** | regional pages |
-| Theme 1 suggests agents: disruption sensing, scenario planning, logistics/rerouting, inventory rebalancing, compliance & audit; human approval for the highest-stakes decisions; demo may simulate a Red Sea closure or tariff spike. | VERIFIED (official) | Hackfest 2026 page |
-| SAP frames problems through Domain, Tech and Business lenses. | VERIFIED (SAP Community event page) | SAP Community |
-| Sir MVIT regional pitch on **24 Oct**; 10 min pitch + 5 min Q&A. | UNVERIFIED (from college guidelines not attached) [PDF p.9] → **OD-06** | — |
-| Prototype build window 26 Oct – 3 Nov. | UNVERIFIED for Bengaluru [PDF p.1, p.9] → **A-01** | — |
-| Prizes ₹75k / ₹50k / ₹25k. | UNVERIFIED [PDF p.1]; do not quote | — |
+| Finale and winners: **Wed 4 Nov 2026** at New Horizon College of Engineering (NHCE), Bengaluru. Finalists travel at their own cost. | VERIFIED (official, 19 Oct). A re-check on 30 Oct was inconclusive because the official page blocks automated reading. → **OD-09** confirms time and format with the coordinator. | SAP Hackfest Bengaluru page |
+| Shortlist of top 5 teams per regional college round: 25 Oct 2026. | VERIFIED (official) | same |
+| The finale requires a working prototype that uses SAP technologies. | VERIFIED on the North and South-East pages; Bengaluru wording not visible → **OD-01** | regional pages |
+| The theme suggests five agent roles (disruption sensing, scenario planning, rerouting & logistics, inventory rebalancing, compliance & audit) plus human approval for high-stakes decisions. | VERIFIED (official) | Hackfest 2026 page |
+| SAP frames problems through Domain, Tech and Business lenses. | VERIFIED (SAP Community) | SAP Community |
+| Team ChainGang is preparing for the finale. | [REQ] (statement 30 Oct) → A-16 | — |
+| Finale pitch length, demo slot, Q&A length, projector/HDMI, internet | UNVERIFIED → **OD-09** | — |
 
-**Tentative calendar (IST).** Phase 0 = pitch preparation and contract freeze; Phase 1 = build.
+**Calendar (IST).**
 
-| Date | Day | Phase | Gate |
+| Date | Build day | Focus | Gate |
 |---|---|---|---|
-| Mon 19 Oct | — | 0 | Package distributed |
-| Tue 20 Oct | — | 0 | Kick-off; OD-05, OD-06 answered |
-| **Wed 21 Oct** | — | 0 | **Registration deadline (verified)** |
-| Thu 22 Oct | — | 0 | OD-01/02/03 decided; deck v1 |
-| Sat 24 Oct | — | 0 | Regional pitch (tentative) |
-| Sun 25 Oct | — | 0 | Shortlist (verified); contracts **v1.0.0 frozen** |
-| Mon 26 Oct – Tue 3 Nov | D1–D9 | 1 | Build (A-01) |
-| **Wed 4 Nov** | Finale | — | **Finale at NHCE (verified)** |
+| Fri 30 Oct (from 17:00) | D5 evening | Re-plan call, handovers, contracts 1.1.1 merged | **H0** handovers done 21:00 |
+| Sat 31 Oct | D6 | Integration: live evaluation equals golden; UI on live API | **G2** 18:00 golden evaluation via API |
+| Sun 1 Nov | D7 | Approval → execution → audit live; acceptance run #1 | **FREEZE 20:00** |
+| Mon 2 Nov | D8 | Fixes only, offline drill, rehearsals, backup video | **G3** 20:00 numbers and deck locked |
+| Tue 3 Nov | D9 | Fixes until 14:00, acceptance run #2, go/no-go 18:00 | **G4** go/no-go; `demo-freeze` tag |
+| Wed 4 Nov | Finale | Present at NHCE | — |
 
 ---
 
-## 4. MVP scope, exclusions, stretch goals, success criteria
+## 4. Scope, cut list, success criteria
 
-### 4.1 In scope (MVP, must work at the finale)
-- One synthetic scenario (`SCN-DEMO-001`), loaded from `fixtures/demo/`, resettable in one call.
-- Five logical agents (section 8) behind one deterministic orchestrator.
-- Two plans per evaluation: **P1** cost-and-time only (what a naive optimiser does) and **P2** constraint-verified.
-- Findings with outcomes `passed` / `needs_review` / `blocked`, each with ≥1 evidence item.
-- Plan comparison with baseline loss, recovery cost, residual loss, net avoided loss and separately reported exposures.
-- Graph view of the dependency evidence path; rule applicability view showing applied, superseded, draft and lower-authority rules.
-- Approve / reject / request LC amendment; acknowledgement of review items by the right role.
-- Simulated execution (6 step types), hash-chained audit log with verification.
-- LLM modes `live`, `recorded`, `off` with identical outcomes in all three.
+### 4.1 MVP (P0 unless marked)
+- One synthetic scenario (`SCN-DEMO-001`), loaded from `fixtures/demo/` and resettable in one call.
+- Five logical agents (§8) behind one deterministic orchestrator.
+- Two plans per evaluation: **P1** `cost_time_only` and **P2** `constraint_verified`.
+- Findings with ≥1 evidence item each; an evidence drawer; the graph path highlighted; a rule table showing applied, superseded, draft and lower-authority rules.
+- Plan comparison with baseline, recovery, residual and net avoided loss, plus exposures shown separately.
+- Approve, reject, request LC amendment (P1); role-specific acknowledgements.
+- Simulated execution (6 step types); hash-chained audit log with verification.
+- LLM modes `live` / `recorded` / `off` with identical outcomes and hashes.
+- **P1:** early-warning endpoint and Command Center panel with an "as of 23 Oct 21:00 / now" toggle; active warnings listed in the approval modal (advisory only).
 
-### 4.2 Explicitly excluded
-Real SAP or ERP integration (only *proposed mappings*, unless OD-01 adds a real SAP technology); real customer data; real legal advice; FX and multi-currency; origin qualification (RVC/CTSH) — the supplier's certificate status is taken as given; surcharges and IGST; LC amendment timing; carbon; ownership/shell-company graphs; authentication; multi-tenant; mobile layouts beyond responsive desktop/projector.
+### 4.2 Excluded
+- Real SAP or ERP integration, except what OD-01 adds.
+- Real data or live feeds.
+- Disruption probability modelling.
+- Legal advice.
+- FX; origin-qualification maths (RVC/CTSH); surcharges and IGST; LC amendment timing.
+- Authentication; multi-tenancy; mobile layouts.
 
-### 4.3 Stretch goals (only after D7 feature freeze is green, in this order; Member 5 decides)
-S-1 simulated LC amendment acceptance + re-evaluation (VC-AMEND-01); S-2 live LLM extraction of the supplier notice; S-3 rule timeline graphic; S-4 SAP HANA Cloud vector engine for rule passages; S-5 one real RSS feed classified by the sensing agent (never feeding decisions); S-6 ownership edges in the graph; S-7 third plan "P3 with acknowledged review items".
+### 4.3 Stretch (only after the freeze is green, in this order; Member 3 decides)
+- S-1 Simulated LC amendment acceptance plus re-evaluation (VC-AMEND-01)
+- S-2 Live LLM extraction of the supplier notice
+- S-3 Rule timeline graphic
+- S-4 SAP HANA Cloud for rule passages
+- S-5 One real public feed displayed, not scored
+- S-6 Ownership edges in the graph
+- S-7 P3 plan with acknowledged review items
+- S-8 LLM explanation of early warnings
+- S-9 OData-shaped mock adapter for enterprise data
 
-### 4.4 Measurable success criteria
+### 4.4 Cut list (Member 3 applies it in this order if behind)
+1. Live LLM mode
+2. S-goals
+3. Rule passage ranking display
+4. Evaluation progress animation
+5. Audit filters
+6. Early-warning as-of toggle (keep the pre-notice view only)
+7. Early-warning panel (fall back to one slide built from the golden)
+8. Explanations other than templates
 
-| ID | Criterion | Measured by | Target date |
+**Never cut:**
+- the golden evaluation;
+- server-side approval enforcement;
+- the evidence drawer for FND-DEP-SUP-B, FND-LC-TRANSHIPMENT-RT-C-SIN and FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB;
+- synthetic labels; reset; offline mode.
+
+### 4.5 Success criteria
+| ID | Criterion | Measured by | Due |
 |---|---|---|---|
-| SC-1 | Golden evaluation via API equals `fixtures/expected/evaluation_EVAL-0001.json` (volatile fields ignored) | `tests/e2e` (M3) | D5 |
-| SC-2 | 39/39 oracle validation cases have automated equivalents passing in the owners' modules; 3 manual cases executed and recorded | CI + test log | D6 |
-| SC-3 | 0 executions possible without approval; stale, duplicate and blocked approvals refused (VC-APR-01…08) | e2e | D6 |
-| SC-4 | 100 % of findings in UI open an evidence item within 2 clicks | acceptance checklist DA-05..07 | D7 |
-| SC-5 | Same plan hashes in `live`, `recorded` and `off` modes; demo runs with network unplugged | VC-LLM-01, offline drill | D8 |
-| SC-6 | Presenter completes reset → audit verify in ≤ 3 min, 3 consecutive rehearsals without manual data edits | rehearsal log (M1) | D8 |
-| SC-7 | Keyboard-only approval flow; status never by colour alone; text contrast WCAG 2.2 AA | M2 checklist, M5 review R3 | D7 |
-| SC-8 | Every number in the deck equals a golden value | M1 deck checklist | D8 |
-| SC-9 | Evaluation completes in ≤ 5 s on the demo laptop in `recorded` mode (**target, not yet measured**) | timing log | D8 |
+| SC-1 | Live API evaluation equals `fixtures/expected/evaluation_EVAL-0001.json` (volatile fields ignored) | e2e (M3) | **Sat 31 Oct 18:00** |
+| SC-2 | Every oracle case has an automated test in its owner's module, all green; manual cases recorded | CI + test log | Sun 1 Nov 15:00 |
+| SC-3 | No execution without approval; stale, duplicate and blocked approvals refused (VC-APR-01…08) | e2e | Sun 1 Nov 15:00 |
+| SC-4 | Every finding opens an evidence item within 2 clicks | DA-05…07 | Sun 1 Nov 17:00 |
+| SC-5 | Same plan hashes in `off`/`recorded`/`live`; demo runs with the network unplugged | VC-LLM-01, offline drill | Mon 2 Nov 12:00 |
+| SC-6 | Reset → audit verify in ≤ 3 min across 3 consecutive rehearsals, no manual data edits | rehearsal log (M5) | Mon 2 Nov 20:00 |
+| SC-7 | Keyboard-only approval flow; status never by colour alone; WCAG 2.2 AA text contrast | a11y checklist (M2) | Sun 1 Nov 15:00 |
+| SC-8 | Every number in the deck equals a golden value or an Appendix F derived value | DA-14 (M5) | Mon 2 Nov 20:00 |
+| SC-9 | Evaluation ≤ 5 s on the demo laptop in `recorded` mode (**target, not yet measured**) | timing log (M4) | Mon 2 Nov |
+| SC-10 | Early-warning endpoint equals both EWS goldens; VC-EWS-01…06 green | tests (M1) | Sat 31 Oct 18:00 |
 
 ---
 
 ## 5. Requirements
 
-Priorities: **P0** = finale blocker, **P1** = should, **P2** = stretch. Owner = accountable person. Tests refer to `fixtures/validation/cases.json` (VC-*), golden files (G-*), or demo acceptance items (DA-*, section 14.2).
+P0 = finale blocker, P1 = should, P2 = stretch. Owner = the one accountable person. Tests refer to `fixtures/validation/cases.json` (VC-*), the golden flow `fixtures/expected/approval_flow.json` (G-FLOW n), and demo acceptance items (DA-*, §14.2).
 
 | ID | Requirement | Pri | Owner | Acceptance criteria |
 |---|---|---|---|---|
-| FR-01 | Load fixtures, expose scenario, reset demo state and id counters | P0 | M3 | `POST /api/v1/demo/reset` returns `AUD-000001`; next evaluation id is `EVAL-0001` (G-FLOW step 1, 3) |
-| FR-02 | Show disruption, affected orders, days late, baseline loss | P0 | M2 | UI shows SO-1001/1002/1003 late 6/4/2 days and ₹11,60,000 (DA-02) |
-| FR-03 | Disruption Sensing Agent maps notice to graph node and affected orders | P0 | M4 | Equals `expected/disruption_assessment.json`; unresolved alias → needs_review (VC-SENSE-01) |
-| FR-04 | Routing Agent lists eligible route options per quote | P0 | M4 | 4 supplier options (quote × route) exactly as golden `options` (ETD ≥ ready date, same origin port) |
-| FR-05 | Supplier Dependency Agent traverses ≤3 hops with evidence paths | P0 | M4 | VC-DEP-01, VC-DEP-02; golden `dependency_results.json` |
-| FR-06 | Missing/unverified/truncated dependency data never passes | P0 | M4 | VC-DEP-03, 04, 06 |
+| FR-01 | Load and validate fixtures; expose scenario and disruptions | P0 | M1 | `/scenario` and `/disruptions` validate against schemas; `/health.input_snapshot_id` equals the golden |
+| FR-02 | Command Center shows disruption, affected orders, days late, baseline | P0 | M2 | DA-02 |
+| FR-03 | Disruption Sensing Agent | P0 | M1 | Equals `expected/disruption_assessment.json`; VC-SENSE-01 |
+| FR-04 | Routing Agent | P0 | M1 | 4 supplier options (quote × route) equal golden `options` |
+| FR-05 | Dependency traversal ≤ 3 hops with evidence paths | P0 | M4 | VC-DEP-01, 02; `results` in `expected/dependency_results.json` |
+| FR-06 | Missing, unverified or truncated dependency data never passes | P0 | M4 | VC-DEP-03, 04, 06 |
 | FR-07 | Cycle-safe traversal | P1 | M4 | VC-DEP-05 |
-| FR-08 | Temporal rule applicability by jurisdiction, scope, publication, status, interval, supersession, authority | P0 | M5 | VC-RULE-01…07; golden `rule_applicability.json` |
-| FR-09 | Unresolved equal-authority conflict → needs_review | P0 | M5 | VC-RULE-03 |
-| FR-10 | LC preflight: 43T/20(c), 44C, 44E, 44F, 48+31D, amount, 43P, extraction consistency | P0 | M3 | VC-LC-01…07 |
-| FR-11 | FTA preflight: direct consignment and certificate of origin, duty at risk | P0 | M3 | VC-FTA-01…03; VC-FIN-02 |
-| FR-12 | Inventory Rebalancing Agent computes ATP and validates allocations | P0 | M3 | VC-INV-01…03 |
-| FR-13 | Plan builder produces P1 (cost_time_only) and P2 (constraint_verified) | P0 | M3 | Lines equal golden; VC-LC-05 |
-| FR-14 | Financials per section 10.7, exposures separate | P0 | M3 | VC-FIN-01, VC-FIN-03 |
+| FR-08 | Temporal rule applicability | P0 | M3 | VC-RULE-01…07; `expected/rule_applicability.json` |
+| FR-09 | Unresolved equal-authority conflict → needs_review | P0 | M3 | VC-RULE-03 |
+| FR-10 | LC preflight (43T/20(c), 44C, 44E, 44F, 48+31D, amount, 43P, extraction consistency) | P0 | M4 | VC-LC-01…07 |
+| FR-11 | FTA preflight (direct consignment, certificate of origin) and duty at risk | P0 | M4 | VC-FTA-01…03; VC-FIN-02 |
+| FR-12 | Inventory ATP and allocation feasibility | P0 | M1 | VC-INV-01…03 |
+| FR-13 | Plan builder P1 and P2 | P0 | M4 | Lines and `plan_hash` equal golden; VC-LC-05 |
+| FR-14 | Financials per §10.7, exposures separate | P0 | M4 | VC-FIN-01, 03 |
 | FR-15 | Plan comparison screen with recommendation rule | P0 | M2 | DA-04 |
-| FR-16 | Evidence drawer for every finding; graph path highlight | P0 | M2 | DA-05..07 |
-| FR-17 | Decisions with version+hash, roles, acknowledgements, idempotency | P0 | M3 | VC-APR-01…08; G-FLOW steps 5–10 |
-| FR-18 | Approval UI with role switcher, acknowledgement checklist, blocked state | P0 | M2 | DA-08, DA-09 |
-| FR-19 | Simulated execution, once, after approval, input snapshot unchanged | P0 | M3 | G-FLOW 11–13; VC-APR-04, 05 |
-| FR-20 | Hash-chained append-only audit log + verify endpoint + viewer | P0 | M3 (API), M2 (UI) | G-FLOW 15–16; DA-11 |
-| FR-21 | Agent progress timeline during evaluation | P1 | M2 | Steps render with status and mode |
-| FR-22 | LLM gateway with live/recorded/off; UI badge | P0 | M5 | VC-LLM-01; DA-12 |
-| FR-23 | Grounded explanations validated against allowed citations; template fallback | P1 | M5 (plans, rules), M4 (dependency) | VC-LLM-02 |
-| FR-24 | LC raw-text extraction compared with gold; mismatch → needs_review | P1 | M5 | VC-LC-07 path end-to-end |
-| FR-25 | Synthetic labelling in UI, API and deck | P0 | M2 (UI), M1 (deck) | DA-01, DA-14 |
-| FR-26 | Request LC amendment records AmendmentRequest; plan stays blocked | P1 | M3 | VC-APR-08 |
-| FR-27 | Simulated amendment acceptance + re-evaluation | P2 | M3 | VC-AMEND-01 |
-| FR-28 | One real SAP technology used per OD-01 | P0 decision / P1 build | M3 (build), M5 (decision) | OD-01 record + working demo of the chosen piece |
-| NFR-01 | Determinism: same inputs → same outcomes, amounts, ids and plan hashes | P0 | M3 | SC-1, SC-5 |
-| NFR-02 | Offline demo | P0 | M3 | DA-12 offline drill |
-| NFR-03 | Every API response validates against OpenAPI in test mode | P0 | M3 | response-validation middleware in tests |
+| FR-16 | Evidence drawer for every finding; graph path highlight | P0 | M2 | DA-05…07 |
+| FR-17 | Decisions with version + hash, roles, acknowledgements, idempotency | P0 | M4 | VC-APR-01…08; G-FLOW 5–10 |
+| FR-18 | Approval UI with actor switcher, acknowledgement checklist, blocked state | P0 | M2 | DA-08, DA-09 |
+| FR-19 | Simulated execution: once, after approval, input snapshot unchanged | P0 | M4 | G-FLOW 11–13; VC-APR-04, 05; VC-EXE-01 |
+| FR-20 | Hash-chained append-only audit API + verify | P0 | M4 | G-FLOW 15–16 |
+| FR-21 | Agent progress timeline | P1 | M2 | DA-03 |
+| FR-22 | LLM gateway `live`/`recorded`/`off` | P0 | M3 | VC-LLM-01; DA-12 |
+| FR-23 | Grounded explanations with citation validator and template fallback | P1 | M3 | VC-LLM-02 |
+| FR-24 | LC raw-text extraction compared with gold; mismatch → needs_review | P1 | M3 | VC-LC-07 end to end |
+| FR-25 | Synthetic labelling in the UI | P0 | M2 | DA-01 |
+| FR-26 | Request LC amendment records an AmendmentRequest; plan stays blocked | P1 | M4 | VC-APR-08 |
+| FR-27 | Simulated amendment acceptance + re-evaluation | P2 | M4 | VC-AMEND-01 |
+| FR-28 | At least one SAP technology actually used (per OD-01) | P0 decide / P1 build | M4 | OD-01 record + working demo of the chosen piece |
+| FR-29 | Early-warning index endpoint | P1 | M1 | Equals both `expected/early_warnings_*.json`; VC-EWS-01…05 |
+| FR-30 | Early-warning panel with as-of toggle; active warnings shown in the approval modal (advisory) | P1 | M2 | DA-16 |
+| FR-31 | Early warnings never change plans, money, hashes or the input snapshot | P0 | M1 | VC-EWS-06; boundary test (§7.4 rule 6) |
+| FR-32 | Demo reset and id counters | P0 | M4 | G-FLOW 1–3 |
+| FR-33 | Audit viewer with "Verify chain" | P0 | M2 | DA-11 |
+| FR-34 | Pitch numbers and claims match Appendix F; synthetic labelled | P0 | M5 | DA-14 |
+| FR-35 | GraphRAG context (linearisation) and GraphView payload | P0 | M3 | `linearized_contexts` equal golden; `graph_view_SUP-B.json` |
+| FR-36 | Golden-flow e2e and response-conformance tests | P0 | M3 | G-FLOW 1–16 automated and green |
+| NFR-01 | Determinism: same inputs → same outcomes, amounts, ids and plan hashes | P0 | M4 | DA-15; VC-LLM-01 |
+| NFR-02 | Offline demo | P0 | M4 | DA-12 offline drill |
+| NFR-03 | Every API response validates against OpenAPI (in tests) | P0 | M4 | Conformance tests (FR-36) |
 | NFR-04 | Accessibility basics | P0 | M2 | SC-7 |
-| NFR-05 | No secrets in repo; `.env` ignored | P0 | M3 | repo scan |
-| NFR-06 | Performance targets (SC-9) measured and reported, not claimed earlier | P1 | M3 | D8 timing log |
+| NFR-05 | No secrets in the repo; `.env` ignored | P0 | M4 | Repo scan |
+| NFR-06 | Performance measured and reported, never claimed in advance | P1 | M4 | Timing log |
+| NFR-07 | Early-warning index labelled "heuristic, not a probability" in API, UI and pitch | P0 | M1 | `score_note` present; DA-16; Appendix F |
 
 ---
 
 ## 6. Technology stack
-
-No repository was supplied, so this is a green-field recommendation. Alternatives are named so Member 5 can overrule early.
-
-| Layer | Choice | Why | Alternatives considered |
-|---|---|---|---|
-| Backend | Python 3.12, FastAPI, Pydantic v2, Uvicorn | Async jobs, typed models, OpenAPI tooling, team familiarity | Node/Express (two languages for RAG work) |
-| Persistence | SQLite via SQLAlchemy 2.0 (one file, `data/aegis.db`) | Transactions and unique constraints for idempotency; zero ops; trivial reset | PostgreSQL (unneeded); SAP HANA Cloud (OD-01 option) |
-| Graph | NetworkX `MultiDiGraph` built in-process from `supply_graph.json` | 10 nodes; deterministic; no service to fail | Neo4j/Memgraph (ops cost); SAP HANA Cloud knowledge graph (stretch, unverified effort) |
-| Rule retrieval | Deterministic metadata filter decides; BM25 (`rank-bm25`) ranks passages for display only | Corpus is ~6 rules; selection must be explainable | Embeddings + Chroma; SAP HANA Cloud vector engine (S-4) |
-| LLM | Provider-agnostic gateway: `live` (OpenAI-compatible HTTP or SAP Generative AI Hub if available), `recorded` (replay JSON by prompt hash), `off` (templates) | Venue network and quotas are unknown; outcomes never depend on the LLM | Hard dependency on one provider (rejected) |
-| Orchestration | Plain Python pipeline with typed step functions, per-step timeout and step records | Fixed order, testable, cheapest reliable workflow | LangGraph / CrewAI (OD-02: wrap steps as nodes later if judges expect an "agent framework") |
-| Frontend | React 18 + TypeScript + Vite, Tailwind CSS, shadcn/ui, Cytoscape.js, TanStack Query, types generated by `openapi-typescript` | Familiar stack; Cytoscape handles small graphs well; generated types keep UI and API aligned | Next.js (no SSR need); UI5 Web Components for React (SAP Fiori look; OD-03) |
-| Tests | pytest + jsonschema + httpx/TestClient; Vitest; Playwright (one smoke path) | Covers contracts, modules, e2e | — |
-| Contract tooling | `tools/check_contracts.py` (jsonschema, PyYAML, openapi-spec-validator) | Already passing; CI gate | — |
-| Deployment | Local laptop (primary, offline-capable); SAP BTP Cloud Foundry trial for the backend if OD-01 chooses it (Python buildpack is documented by SAP) | Venue risk; finale expects SAP technologies (OD-01) | Public cloud host |
+These choices are unchanged from v1. **No stack changes after D5: keep what exists.**
+- **Backend:** Python 3.12, FastAPI, Pydantic v2, SQLite (SQLAlchemy 2.0).
+- **Graph:** NetworkX in-process.
+- **Rules:** deterministic metadata filter decides; BM25 only orders passages for display.
+- **LLM:** provider-agnostic gateway with `live` / `recorded` / `off`.
+- **Orchestration:** plain Python pipeline.
+- **Frontend:** React 18 + TypeScript + Vite, Tailwind/shadcn (or the kit already in use), Cytoscape.js, TanStack Query, types generated with `openapi-typescript`.
+- **Tests:** pytest, jsonschema, Vitest, Playwright smoke.
+- **Contract gate:** `tools/check_contracts.py`.
+- **Deployment:** local laptop (primary, offline-capable); SAP BTP Cloud Foundry trial if OD-01 succeeds.
 
 ---
 
-## 7. Architecture, module boundaries and ownership
+## 7. Team, architecture, modules, ownership, handover
 
-### 7.1 Component view
+### 7.1 The five people
+| Member | Role | Accountable for | Reviews | Explicitly not doing |
+|---|---|---|---|---|
+| **M1** | Predictive sensing pipeline, **enterprise data pipeline** & domain strategy | MOD-22 data pipeline, MOD-04 sensing, MOD-06 routing, MOD-09 inventory, MOD-21 early warning, MOD-24 domain evidence register | MOD-12, MOD-18 | Pitch narrative (M5), UI (M2) |
+| **M2** | **UI/UX and frontend** (implements M5's delivered design) | MOD-13 frontend app, MOD-14 graph & evidence components, MOD-20 UI tests & a11y | MOD-02, MOD-15 | Data pipeline (M1); backend logic; money or outcome calculations |
+| **M3** | Main RAG system, contracts & **final decisions** | MOD-01 contracts & tooling, MOD-07 temporal rules, MOD-12 LLM gateway & explanations, MOD-17 decision log, MOD-18 demo acceptance, MOD-19 golden-flow e2e, MOD-23 GraphRAG context & GraphView | MOD-03, 05, 08, 10, 11, 13, 14, 16, 20, 21, 24 (bounded, §15.4) | Implementing other owners' modules |
+| **M4** | Major backend & deterministic check engine | MOD-02 API & persistence, MOD-03 orchestrator, MOD-05 dependency traversal, MOD-08 compliance, MOD-10 plans & financials, MOD-11 decisions/execution/audit, MOD-15 deployment | MOD-01, 04, 06, 07, 09, 17, 19, 22, 23 | UI |
+| **M5** | Final pitch, presentation & scripts | MOD-16 pitch: deck, scripts, demo narration, Q&A bank, backup video, rehearsal log | Executes DA checklist during rehearsals (MOD-18) | **Any UI/UX or code work** [REQ] |
+
+### 7.2 Component view
 
 ```mermaid
 flowchart LR
-  subgraph UI["Frontend (M2)"]
-    CC[Command Center] --> CMP[Plan Comparison]
-    CMP --> EVD[Evidence Drawer + Graph View]
+  subgraph UI["Frontend - M2 (design by M5, delivered)"]
+    CC[Command Center + Early warnings] --> CMP[Plan Comparison]
+    CMP --> EVD[Evidence Drawer + Graph]
     CMP --> APR[Approval Modal]
     APR --> EXE[Execution + Audit]
   end
-  subgraph API["FastAPI backend (M3)"]
+  subgraph API["FastAPI backend - M4"]
     R[REST /api/v1] --> ORC[Orchestrator]
-    R --> DEC[Decisions + Execution + Audit]
+    R --> DEC[Decisions, Execution, Audit]
     ORC --> PB[Plan Builder + Financials]
   end
+  DATA[Enterprise data pipeline - M1]
+  EWS[Early-warning pipeline - M1]
   subgraph AG["Agents"]
-    DSA[Disruption Sensing - M4]
-    SDA[Supplier Dependency GraphRAG - M4]
-    RTA[Routing - M4]
-    TCA[Trade-Compliance Preflight - M3]
-    IRA[Inventory Rebalancing - M3]
+    DSA[Disruption Sensing - M1]
+    SDA[Dependency traversal - M4]
+    RTA[Routing - M1]
+    TCA[Trade-Compliance - M4]
+    IRA[Inventory - M1]
   end
-  TRS[Temporal Rule Service - M5]
-  LLM[LLM Gateway live/recorded/off - M5]
+  TRS[Temporal Rule Service - M3]
+  GRC[GraphRAG context + GraphView - M3]
+  LLM[LLM Gateway - M3]
   DB[(SQLite)]
   FX[(fixtures/demo)]
-  UI -- JSON over HTTP --> R
-  ORC --> DSA & SDA & RTA & TCA & IRA
+  FX --> DATA --> R
+  FX --> EWS --> R
+  UI -- JSON/HTTP --> R
+  ORC --> DSA & SDA & RTA & IRA & TCA
   TCA --> TRS
-  DSA & SDA & TRS & PB -. explanations only .-> LLM
+  SDA --> GRC
+  DSA & GRC & TRS & PB -. explanations only .-> LLM
   R & DEC & ORC --> DB
-  FX --> R
 ```
 
-### 7.2 Evaluation data flow
+### 7.3 Modules: one accountable owner, one reviewer
+**Existing code paths win.** Do not move or rename files during the reshuffle; ownership changes, paths don't. The paths below are defaults for new code only.
 
-```mermaid
-sequenceDiagram
-  participant UI as Frontend
-  participant API as API + Orchestrator
-  participant DSA as Sensing
-  participant RTA as Routing
-  participant IRA as Inventory
-  participant SDA as Dependency
-  participant TCA as Compliance
-  participant TRS as Rules
-  participant PB as Plan Builder
-  UI->>API: POST /evaluations {DIS-2026-0042}
-  API-->>UI: 202 EVAL-0001
-  API->>DSA: assess(event)
-  DSA-->>API: assessment (disrupted FAC-FABZ, 3 orders, baseline)
-  API->>RTA: route options per quote
-  API->>IRA: ATP per inventory source
-  API->>SDA: dependency(SUP-B), dependency(SUP-C)
-  API->>TCA: preflight(option) for each supplier option
-  TCA->>TRS: applicability(query with applicable_on = eta_port)
-  TRS-->>TCA: applicable / excluded / conflicts
-  API->>PB: build P1 (cost_time_only), P2 (constraint_verified), plan-level checks, financials
-  PB-->>API: plans + comparison
-  API->>API: explanations (template / recorded / live, validated)
-  UI->>API: GET /evaluations/EVAL-0001 (poll)
-  API-->>UI: completed evaluation
-```
-
-### 7.3 Modules, accountable owner and reviewer
-
-Exactly one accountable owner per module. Reviewers review pull requests within one working session and do not own delivery.
-
-| Module | Scope | Accountable | Reviewer | Code location (proposed) |
+| Module | Scope | Accountable | Reviewer | Default location |
 |---|---|---|---|---|
-| MOD-01 Contracts & tooling | `contracts/`, `fixtures/expected/`, `tools/`, CHANGELOG, CI job | M3 | M5 | `contracts/`, `tools/` |
-| MOD-02 API & persistence | FastAPI app, SQLite schema, fixture loader, reset, id counters, problem+json | M3 | M4 | `backend/app/api`, `backend/app/db` |
-| MOD-03 Orchestrator | Evaluation job, step records, timeouts, supersession, failure propagation | M3 | M5 | `backend/app/orchestrator` |
-| MOD-04 Disruption Sensing Agent | Notice extraction (gold/recorded/live), alias resolution, impact & baseline | M4 | M3 | `backend/app/agents/sensing` |
-| MOD-05 Supplier Dependency Agent | Graph ingestion & validation, traversal, coverage, evidence paths, linearisation, GraphView | M4 | M5 | `backend/app/agents/dependency` |
-| MOD-06 Routing Agent | Route eligibility per quote, transhipment ports and countries | M4 | M3 | `backend/app/agents/routing` |
-| MOD-07 Temporal Rule Service | Rule store, applicability engine, BM25 passages, conflicts | M5 | M4 | `backend/app/rules` |
-| MOD-08 Trade-Compliance Preflight Agent | LC checks, FTA checks, duty at risk | M3 | M5 | `backend/app/agents/compliance` |
-| MOD-09 Inventory Rebalancing Agent | ATP, allocation feasibility | M3 | M4 | `backend/app/agents/inventory` |
-| MOD-10 Plan Builder & Financials | Greedy strategies, plan-level checks, financials, comparison, plan hash | M3 | M5 | `backend/app/plans` |
-| MOD-11 Decisions, Execution, Audit | State machine, idempotency, amendment requests, simulated execution, hash chain | M3 | M5 | `backend/app/decisions`, `backend/app/audit` |
-| MOD-12 LLM Gateway & explanations | Modes, recorded store, prompt registry, citation validator, LC text extraction | M5 | M4 | `backend/app/llm` |
-| MOD-13 Frontend application | Screens, state, API client, formatting | M2 | M5 | `frontend/src` |
-| MOD-14 Graph & evidence components | Cytoscape view, evidence drawer, rule panel | M2 | M4 | `frontend/src/features/evidence` |
-| MOD-15 Deployment & demo environment | Local runbook, offline bundle, optional SAP BTP CF deploy | M3 | M2 | `ops/` |
-| MOD-16 Research, evidence register, deck, demo script | Round 1 and finale decks | M1 | M5 | `pitch/` |
-| MOD-17 Decision log, scope and design review | `docs/05` decision log, review checkpoints | M5 | M1 | `docs/05-…` |
-| MOD-18 Demo acceptance | Checklist DA-01…15; M1 executes as independent tester | M5 | M1 | `docs/00` §14.2, `pitch/rehearsal-log.md` |
-| MOD-19 Backend e2e tests | Golden flow, response validation | M3 | M5 | `backend/tests/e2e` |
-| MOD-20 UI tests & accessibility | Vitest, Playwright smoke, a11y checklist | M2 | M5 | `frontend/tests` |
+| MOD-01 Contracts & tooling | `contracts/`, goldens, checker, CI job, CHANGELOG | M3 | M4 | `contracts/`, `tools/` |
+| MOD-02 API & persistence | FastAPI app, SQLite, problem+json, idempotency store, id counters, **reset** | M4 | M2 | `backend/app/api`, `backend/app/db` |
+| MOD-03 Orchestrator | Evaluation job, steps, timeouts, supersession, failure propagation | M4 | M3 | `backend/app/orchestrator` |
+| MOD-04 Disruption Sensing Agent | Notice extraction (gold/recorded/live), alias resolution, impact, baseline, severity | M1 | M4 | `backend/app/agents/sensing` |
+| MOD-05 Dependency traversal | Graph load and validation, traversal, coverage, outcomes, evidence paths | M4 | M3 | `backend/app/agents/dependency` |
+| MOD-06 Routing Agent | Route eligibility per quote | M1 | M4 | `backend/app/agents/routing` |
+| MOD-07 Temporal Rule Service | Rule store, applicability, conflicts, BM25 display ranking | M3 | M4 | `backend/app/rules` |
+| MOD-08 Trade-Compliance Preflight | LC checks, FTA checks, duty at risk | M4 | M3 | `backend/app/agents/compliance` |
+| MOD-09 Inventory Rebalancing Agent | ATP options, allocation-feasibility findings (called by MOD-10) | M1 | M4 | `backend/app/agents/inventory` |
+| MOD-10 Plan Builder & Financials | Strategies, plan-level checks, financials, comparison, plan hash | M4 | M3 | `backend/app/plans` |
+| MOD-11 Decisions, Execution, Audit | State machine, idempotency, amendment requests, simulated execution, hash chain | M4 | M3 | `backend/app/decisions`, `backend/app/audit` |
+| MOD-12 LLM Gateway & explanations | Modes, recorded store, prompt registry, validator, LC extraction, explanation composer | M3 | M1 | `backend/app/llm` |
+| MOD-13 Frontend application | Screens, state, API client, formatting | M2 | M3 | `frontend/src` |
+| MOD-14 Graph & evidence components | Cytoscape view, evidence drawer, rule and LC panels | M2 | M3 | `frontend/src/features/evidence` |
+| MOD-15 Deployment & demo environment | Local runbook, one-origin serving, offline bundle, optional BTP | M4 | M2 | `ops/` |
+| MOD-16 Pitch | Deck, speaker scripts, demo narration, Q&A, backup video, rehearsal log | M5 | M3 | `pitch/` |
+| MOD-17 Decision log & scope | §20, cut list, change control | M3 | M4 | `docs/00` §20 |
+| MOD-18 Demo acceptance | DA-01…17: M5 executes in rehearsals, M2 drives, M3 signs | M3 | M1 | `pitch/rehearsal-log.md` |
+| MOD-19 Golden-flow e2e & conformance | `approval_flow.json` 1–16 automated; response validation | M3 | M4 | `backend/tests/e2e`, `backend/tests/conformance` |
+| MOD-20 UI tests & accessibility | Vitest, Playwright smoke, a11y checklist | M2 | M3 | `frontend/tests` |
+| MOD-21 Early-warning pipeline | Signal loading, window filter, scoring, exposure, endpoint | M1 | M3 | `backend/app/agents/early_warning` |
+| MOD-22 Enterprise data pipeline | Fixture/ERP-shaped ingestion, validation, input snapshot, scenario and disruption read endpoints | M1 | M4 | `backend/app/data` (or the existing loader file) |
+| MOD-23 GraphRAG context & GraphView | `linearize`, `build_graph_view`, dependency explanations | M3 | M4 | `backend/app/agents/dependency/{linearize,view}.py` |
+| MOD-24 Domain evidence register | Claim → source → status table for the pitch | M1 | M3 | `pitch/evidence-register.md` |
 
 ### 7.4 Boundary rules
-1. Only MOD-02 talks to the database. Agents are pure functions over typed inputs (section 9.4).
-2. Only MOD-12 talks to an LLM provider. No module calls a model SDK directly.
+1. Only MOD-02 writes the database. MOD-22 provides validated, in-memory fixture models; agents are pure functions over typed inputs.
+2. Only MOD-12 calls an LLM provider.
 3. Only MOD-08 decides LC/FTA outcomes; MOD-07 only says which rules apply.
-4. Only MOD-10 computes money. The UI formats numbers; it never recomputes them.
+4. Only MOD-10 computes plan money. The UI formats numbers and never recomputes them.
 5. Only MOD-11 changes plan status after evaluation.
+6. MOD-21 is advisory: the orchestrator, plan builder and decision code **must not import it**. A test asserts this, and VC-EWS-06 proves plans are unchanged.
+7. Production code never imports `tools/aegis_oracle.py`. No stub or golden-serving routes are active in demo mode.
+
+### 7.5 Handover protocol (both halves are partly built)
+1. **By Fri 30 Oct 21:00**, whoever wrote code for a module that now has a different owner pushes it to a branch `handover/<MOD-id>`. They add `HANDOVER.md` with five lines: what works, how to run it, tests passing/failing, known gaps, open questions.
+2. The new owner runs it and confirms at the **Sat 09:30 stand-up**. The previous author answers questions until **Sat 13:00**.
+3. Merge through pull requests only. Never force-push or rewrite another person's branch; never delete a branch you didn't create.
+4. Member 5 hands Member 2 the location of the delivered design files (OD-10). This is a hand-off of existing files, not new UI work.
 
 ---
 
-## 8. The five logical agents and orchestration
+## 8. Agents and orchestration
 
-"Agent" here means a bounded software component with a fixed contract. Deterministic code decides; the LLM may extract text into a schema or explain results, and its output is validated.
+| Agent | Purpose | Owner | Inputs → outputs | Deterministic responsibilities | Bounded LLM use | Failure handling |
+|---|---|---|---|---|---|---|
+| Disruption Sensing (DSA) | Notice → graph nodes, delayed shipments, affected orders, baseline loss, severity | M1 | `DisruptionEvent` → `DisruptionAssessment` | Alias resolution, revised dates, penalties, severity | Extract `GoldExtraction` fields (recorded/live); a mismatch with gold → needs_review | Unresolved alias → needs_review with empty `disrupted_node_ids`, which forces every dependency check to needs_review |
+| Supplier Dependency (SDA) | Prove or refute each candidate's independence | M4 (traversal); M3 (context, view, explanations) | `DependencyQuery` → `DependencyResult`, `LinearizedContext`, `GraphView` | Traversal, coverage, cycles, outcome rules (§10.1) | Explain paths citing only allowed ids | Exception → needs_review with `check_unavailable`; never passed |
+| Routing (RTA) | Eligible sailings per quote | M1 | quotes, routes → eligible routes | Same origin port, ETD ≥ ready date | none | Missing data → option omitted and logged |
+| Trade-Compliance (TCA) | LC and FTA checks per option and plan | M4 | option, LC, rule results → findings, duty at risk | §10.3, §10.4 | none (LC extraction is MOD-12's, validated) | Rule service failure → `FTA.RULE_APPLICABILITY` needs_review |
+| Inventory Rebalancing (IRA) | ATP and allocation feasibility | M1 | positions, plan lines → options, `INV.*` findings | ATP formula, availability date, allocation ≤ ATP | none | Invalid stock → blocked finding |
 
-| Agent | Purpose | Owner | Inputs | Outputs | Tools | Deterministic responsibilities | LLM use (bounded) | Failure handling |
-|---|---|---|---|---|---|---|---|---|
-| Disruption Sensing (DSA) | Turn a notice into graph nodes, delayed shipments, affected orders, baseline loss, severity | M4 | `DisruptionEvent`, graph aliases, orders/POs/shipments, `severity_policy` | `DisruptionAssessment` | alias table, pegging | Alias resolution (exact, case-insensitive), revised dates, penalties, severity | Extract `GoldExtraction` fields from `raw_text` (live/recorded); must equal gold or → `issues: EXTRACTION_MISMATCH`, outcome needs_review | Unresolved alias → needs_review and empty `disrupted_node_ids` → every dependency check needs_review |
-| Supplier Dependency (SDA, GraphRAG) | Prove or refute independence of each candidate supplier | M4 | `DependencyQuery`, `SupplyGraph`, BOM | `DependencyResult`, `LinearizedContext`, `GraphView` | NetworkX | Upstream traversal ≤ max_depth, BOM relevance, coverage, cycles, outcome rules (10.1) | Explain paths citing only `allowed_citation_ids` | Exception → step failed → all dependency findings needs_review (`check_unavailable`); never passed |
-| Routing (RTA) | List feasible route options for each quote | M4 | quotes, `route_options` | eligible routes with transhipment countries | — | Eligibility: same origin port, ETD ≥ ready date | none | Missing route data → option omitted and logged |
-| Trade-Compliance Preflight (TCA) | LC and FTA checks per option and per plan | M3 | option, LC, rule results, quotes | `Finding[]`, duty at risk | Temporal Rule Service | All LC and FTA rules (10.3, 10.4) | none (LC text extraction is MOD-12's, validated) | Rule service failure → `FTA.RULE_APPLICABILITY` needs_review |
-| Inventory Rebalancing (IRA) | ATP and allocation feasibility | M3 | inventory positions, plan lines | ATP options, `INV.*` findings | — | ATP formula, availability date, allocation ≤ ATP | none | Negative/invalid stock → blocked finding |
+**Early-warning pipeline (MOD-21, M1).** It runs before and outside evaluations and has its own endpoint (§10.9). It feeds the human, not the plans.
 
-**Orchestration (MOD-03).** One evaluation runs these steps in order, each with a timeout and a step record (`AgentStep`): 1 disruption_sensing (10 s) → 2 supplier_dependency (5 s) → 3 routing (5 s) → 4 inventory_rebalancing (5 s) → 5 trade_compliance (5 s) → 6 plan_assembly (5 s, includes financials) → 7 explanation (10 s). Rules:
-- Deterministic steps: **0 retries** (a deterministic failure will not fix itself). LLM calls: **1 retry**, then fallback to template; step status `degraded`; attempts recorded. No hidden retries.
-- A failed step 1, 6 makes the evaluation `failed`. A failed step 2–5 turns the affected findings into `needs_review` with `details.check_unavailable = true`; plans still build, and P2 excludes those options.
-- Total budget 30 s (target). On timeout the step is `failed`, same propagation.
-- Starting an evaluation supersedes undecided plans of earlier evaluations of the same disruption.
-- **Human-in-the-loop checkpoint:** evaluation always ends with plans in `blocked`, `needs_review` or `pending_approval`. Nothing executes without a recorded human decision (section 11).
+**Orchestration (MOD-03, M4)** runs these steps in a fixed order, each with a timeout and an `AgentStep` record. The `owner` written into each step record must match this table (contracts 1.1.0):
 
-**Mapping to the event's suggested topology** (so judges hear their own vocabulary):
+| Seq | Step | Owner in step record | Timeout |
+|---|---|---|---|
+| 1 | disruption_sensing | member_1 | 10 s |
+| 2 | supplier_dependency | member_4 | 5 s |
+| 3 | routing | member_1 | 5 s |
+| 4 | inventory_rebalancing | member_1 | 5 s |
+| 5 | trade_compliance | member_4 | 5 s |
+| 6 | plan_assembly | member_4 | 5 s |
+| 7 | explanation | member_3 | 10 s |
 
-| Event term [VERIFIED official] | Our component |
+Rules:
+- Deterministic steps get 0 retries. LLM calls get 1 retry, then fall back to a template and the step is marked `degraded`.
+- A failure in step 1 or 6 fails the evaluation. A failure in steps 2–5 turns the affected findings into needs_review.
+- The total budget is 30 s (target). A new evaluation supersedes undecided plans.
+- **Human checkpoint:** every evaluation ends with plans in `blocked`, `needs_review` or `pending_approval`. Nothing executes without a recorded decision (§11).
+
+**Mapping to the event's agent vocabulary** [VERIFIED official]:
+
+| Event term | Our components |
 |---|---|
-| Disruption Sensing Agent | DSA |
-| Scenario Planning Agent | SDA (risk lens) + Plan Builder (deterministic cost/time/risk comparison) |
-| Rerouting & Logistics Agent | RTA |
-| Inventory Rebalancing Agent | IRA |
-| Compliance & Audit Agent | TCA (compliance) + MOD-11 audit log (every decision with rationale, timestamps, data sources) |
+| Disruption Sensing | MOD-21 early warning + DSA |
+| Scenario Planning | SDA + Plan Builder |
+| Rerouting & Logistics | RTA |
+| Inventory Rebalancing | IRA |
+| Compliance & Audit | TCA + MOD-11 audit log |
 
 ---
 
 ## 9. Contracts overview
-
-Canonical files: `contracts/schemas/*.schema.json` (JSON Schema 2020-12, relative `$ref`s) and `contracts/openapi.yaml` (OpenAPI 3.1). Registry with owners and reviewers: `contracts/README.md`.
+Canonical files: `contracts/schemas/*.schema.json` (JSON Schema 2020-12, relative `$ref`s) and `contracts/openapi.yaml` (OpenAPI 3.1). The registry with owners is `contracts/README.md`.
 
 ### 9.1 Conventions
-- **IDs** are stable strings: `EVAL-0001`, `PLN-0001`, `DEC-0001`, `EXE-0001`, `AMD-0001`, `AUD-000001` (counters restart on reset); fixture ids such as `SUP-B`, `FAC-FABZ`, `E-005`, `RT-C-SIN`, `TR-0003`; content-derived ids `FND-<CHECK>-<subject>`, `EVD-…`, `PATH-SUP-B-1`, `EXP-DEP-L03`.
-- **Money**: integer whole rupees (`*_inr`). Rates in basis points (`rate_bps`, 1500 = 15 %). Rounding half-up to the rupee per line, then sum. UI formats with Indian grouping (₹11,60,000).
-- **Dates**: `YYYY-MM-DD` business dates in Asia/Kolkata terms; timestamps RFC 3339 with offset. Date intervals are inclusive of `effective_to`.
-- **Nulls**: a nullable field is always present with `null`; absent fields are a contract error. Empty lists are `[]`, never `null`.
-- **Versions**: every payload carries `schema_version` `1.x.y` (section 15.2).
-- **Synthetic**: fixtures carry `synthetic: true`; API exposes `data_mode: "synthetic"`.
+- **IDs:** counters `EVAL-0001`, `PLN-0001`, `DEC-0001`, `EXE-0001`, `AMD-0001`, `AUD-000001` restart on reset.
+- **Fixture ids** (`SUP-B`, `FAC-FABZ`, `E-005`, `RT-C-SIN`, `TR-0003`, `SIG-0001`, `AREA-MY-KULIM`) and **content-derived ids** (`FND-…`, `EVD-…`, `PATH-…`, `EXP-…`, `EWS-…`) are stable.
+- **Money:** integer whole rupees (`*_inr`). Rates in basis points. Rounding is half-up to the rupee per line, then summed. The UI formats with Indian grouping (₹11,60,000).
+- **Dates:** `YYYY-MM-DD`. Timestamps are RFC 3339 with offset. `effective_to` is inclusive.
+- **Nullability:** nullable fields are always present; empty lists are `[]`.
+- **Versions:** every payload carries `schema_version`.
+- **Synthetic flags:** fixtures carry `synthetic: true`, and the API exposes `data_mode: "synthetic"`.
 
-### 9.2 Entities (schema → file)
-
-| Entity | Schema `$defs` | Fixture / producer |
+### 9.2 Entities
+| Entity group | Schema | Producer |
 |---|---|---|
-| Scenario, Location, Agreement, Part (+BOM), Customer, Supplier, CustomerOrder (+penalty), PurchaseOrder (+pegging), Shipment, SupplierQuote, RouteOption (+legs), InventoryPosition, LetterOfCredit, Source, Policies | `master-data.schema.json` | `fixtures/demo/*.json` |
-| DisruptionEvent, GoldExtraction, DisruptionAssessment | `disruption.schema.json` | `disruptions.json` → DSA |
-| GraphNode, GraphEdge (SUPPLIES, provider→consumer), DependencyQuery, DependencyResult, DependencyPath, LinearizedContext, GraphView | `graph.schema.json` | `supply_graph.json` → SDA |
-| TradeRule, RuleQuery, RuleApplicabilityResult | `trade-rules.schema.json` | `trade_rules.json` → MOD-07 |
+| Master data: Scenario, Location, Agreement, Part, Customer, Supplier, CustomerOrder, PurchaseOrder, Shipment, SupplierQuote, RouteOption, InventoryPosition, LetterOfCredit, Source, Policies | `master-data.schema.json` | `fixtures/demo` via MOD-22 |
+| DisruptionEvent, GoldExtraction, DisruptionAssessment | `disruption.schema.json` | MOD-04 |
+| SupplyGraph, DependencyQuery/Result/Path, LinearizedContext, GraphView | `graph.schema.json` | MOD-05, MOD-23 |
+| TradeRule, RuleQuery, RuleApplicabilityResult | `trade-rules.schema.json` | MOD-07 |
 | Evidence, Finding, Problem, Actor, Subject | `common.schema.json` | all |
-| SourceOption, PlanLine, Exposure, PlanFinancials, RecoveryPlan, PlanComparison, AgentStep, Explanation, Evaluation | `plan.schema.json` | MOD-03/10 |
-| DecisionRequest, Decision, Acknowledgement, AmendmentRequest, ExecutionRequest, Execution, ExecutionStep, AuditEvent, AuditVerifyResult | `decision.schema.json` | MOD-11 |
-| Health, DemoResetResponse, ScenarioResponse, DisruptionList | `api.schema.json` | MOD-02 |
+| SourceOption, PlanLine, Exposure, PlanFinancials, RecoveryPlan, PlanComparison, AgentStep, Explanation, Evaluation | `plan.schema.json` | MOD-03, MOD-10, MOD-12 |
+| DecisionRequest, Decision, Acknowledgement, AmendmentRequest, Execution, ExecutionStep, AuditEvent, AuditVerifyResult | `decision.schema.json` | MOD-11 |
+| Health, DemoResetResponse, ScenarioResponse, DisruptionList | `api.schema.json` | MOD-02, MOD-22 |
+| ExternalSignal, Area, ScoringPolicy, EarlyWarning, EarlyWarningResult | `signals.schema.json` | MOD-21 |
 
-### 9.3 HTTP API (all under `/api/v1`, details in `openapi.yaml`)
+### 9.3 HTTP API (`/api/v1`; details in `openapi.yaml`)
+| Method & path | Purpose | Owner | Success | Main errors |
+|---|---|---|---|---|
+| GET `/health` | status, LLM mode, snapshot | M4 | 200 | — |
+| POST `/demo/reset` | restore fixtures, clear state | M4 | 200 | 403 |
+| GET `/scenario` | orders, POs, shipments, suppliers, inventory, LCs, actors | M1 | 200 | — |
+| GET `/disruptions`, `/disruptions/{id}` | events | M1 | 200 | 404 |
+| GET `/early-warnings?as_of=` | early-warning result | M1 | 200 | 400 |
+| POST `/evaluations` | start evaluation (async) | M4 | 202 | 400, 404, 409, 422 |
+| GET `/evaluations/{id}` | progress and results | M4 | 200 | 404 |
+| GET `/evaluations/{id}/graph?focus_supplier_id=` | GraphView | M3 (payload) / M4 (route) | 200 | 404, 409 |
+| GET `/plans/{id}` | current plan | M4 | 200 | 404 |
+| POST `/plans/{id}/decisions` | approve / reject / request_amendment | M4 | 201 (200 replay) | 400, 403, 404, 409, 422 |
+| POST `/plans/{id}/executions` | simulated execution | M4 | 202 | 409 |
+| GET `/executions/{id}` | execution steps | M4 | 200 | 404 |
+| GET `/amendment-requests/{id}`; POST `/demo/amendment-requests/{id}/simulate-acceptance` | amendment (stretch) | M4 | 200 | 403, 404 |
+| GET `/audit-events`, `/audit-events/verify` | log, chain check | M4 | 200 | — |
+| POST `/rules/applicability` | rule panel and tests | M3 | 200 | 422 |
 
-| Method & path | Purpose | Success | Main errors |
-|---|---|---|---|
-| GET `/health` | status, llm_mode, snapshot | 200 | — |
-| POST `/demo/reset` | restore fixtures, clear state | 200 | 403 DEMO_MODE_DISABLED |
-| GET `/scenario` | orders, POs, shipments, suppliers, inventory, LCs, actors | 200 | — |
-| GET `/disruptions`, `/disruptions/{id}` | events | 200 | 404 |
-| POST `/evaluations` | start evaluation (async) | 202 | 400, 404, 409 EVALUATION_IN_PROGRESS, 422 |
-| GET `/evaluations/{id}` | progress and results | 200 | 404 |
-| GET `/evaluations/{id}/graph?focus_supplier_id=` | GraphView | 200 | 404, 409 EVALUATION_NOT_COMPLETE |
-| GET `/plans/{id}` | current plan with status, decision_ids, execution_id | 200 | 404 |
-| POST `/plans/{id}/decisions` | approve / reject / request_amendment | 201 (200 replay) | 400, 403, 404, 409 STALE/SUPERSEDED/EXISTS/KEY_REUSED, 422 BLOCKED/ACK/NO_AMENDABLE |
-| POST `/plans/{id}/executions` | simulated execution | 202 | 409 NOT_APPROVED / ALREADY_EXECUTED / PLAN_VERSION_STALE |
-| GET `/executions/{id}` | execution steps | 200 | 404 |
-| GET `/amendment-requests/{id}` | amendment request | 200 | 404 |
-| POST `/demo/amendment-requests/{id}/simulate-acceptance` | stretch S-1 | 200 | 403, 404 |
-| GET `/audit-events`, `/audit-events/verify` | log page, chain verification | 200 | — |
-| POST `/rules/applicability` | rule evidence panel and tests | 200 | 422 |
+Mutating calls carry the headers `X-Actor-Id` and `Idempotency-Key`. Errors are `application/problem+json` with a stable `code`.
 
-Headers on every mutating call: `X-Actor-Id` (simulated identity) and `Idempotency-Key`. Errors: `application/problem+json` with `code`.
-
-### 9.4 Internal module interfaces (Python, typed with Pydantic models generated from the schemas)
-
+### 9.4 Internal interfaces (typed Pydantic models)
 ```python
-# MOD-04 (M4)
-def assess_disruption(event: DisruptionEvent, ctx: ScenarioContext, mode: ExtractionMode) -> DisruptionAssessment: ...
-# MOD-05 (M4)
-def check_dependency(q: DependencyQuery, graph: SupplyGraph, parts: list[Part], policy: DependencyPolicy) -> DependencyResult: ...
-def linearize(result: DependencyResult, graph: SupplyGraph) -> LinearizedContext: ...
-def build_graph_view(results: list[DependencyResult], graph: SupplyGraph, focus_supplier_id: str, evaluation_id: str) -> GraphView: ...
-# MOD-06 (M4)
-def eligible_routes(quote: SupplierQuote, routes: list[RouteOption]) -> list[RouteOption]: ...
-# MOD-07 (M5)
-def rule_applicability(q: RuleQuery, rules: list[TradeRule], agreements: list[Agreement]) -> RuleApplicabilityResult: ...
-def rank_passages(q: RuleQuery, result: RuleApplicabilityResult, k: int = 3) -> list[PassageHit]: ...   # display only
-# MOD-08 (M3)
-def lc_route_findings(lc: LetterOfCredit, route: RouteOption, locations: dict) -> tuple[list[Finding], list[Evidence]]: ...
-def fta_findings(quote: SupplierQuote, route: RouteOption, rules: RuleApplicabilityResult, agreements: dict) -> tuple[list[Finding], list[Evidence]]: ...
-def duty_at_risk(quote: SupplierQuote, route: RouteOption, qty: int, rules: RuleApplicabilityResult) -> int | None: ...
-# MOD-09 (M3)
-def inventory_options(positions: list[InventoryPosition], as_of: date) -> list[SourceOption]: ...
-# MOD-10 (M3)
-def build_plan(strategy: Strategy, assessment: DisruptionAssessment, options: list[SourceOption], findings: dict, ...) -> RecoveryPlan: ...
-# MOD-12 (M5)
-def explain(subject_id: str, context: LinearizedContext | PlanContext, prompt_id: str) -> Explanation: ...   # never raises; falls back to template
-def extract_lc_fields(raw_text: str) -> dict: ...                                                        # validated against gold
+# M1
+def load_fixtures(dir) -> ScenarioContext                                  # MOD-22: validated; computes input_snapshot_id
+def assess_disruption(event, ctx, mode) -> DisruptionAssessment
+def eligible_routes(quote, routes) -> list[RouteOption]
+def inventory_options(positions, as_of) -> list[SourceOption]
+def allocation_findings(plan_id, lines, options) -> list[Finding]          # called by MOD-10
+def early_warnings(ctx, signals, as_of) -> EarlyWarningResult              # never called by MOD-03/10/11
+# M4
+def check_dependency(q, graph, parts, policy) -> DependencyResult
+def lc_route_findings(lc, route, locations) -> tuple[list[Finding], list[Evidence]]
+def fta_findings(quote, route, rules, agreements) -> tuple[list[Finding], list[Evidence]]
+def duty_at_risk(quote, route, qty, rules) -> int | None
+def build_plan(strategy, assessment, options, findings, ...) -> RecoveryPlan
+# M3
+def rule_applicability(q, rules, agreements) -> RuleApplicabilityResult
+def rank_passages(q, result, k=3) -> list[PassageHit]                      # display only
+def linearize(result, graph) -> LinearizedContext
+def build_graph_view(results, graph, focus_supplier_id, evaluation_id) -> GraphView
+def explain(subject_id, context, prompt_id) -> Explanation                 # never raises; template fallback
+def extract_lc_fields(raw_text) -> dict                                    # validated against gold
 ```
-
-`tools/aegis_oracle.py` contains a **reference** implementation of every function above. It is an executable specification for reading and for golden generation; production modules are written independently and must match the goldens.
-
-### 9.5 Graph and evidence payloads
-- Graph edges: `SUPPLIES`, direction **provider → consumer**; traversal for dependency follows incoming edges. GraphView adds `CANDIDATE_SUPPLY` edges (dashed) from candidate suppliers to the buyer plant.
-- Evidence kinds: `graph_path`, `rule_passage`, `lc_field`, `fixture_record`, `source_document`, `calculation`. Every evidence item names `source_ids` that exist in the source registries; `check_contracts.py` enforces this.
-- Every finding has ≥1 evidence id (enforced by schema `minItems: 1` and the checker).
+`tools/aegis_oracle.py` is a **reference** implementation of every function above. Owners may port it, but they must test against the goldens and validation cases.
 
 ---
 
 ## 10. Deterministic behaviour
 
 ### 10.1 Supplier dependency (MOD-05)
-- Start at the candidate supplier's `supplying_facility_id`. Relevant parts = BOM closure of the supplied part (PM-750 → IGBT die, DBC substrate).
-- Depth-first upstream over incoming `SUPPLIES` edges whose `part_id` is relevant, sorted by `edge_id`, up to `max_depth` hops (default 3). A node already on the current path is skipped and `cycle_detected = true`.
-- A path ends at a node with no relevant incoming edge. If that node is not an origin for the part it supplies → gap `upstream_unknown`. At max depth with more edges → `truncated`.
-- Coverage: every critical BOM child must have an incoming edge at the start facility, else gap `missing_critical_input`.
-- Outcome, first match wins: no disrupted node known → `needs_review` (DISRUPTED_NODE_UNKNOWN); a path reaches a disrupted node → `blocked` if every edge on those paths is `verified`, else `needs_review`; any gap → `needs_review`; truncated → `needs_review`; else `passed`.
-- Shared but undisrupted upstream nodes with the primary supplier are reported as `SHARED_NON_DISRUPTED_DEPENDENCY` notes (concentration risk), not as failures.
-- **Missing data is never evidence of independence.**
+- Start at the candidate's `supplying_facility_id`. Relevant parts = the BOM closure (PM-750 → IGBT die, DBC substrate).
+- Depth-first search upstream over incoming `SUPPLIES` edges with a relevant part, sorted by `edge_id`, up to `max_depth` (3).
+- A node already on the current path is skipped and sets `cycle_detected`.
+- A path ends where there is no relevant incoming edge. If that node is not an origin for the part it supplies, record gap `upstream_unknown`. Stopping at max depth with more edges remaining sets `truncated`. A critical BOM child with no source at the start node is gap `missing_critical_input`.
+- Outcome, first match wins:
+  1. No disrupted node known → `needs_review`.
+  2. A path reaches a disrupted node → `blocked` if every edge on those paths is verified, else `needs_review`.
+  3. Any gap → `needs_review`.
+  4. Truncated → `needs_review`.
+  5. Otherwise `passed`.
+- Shared but undisrupted upstream nodes are reported as notes. **Missing data is never evidence of independence.**
 
 ### 10.2 Temporal rule applicability (MOD-07)
-Query = jurisdiction, rule types, HS label, origin, transit countries, agreement, `applicable_on` (legal date; MVP: ETA at Indian port, A-05) and `known_as_of` (knowledge cutoff = scenario date). Steps:
-1. Exclude by jurisdiction, HS scope, origin scope, `published_date > known_as_of` (not_yet_published), status draft/withdrawn, `applicable_on < effective_from` (not_yet_effective).
-2. Exclude a remaining rule if another remaining rule lists it in `supersedes` (superseded); else exclude if `applicable_on > effective_to` (expired).
-3. Per rule type, keep the highest authority level (`official_gazette > official_circular > internal_policy > secondary`). Equal-authority rules with different values → **unresolved conflict → needs_review**. Lower-authority rules are excluded (`lower_authority`); if their value differs, a conflict resolved by `authority_precedence` is recorded and shown.
-4. A requested rule type with nothing applicable → `missing_rule_types` → needs_review. Never default to "passed".
-5. BM25 ranks passages for display. **Similarity never decides applicability** (`retrieval_trace.ranker_used_for_selection = false`).
+Query fields: `applicable_on` (MVP: ETA at the Indian port, A-05) and `known_as_of` (the scenario date).
+1. Exclude a rule on any of: jurisdiction, HS scope, origin scope, `published_date > known_as_of`, draft or withdrawn status, `applicable_on < effective_from`.
+2. Exclude superseded rules (explicit `supersedes`); then expired ones (`applicable_on > effective_to`).
+3. Per rule type, keep the highest authority level. Equal authority with different values → **unresolved conflict → needs_review**. Lower authority → excluded; if its value differs, record a conflict resolved by authority precedence.
+4. A requested type with nothing applicable → `missing_rule_types` → needs_review.
+5. BM25 only orders passages. **Similarity never decides applicability.**
 
-### 10.3 Letter-of-credit checks (MOD-08), per option and per plan
-| Check | Rule | Outcome if failed |
+### 10.3 Letter-of-credit checks (MOD-08)
+
+| Check | Rule | If it fails |
 |---|---|---|
-| LC.TRANSHIPMENT | No transhipment → pass. 43T allowed or silent → pass. 43T not allowed and 47A excludes UCP 600 20(c) → **blocked**. 43T not allowed, 20(c) not excluded, bill of lading, containerised, single B/L → pass with note (20(c)(ii)). Otherwise blocked. | blocked + remedy `request_lc_amendment` |
-| LC.LATEST_SHIPMENT_DATE | route ETD ≤ 44C. **Arrival is not checked.** | blocked |
-| LC.PORT_OF_LOADING / DISCHARGE | origin port in 44E (port list or "any port in country"); destination = 44F | blocked |
-| LC.PRESENTATION_PERIOD | ETD + 48 days ≤ 31D expiry | blocked |
-| LC.AMOUNT (plan) | Σ qty × unit price under the LC ≤ available balance | blocked |
-| LC.PARTIAL_SHIPMENTS (plan) | 43P allowed, or drawing equals full amount | blocked |
-| LC.EXTRACTION_CONSISTENCY | if an LLM extraction exists, every extracted field equals the verified record | needs_review |
-These are **simplified encodings** for a demo; a real examination follows UCP 600, ISBP and the credit's wording (A-13).
+| LC.TRANSHIPMENT | No transhipment → pass. 43T allowed or silent → pass. 43T not allowed and 47A excludes 20(c) → **blocked**. 43T not allowed, 20(c) not excluded, containerised, single B/L → pass with note. Otherwise blocked. | blocked + remedy `request_lc_amendment` |
+| LC.LATEST_SHIPMENT_DATE | ETD ≤ 44C. **Arrival never checked.** | blocked |
+| LC.PORT_OF_LOADING / DISCHARGE | 44E / 44F match | blocked |
+| LC.PRESENTATION_PERIOD | ETD + 48 ≤ 31D | blocked |
+| LC.AMOUNT (plan) | Drawing ≤ available balance | blocked |
+| LC.PARTIAL_SHIPMENTS (plan) | 43P allowed or full drawing | blocked |
+| LC.EXTRACTION_CONSISTENCY | LLM extraction equals the verified record | needs_review |
+
+These are simplified encodings for a demo (A-13).
 
 ### 10.4 FTA checks (MOD-08)
-- Applies when the supplier's country and the importing jurisdiction are parties to the agreement on the quote's certificate of origin.
-- `FTA.DIRECT_CONSIGNMENT`: all transhipment countries are parties → pass; any non-party and `fta_transit_evidence_available` → pass; otherwise **needs_review** (preference depends on evidence that Rule-8-style conditions are met).
-- `FTA.CERTIFICATE_OF_ORIGIN`: `available` → pass; `pending`/`unavailable` → needs_review.
+- `FTA.DIRECT_CONSIGNMENT`: all transit countries are parties → pass. Non-party transit with evidence → pass. Otherwise **needs_review**.
+- `FTA.CERTIFICATE_OF_ORIGIN`: available → pass; pending or unavailable → needs_review.
 - Unresolved rules → `FTA.RULE_APPLICABILITY` needs_review.
-- **Duty at risk** (only for needs_review lines) = qty × (unit price + freight per unit) × (MFN bps − preferential bps) / 10 000, half-up per line. Basic customs duty only (A-06).
+- **Duty at risk** (needs_review lines only) = qty × (price + freight) × (MFN bps − preferential bps) / 10,000, rounded half-up. Basic customs duty only (A-06).
 
 ### 10.5 Inventory (MOD-09)
-ATP = max(0, on_hand − reserved − protected_floor); available at plant on scenario date + transfer_days; cost = transfer cost per unit. A plan may never allocate more than ATP from a source (`INV.ALLOCATION_FEASIBLE`).
+- ATP = max(0, on_hand − reserved − protected_floor), available on scenario date + transfer days.
+- A plan never allocates more than ATP from a source.
 
-### 10.6 Plan building (MOD-10)
-- **Options** = inventory sources + (quote × eligible route). Capacity is shared per quote (`capacity_group`). Unit incremental cost = (quote price − baseline PO price) + freight, or transfer cost.
-- **Greedy allocation** (both strategies): orders by need-by date then id; for each unit block, choose among options with capacity: on-time options by (unit cost, ETA, id); if none on time, the earliest option that still beats the delayed primary arrival; otherwise leave units on the delayed PO (`BASELINE-PO`).
-- **P1 `cost_time_only`** uses every option regardless of findings. **P2 `constraint_verified`** uses only options whose outcome is `passed` and caps LC-funded quantities at ⌊available balance / unit price⌋.
-- Plan-level checks: LC amount, LC partial shipments, inventory allocation. Plan outcome = worst finding (sensing + options used + plan-level). Status: passed → `pending_approval`, needs_review → `needs_review`, blocked → `blocked`.
-- The heuristic is not a global optimum; the fixture is built so that every recovery unit is cheaper than the penalty it avoids (stated, A-14).
-- **Recommendation rule**: exclude blocked plans; prefer passed over needs_review; then highest net avoided loss; then lowest worst-case exposure.
+### 10.6 Plans (MOD-10)
+- **Options** = inventory sources plus each quote × eligible route. Capacity is shared per quote.
+- **Greedy allocation**, orders by need-by date: cheapest on-time option first; otherwise the earliest option that still beats the delayed primary; otherwise the units stay on the delayed PO (`BASELINE-PO`).
+- **P1** uses all options. **P2** uses only `passed` options and caps LC-funded quantities at ⌊balance / unit price⌋.
+- **Plan outcome** = worst finding. Status: passed → `pending_approval`, needs_review → `needs_review`, blocked → `blocked`.
+- **Recommendation rule:** exclude blocked plans; prefer passed over needs_review; then highest net avoided loss; then lowest worst-case exposure.
 
-### 10.7 Financial definitions (MOD-10)
+### 10.7 Financial definitions
 | Term | Definition |
 |---|---|
-| Baseline loss | Penalties if nothing is done: Σ affected units × rate × min(days late, cap) using the delayed primary arrival |
-| Recovery cost | Incremental cash of the plan: supplier price premium + freight + inventory transfer + LC amendment fee + certain incremental duty |
+| Baseline loss | Penalties if nothing is done (affected units × rate × min(days late, cap)) |
+| Recovery cost | Incremental cash: supplier price premium + freight + transfer + LC amendment fee + certain incremental duty |
 | Residual loss | Penalties still incurred under the plan |
-| Net avoided loss | Baseline loss − recovery cost − residual loss |
-| Exposure | Loss that *may* occur if a non-passed finding materialises. Reported separately; **never** added to recovery cost; mutually exclusive futures are not summed |
-| Worst-case exposure | Σ over independent groups of the largest per-scenario total in the group |
+| Net avoided loss | Baseline − recovery − residual |
+| Exposure | A possible loss if a non-passed finding materialises. Reported separately and **never** added to cost. Mutually exclusive futures are not summed. |
+| Worst-case exposure | Sum over independent groups of the largest per-scenario total in each group |
 
-"Penalty avoided" is never a cost line, and exposures are never netted into net avoided loss.
-
-### 10.8 Worked figures for the demo (recomputed by the checker; INR)
-
-| | Baseline (do nothing) | P1 cost & time only | P2 AegisShield verified |
+### 10.8 Worked figures (INR; recomputed by the checker)
+| | Do nothing | P1 cost & time only | P2 verified |
 |---|---|---|---|
-| SO-1001 (400 u, need 3 Nov) | 400 × ₹250 × 6 d = 6,00,000 | on time | 100 u × ₹250 × 2 d = 50,000 residual |
-| SO-1002 (300 u, need 5 Nov) | 300 × ₹300 × 4 d = 3,60,000 | on time | on time |
-| SO-1003 (200 u, need 7 Nov) | 200 × ₹500 × 2 d = 2,00,000 | on time | on time |
+| SO-1001 (400 u, need 3 Nov) | 400 × 250 × 6 = 6,00,000 | on time | 100 u × 250 × 2 = 50,000 residual |
+| SO-1002 (300 u, need 5 Nov) | 300 × 300 × 4 = 3,60,000 | on time | on time |
+| SO-1003 (200 u, need 7 Nov) | 200 × 500 × 2 = 2,00,000 | on time | on time |
 | **Baseline loss** | **11,60,000** | 11,60,000 | 11,60,000 |
-| Supplier price premium | — | B 400 × 300 + C 200 × 600 = 2,40,000 | C 600 × 600 = 3,60,000 |
-| Freight | — | B 400 × 160 + C 200 × 120 = 88,000 | C 600 × 210 = 1,26,000 |
-| Inventory transfer | — | Pune 150 × 40 = 6,000 | 6,000 |
+| Price premium | — | B 400 × 300 + C 200 × 600 = 2,40,000 | C 600 × 600 = 3,60,000 |
+| Freight | — | 400 × 160 + 200 × 120 = 88,000 | 600 × 210 = 1,26,000 |
+| Stock transfer | — | 150 × 40 = 6,000 | 6,000 |
 | **Recovery cost** | 0 | **3,34,000** | **4,92,000** |
 | **Residual loss** | 11,60,000 | **0** | **50,000** |
 | **Net avoided loss** | 0 | **8,26,000 (on paper)** | **6,18,000** |
-| Outcome | — | **BLOCKED** (2 blocked, 1 needs review) | **PASSED** |
-| Exposures | — | B fails like A: 100 × 250 × 6 + 300 × 300 × 4 = **5,10,000**; or B arrives but preference denied: 400 × (6,300 + 160) × 15 % = **3,87,600** (same group, not added); LC amendment risk unquantified → worst case **5,10,000** | none |
+| Outcome | — | **BLOCKED** (15 passed, 1 needs review, 2 blocked) | **PASSED** (15 passed) |
+| Exposures | — | B fails like A: 5,10,000; or B arrives but the preference is denied: 3,87,600 (same group, not added); LC risk unquantified. **Worst case 5,10,000.** | none |
 
-P1 looks ₹2,08,000 better on paper and cannot be executed. If the repealed 10 % rate (TR-0002) had been used, duty at risk would have been understated at ₹2,58,400 (VC-FIN-02).
+P1 looks **₹2,08,000** better on paper and cannot be executed. Using the repealed 10% rate would understate duty at risk at ₹2,58,400 (VC-FIN-02).
+
+### 10.9 Early-warning index (MOD-21)
+- **Inputs:** `external_signals.json` (scoring policy, areas, signals) plus the graph, orders and locations.
+- **Inclusion:** a signal counts at `as_of` when `observed_at ≤ as_of` (**no look-ahead**) and `as_of − observed_at ≤ 72 h`, and all its areas are known. Unknown areas give `unmapped_area`, which is reported, never silently dropped.
+- **Contribution** = round_half_up(severity points × source confidence % / 100). Severity points: low 10, medium 25, high 45, critical 70. Confidence: official 100, operator 80, news 60, social 30. Each signal counts once per subject.
+- **Score** = min(100, Σ contributions). Level: ≥ 60 **warning**, ≥ 30 **watch**, otherwise none. Subjects with 0 points are omitted.
+- **Exposure:** for a facility, everything downstream over SUPPLIES edges (≤ 4 hops, cycle-safe) → suppliers → POs → pegged orders and shipments, plus alternate/candidate suppliers reached. For a port, shipments and route options that use it. **No money is computed.**
+- **Golden results:**
+
+| as_of | Subject | Signals | Raw | Score | Level | Linked |
+|---|---|---|---|---|---|---|
+| 23 Oct 21:00 | Zenith Kulim fab (FAC-FABZ) | SIG-0001 45 + SIG-0002 25 + SIG-0003 27 | 97 | **97** | **warning** | PO-7001 → SO-1001/1002/1003; also feeds candidate **SUP-B** |
+| 23 Oct 21:00 | Penang assembly | SIG-0002 | 25 | 25 | none | PO-7001 |
+| 23 Oct 21:00 | Port Klang | SIG-0004 (10 × 80%) | 8 | 8 | none | SHP-A-0901 |
+| 23 Oct 21:00 | Binh Duong assembly | SIG-0005 (25 × 30% = 7.5 → 8) | 8 | 8 | none | candidate SUP-C |
+| 26 Oct 09:00 (scenario) | Zenith Kulim fab | SIG-0002 + SIG-0003 + SIG-0006 70 | 122 | **100** | warning | as above; SIG-0001, SIG-0004 outside window |
+
+- **Isolation:** `external_signals.json` is excluded from `input_snapshot_id`. A warning on any supplier (even the recommended one, VC-EWS-06) is shown to humans but never changes plans or hashes.
+
+### 10.10 How the context file's profitability formula maps to the canonical model
+| Context-file term | Canonical treatment | Demo value |
+|---|---|---|
+| Base Revenue | Identical in every plan (orders are delivered either way), so it is not used to compare plans | ₹1,89,00,000 of orders (84 L + 63 L + 42 L) |
+| Recovery/Shipping Costs | Recovery cost | P1 3,34,000 · P2 4,92,000 |
+| Potential Late Penalty Risk | Certain lateness → residual loss; uncertain → exposure (separate) | P1 residual 0, exposure up to 5,10,000 · P2 residual 50,000, exposure 0 |
+| Compliance/Tariff Penalties | Certain → `duty_incremental` in recovery cost; uncertain → duty-at-risk exposure | P1 duty at risk 3,87,600 (mutually exclusive with the 5,10,000) |
+| FTA Tax Savings | Not a gain: the baseline already assumes the preference; losing it is an exposure | — |
+| "Net Profitability" | **Net avoided loss**, shown next to worst-case exposure and outcome | P1 8,26,000 on paper but blocked · P2 6,18,000 passed |
 
 ---
 
@@ -528,247 +622,252 @@ P1 looks ₹2,08,000 better on paper and cannot be executed. If the repealed 10 
 
 ```mermaid
 stateDiagram-v2
-  [*] --> blocked: evaluation outcome blocked
+  [*] --> blocked: outcome blocked
   [*] --> needs_review: outcome needs_review
   [*] --> pending_approval: outcome passed
-  pending_approval --> approved: approve (approver role)
+  pending_approval --> approved: approve
   needs_review --> approved: approve + every review finding acknowledged by a permitted role
   pending_approval --> rejected: reject
   needs_review --> rejected: reject
   blocked --> rejected: reject
-  blocked --> blocked: request_amendment (AmendmentRequest recorded)
+  blocked --> blocked: request_amendment
   blocked --> superseded: new evaluation
   needs_review --> superseded: new evaluation
   pending_approval --> superseded: new evaluation
   approved --> executing: execute once (snapshot unchanged)
-  executing --> completed: all steps succeeded
+  executing --> completed
   executing --> failed: first failed step stops the run
 ```
 
-### 11.2 Who may do what (from `policies.json`)
-
-| Action | Allowed roles | Additional rules |
+### 11.2 Roles (`policies.json`)
+| Action | Roles | Rules |
 |---|---|---|
-| Approve | supply_planner, trade_compliance_officer | Never for blocked plans. Every needs_review finding needs an acknowledgement by a role allowed for that finding's agent: compliance findings → trade_compliance_officer; dependency, routing, inventory, sensing → supply_planner |
-| Reject | supply_planner, trade_compliance_officer | Justification ≥ 10 characters |
-| Request LC amendment | trade_compliance_officer | Plan must contain a blocked `LC.*` finding; plan stays blocked; fee ₹8,000 applies only if the amended plan is later executed (stretch S-1) |
-| Execute | any approver | Plan approved, matching decision id, input snapshot unchanged |
+| Approve | supply_planner, trade_compliance_officer | Never for blocked plans. Each needs_review finding needs acknowledgement by the right role: compliance → trade_compliance_officer; dependency, routing, inventory, sensing → supply_planner. |
+| Reject | both | Justification ≥ 10 characters |
+| Request LC amendment | trade_compliance_officer | Plan must have a blocked `LC.*` finding; the plan stays blocked |
+| Execute | any approver | Approved, matching decision id, snapshot unchanged |
 | Viewer | — | Read only |
 
-### 11.3 Enforcement (server side; the UI only mirrors it)
-- **No execution before approval** → 409 NOT_APPROVED.
-- **No repeated execution** → 409 ALREADY_EXECUTED (same Idempotency-Key replays the original 202).
-- **No duplicate decisions** → same key replays (200, `Idempotent-Replay: true`); new key → 409 DECISION_EXISTS; same key with a different body → 409 IDEMPOTENCY_KEY_REUSED.
-- **No stale approval** → body must carry the current `plan_version` and `plan_hash` → else 409 PLAN_VERSION_STALE with `current`.
-- **No approval of superseded plans** → 409 PLAN_SUPERSEDED.
-- **No execution on changed inputs** → execution compares `input_snapshot_id` → 409 PLAN_VERSION_STALE.
-- Refusals are audited (`DECISION_REFUSED`, `EXECUTION_REFUSED`).
-- Concurrency: decisions and executions run inside one SQLite transaction with a unique index on (plan_id, plan_version) for decisions of type approve/reject and on (plan_id, plan_version) for executions.
+### 11.3 Server-side enforcement
+| Situation | Response |
+|---|---|
+| Execute before approval | 409 NOT_APPROVED |
+| Execute a second time | 409 ALREADY_EXECUTED (the same key replays 202) |
+| Same decision, same key | 200 + `Idempotent-Replay: true` |
+| New decision on an already-decided plan | 409 DECISION_EXISTS |
+| Same key, different body | 409 IDEMPOTENCY_KEY_REUSED |
+| Stale version or hash | 409 PLAN_VERSION_STALE (with `current`) |
+| Superseded plan | 409 PLAN_SUPERSEDED |
+| Inputs changed since approval | Execution refused with 409 PLAN_VERSION_STALE |
+
+Refusals are audited. Every state change is one transaction.
 
 ### 11.4 Simulated execution
-Steps are generated from plan lines in this order: REDUCE_PO (delayed PO reduced by the units bought elsewhere, allowed by its synthetic force-majeure clause) → CREATE_PO per quote → BOOK_FREIGHT per route → CREATE_STOCK_TRANSFER per inventory source with transfer days → RESERVE_STOCK per plant source and order → NOTIFY_CUSTOMER per order with late units (draft, not sent). Each step carries `simulated: true` and a `proposed_sap_mapping` string. The first failure stops the run; later steps are `skipped`; plan becomes `failed`; no automatic retry or compensation (VC-EXE-01). Golden steps for P2 are in `fixtures/expected/approval_flow.json` step 12.
+Steps, in order:
+1. REDUCE_PO
+2. CREATE_PO (per quote)
+3. BOOK_FREIGHT (per route)
+4. CREATE_STOCK_TRANSFER
+5. RESERVE_STOCK
+6. NOTIFY_CUSTOMER (draft, not sent)
 
-### 11.5 Audit log
-Append-only table; `event_hash = sha256(canonical JSON of the event without event_hash)`, `prev_hash` links to the previous event (genesis = 64 zeros). `GET /audit-events/verify` recomputes the chain. Reset starts a new chain. Payloads hold ids, statuses, hashes and amounts, never secrets or full documents.
+Every step carries `simulated: true` and a `proposed_sap_mapping` string. The first failure stops the run; there is no retry and no compensation (VC-EXE-01). The P2 golden is `approval_flow.json` step 12.
+
+### 11.5 Audit
+- Append-only. `event_hash = sha256(canonical JSON without event_hash)`; `prev_hash` chains events (genesis = 64 zeros).
+- `GET /audit-events/verify` recomputes the chain. Reset starts a new chain at `AUD-000001`.
+- After the golden flow there are exactly **26** events.
 
 ---
 
-## 12. The single demo scenario and demo script
+## 12. Demo scenario and demo script
 
 ### 12.1 Scenario `SCN-DEMO-001` (all SYNTHETIC; scenario clock 26 Oct 2026 09:00 IST)
-
 | Item | Value |
 |---|---|
-| Buyer | Kaveri Motion Systems Pvt Ltd, Bengaluru plant; imports PM-750 IGBT power modules (HS label `HS-SYN-8504.90`, illustrative only) |
-| Primary supplier | SUP-A Penang PowerTech (MY), PO-7001: 900 units at ₹6,000, shipment SHP-A-0901 Port Klang → Chennai, planned plant arrival 2 Nov |
-| Disruption | DIS-2026-0042: Zenith Wafer Fab (Kulim) outage on 24 Oct; SHP-A-0901 departs 2 Nov instead of 26 Oct (+7 days); plant arrival 9 Nov |
-| Orders | SO-1001 Nilgiri Rail 400 u, need 3 Nov, ₹250/u/day; SO-1002 Deccan Water Utilities 300 u, need 5 Nov, ₹300/u/day; SO-1003 Konkan Cold Chain 200 u, need 7 Nov, ₹500/u/day; cap 10 days; order values ₹84 L, ₹63 L, ₹42 L |
-| Inventory | Bengaluru: on hand 250, floor 100 → ATP 150 now, ₹0; Pune: on hand 300, reserved 100, floor 50 → ATP 150 on 29 Oct, ₹40/u |
-| Quote B | SUP-B Chao Phraya Power Devices (TH): ₹6,300, 400 u, ready 27 Oct at Laem Chabang, advance payment, CoO available |
-| Quote C | SUP-C Saigon Precision Electronics (VN): ₹6,600, 600 u, ready 28 Oct at Ho Chi Minh City, under LC-SYN-0117, CoO available |
-| Routes | RT-B-CMB via Colombo, plant 3 Nov, ₹160/u · RT-B-DIR direct, plant 8 Nov, ₹140/u · RT-C-SIN via Singapore, plant 4 Nov, ₹120/u · RT-C-DIR direct, ETD 29 Oct, plant 5 Nov, ₹210/u |
-| Graph | B's dies: Chonburi ← Kedah Die Services ← **Zenith Kulim fab (disrupted)**; C's dies: Binh Duong ← Vina Die ← Kumgang Gumi fab; C and A share Selangor substrates (not disrupted) |
-| LC-SYN-0117 | 43P allowed; 43T not allowed; 47A excludes UCP 600 20(c); 44E any port in Vietnam; 44F Chennai; 44C 5 Nov; 31D 26 Nov; 48: 21 days; amount ₹60 L; available ₹45 L |
-| Rules | TR-0001 direct consignment (modeled on AIFTA Rule 8); TR-0002 MFN 10 % to 31 Oct (superseded); TR-0003 MFN 15 % from 1 Nov; TR-0004 draft 20 % (ignored); TR-0005 AIFTA preference 0 %; TR-0006 newsletter claims 15 % from 15 Oct (secondary, loses to official) |
+| Buyer | Kaveri Motion Systems, Bengaluru plant; imports PM-750 IGBT power modules (HS label `HS-SYN-8504.90`, illustrative) |
+| Primary supplier | SUP-A Penang PowerTech (MY): PO-7001, 900 units at ₹6,000, Port Klang → Chennai, planned plant arrival 2 Nov |
+| Early signals | SIG-0001 grid instability (22 Oct 16:00), SIG-0002 storm warning (23 Oct 10:30), SIG-0003 local report of voltage dips (23 Oct 19:45), SIG-0006 confirmed curtailment 24–27 Oct (25 Oct 10:00), plus three minor signals |
+| Disruption | DIS-2026-0042: Zenith Wafer Fab (Kulim) unplanned shutdown on 24 Oct; notice received 26 Oct 08:40; departure slips 26 Oct → 2 Nov; plant arrival 9 Nov |
+| Orders | SO-1001 Nilgiri Rail: 400 u, need 3 Nov, ₹250/u/day · SO-1002 Deccan Water Utilities: 300 u, 5 Nov, ₹300 · SO-1003 Konkan Cold Chain: 200 u, 7 Nov, ₹500 · 10-day cap · order values ₹84 L / 63 L / 42 L |
+| Inventory | Bengaluru ATP 150 (available now, ₹0) · Pune ATP 150 (available 29 Oct, ₹40/u) |
+| Quotes | SUP-B Thailand ₹6,300, 400 u, ready 27 Oct · SUP-C Vietnam ₹6,600, 600 u, ready 28 Oct, under LC-SYN-0117 |
+| Routes | RT-B-CMB via Colombo (plant 3 Nov) · RT-B-DIR (8 Nov) · RT-C-SIN via Singapore (4 Nov) · RT-C-DIR direct (5 Nov) |
+| Graph | B: Chonburi ← Kedah die services ← **Zenith Kulim fab**. C: Binh Duong ← Vina Die ← Kumgang Gumi fab. A and C share Selangor substrates (not disrupted). |
+| LC-SYN-0117 | 43P allowed; 43T not allowed; 47A excludes 20(c); 44C 5 Nov; 31D 26 Nov; 48: 21 days; ₹60 L; available ₹45 L |
+| Rules | TR-0002 MFN 10% to 31 Oct (superseded) · TR-0003 MFN 15% from 1 Nov · TR-0004 draft 20% · TR-0005 AIFTA 0% · TR-0006 newsletter (secondary) · TR-0001 direct consignment |
 
-### 12.2 Demo script (3 minutes of the finale demo; owner of wording M1, owner of clicks M2)
-
-| Beat | Time | Screen | What the audience sees | Golden reference |
+### 12.2 Demo script (3 minutes; M5 narrates, M2 drives)
+| Beat | Time | Screen | What the audience sees | Golden |
 |---|---|---|---|---|
-| 1 Disruption | 0:00–0:25 | Command Center | Notice from Penang; three orders late 6/4/2 days; ₹11.6 L baseline loss | `disruption_assessment.json` |
-| 2 Attractive plan | 0:25–0:50 | Evaluation → Comparison | Agents run; P1 shows ₹8.26 L avoided, the cheapest | comparison PLN-0001 |
-| 3 Hidden dependency | 0:50–1:20 | Evidence → Graph | B's dies come from the same Kulim fab via Kedah; path highlighted | `graph_view_SUP-B.json` |
-| 4 Documentary constraint | 1:20–1:45 | Evidence → LC & rules | 43T not allowed + 20(c) excluded → blocked; Colombo transit → needs review, duty at risk at 15 % (TR-0003), 10 % rule shown as superseded | findings FND-LC-TRANSHIPMENT-RT-C-SIN, FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB |
-| 5 Verified plan | 1:45–2:10 | Comparison | P2: plant + Pune stock, Vietnam direct; all checks passed; 100 units 2 days late | PLN-0002 |
-| 6 Money side by side | 2:10–2:25 | Comparison | P1 ₹8.26 L on paper but blocked, exposure up to ₹5.1 L; P2 ₹6.18 L, no exposure | comparison |
-| 7 Human approval → execution → audit | 2:25–3:00 | Approval, Execution, Audit | Approving P1 refused; Priya approves P2; 6 simulated steps; audit chain valid | `approval_flow.json` |
+| 0 Early warning | 0:00–0:20 | Command Center, "as of 23 Oct 21:00" | Kulim fab **WARNING 97/100** from 3 signals; linked to PO-7001 and 3 orders, and to Thai candidate SUP-B. "Heuristic index, not a probability." | `early_warnings_pre_notice.json` |
+| 1 Disruption | 0:20–0:40 | Command Center, "now" | Supplier notice arrives 59 h 40 min later; 3 orders late 6/4/2 days; ₹11.6 L baseline | `disruption_assessment.json` |
+| 2 Attractive plan | 0:40–1:00 | Comparison | P1: ₹8.26 L avoided on paper, the cheapest | comparison PLN-0001 |
+| 3 Hidden dependency | 1:00–1:25 | Evidence → Graph | B's dies trace to the same Kulim fab via Kedah | `graph_view_SUP-B.json` |
+| 4 Documentary constraint | 1:25–1:50 | Evidence → LC & rules | 43T + 47A → blocked; Colombo → needs review, ₹3.88 L at 15% (TR-0003; the 10% rule is superseded) | FND-LC-TRANSHIPMENT-RT-C-SIN, FND-FTA-DIRECT_CONSIGNMENT-RT-B-CMB |
+| 5 Verified plan | 1:50–2:10 | Comparison | P2: plant + Pune stock + Vietnam direct; all checks passed; 100 units 2 days late | PLN-0002 |
+| 6 Money | 2:10–2:25 | Comparison | P1 ₹8.26 L on paper, blocked, exposure up to ₹5.1 L; P2 ₹6.18 L, no exposure | comparison |
+| 7 Decision | 2:25–3:00 | Approval, Execution, Audit | Approving P1 is refused; Priya approves P2; 6 simulated steps; audit chain valid | `approval_flow.json` |
 
-Fallback: if anything fails, press **Reset**, rerun (≈ 10 s), continue; if the backend is down, switch to the recorded screen video (M1 holds it, captured D8).
+**Fallback:** press Reset and rerun (≈ 10 s). If the backend is down, switch to the backup video (M5 holds it on two devices).
 
 ---
 
-## 13. Integration plan, milestones, critical path, daily plan
+## 13. Integration plan, critical path, daily plan, contingencies
 
-### 13.1 Integration sequence
-1. **Contract-first stubs (D1):** backend serves `fixtures/expected/*.json` from the real routes so the UI is never blocked.
-2. **Modules in isolation (D2–D3):** each owner makes their validation cases and module goldens pass.
-3. **Wiring (D4):** orchestrator calls real modules; golden e2e evaluation.
-4. **Decisions & execution (D5–D6):** state machine, idempotency, execution, audit; UI flows.
-5. **Explanations & fallbacks (D6):** recorded mode, validator, templates.
-6. **Freeze (D7):** features frozen; only fixes.
-7. **Rehearse (D8), buffer (D9).**
+### 13.1 Sequence
+1. **Handover and inventory (Fri evening):** every owner records what exists.
+2. **Contracts 1.1.1 merged** (Fri 21:00, M3): everyone pulls and runs the checker.
+3. **Golden evaluation via the live API (Sat 18:00):** M4 wires M1's, M3's and M4's modules; the UI switches from stub to live.
+4. **Decisions → execution → audit (Sun 15:00).**
+5. **Freeze (Sun 20:00).**
+6. Rehearse and fix only (Mon–Tue).
 
-### 13.2 Milestones
-| ID | Date | Exit criterion |
-|---|---|---|
-| G0 | Sun 25 Oct | Contracts v1.0.0 tagged; checker green; every member ran it |
-| M1 | D1 Mon 26 Oct | Repo skeleton runs; `/health`, `/scenario`, `/demo/reset`; stub evaluation; UI shell renders stub comparison |
-| M2 | D3 Wed 28 Oct | Module goldens pass in isolation (graph, rules, LC/FTA, inventory, plans/financials) |
-| M3 | D5 Fri 30 Oct | Live evaluation via API equals golden; UI reads live data; breaking contract changes closed |
-| M4 | D7 Sun 1 Nov | Approve → execute → audit live; all VC-APR pass; a11y pass; **feature freeze** |
-| M5 | D8 Mon 2 Nov | 3 clean rehearsals; offline drill; deck numbers locked |
-| G1 | D9 Tue 3 Nov 18:00 | `demo-freeze` tag; laptops packed |
+### 13.2 Critical path
+- **Backend:** MOD-03/05/08/10 golden equality (M4, Sat 18:00) → MOD-11 decisions, execution, audit (M4, Sun 15:00).
+- **Frontend:** approval modal and execution/audit screens (M2, Sun 15:00).
+- **Then:** acceptance run #1 (Sun 17:00) → freeze.
 
-### 13.3 Critical path
-Contracts freeze → MOD-03/08/10 (M3) → golden e2e (M3, D5) → MOD-11 decisions/execution/audit (M3, D5–D6) → approval UI (M2, D5–D7) → rehearsals (all, D8). Member 3 sits on the critical path. Mitigations: reference oracle to port, stubs from D1, Member 4 takes over the execution-step generator (MOD-11 sub-task) if M3 has not started it by D5 noon (decided by M5 at standup).
-
-### 13.4 Daily plan (summary; each role document has the detailed version)
-| Day | M1 Research & deck | M2 UI/UX & frontend | M3 Backend | M4 GraphRAG | M5 Temporal RAG, review, decisions |
+### 13.3 Daily plan
+| Day | M1 Data, sensing & domain | M2 UI/UX & frontend | M3 RAG, contracts, decisions | M4 Backend & engine | M5 Pitch |
 |---|---|---|---|---|---|
-| Mon 19 | Confirm all 5 Learning Hub registrations; read package | Read 00, 02; run checker | Read 00, 03; run checker | Read 00, 04; run checker | Read all; prepare kickoff |
-| Tue 20 | Kickoff; research plan; OD-05/06 answers | Kickoff; flows & wireframes v0 | Kickoff; FastAPI spike | Kickoff; NetworkX spike on fixture | Chair kickoff; decide OD-02/03 |
-| Wed 21 | **Registration deadline**; deck v0; interviews | Wireframes v1 for deck | Stub routes spike | Linearisation spike | Rule engine spike; review deck v0 |
-| Thu 22 | Deck v1 (architecture, BMC, empathy) | Mockups for deck | Architecture slide input | Graph slide input | **Decide OD-01**; review deck v1 |
-| Fri 23 | Rehearse ×2; Q&A drill | Mock demo click-through | Q&A support | Q&A support | Rehearsal judge |
-| Sat 24 | **Regional pitch (tentative)** | Pitch support | Pitch support | Pitch support | Pitch support |
-| Sun 25 | Shortlist result; finale deck plan | Contract review sign-off | **Tag contracts v1.0.0** | Sign-off | Sign-off G0 |
-| D1 Mon 26 | Evidence register v2; demo script v1 | App shell, API client, Command Center (stub) | Skeleton, loader, reset, stub routes | Graph loader+validation, traversal | Rule store + applicability (VC-RULE-01/02), LLM gateway `off` |
-| D2 Tue 27 | Persona validation notes | Comparison screen (stub) | LC + FTA checks, inventory ATP | Outcomes, coverage, cycles (VC-DEP all) | All VC-RULE; conflicts; **Review R1 (45 min)** |
-| D3 Wed 28 | Deck finale v1 | Evidence drawer, findings list | Plan builder + financials (VC-FIN, VC-LC-05) | Evidence paths, linearisation, GraphView, Routing | LC text extraction vs gold; BM25 passages |
-| D4 Thu 29 | Judge Q&A bank v2 | Live API; Cytoscape graph | Orchestrator wiring; golden e2e | Sensing agent; integrate | Explanation templates + validator; **Review R2 (45 min)** |
-| D5 Fri 30 | Script v2 against live app | Approval modal, role switcher | Decisions API + idempotency | Graph eval harness | Recorded LLM mode; contract change window closes |
-| D6 Sat 31 | Deck numbers from goldens | Execution + audit screens | Execution simulator + audit chain | Dependency explanations | VC-LLM cases |
-| D7 Sun 1 | **Acceptance run #1** | a11y pass; polish | All VC-APR; freeze | Bug fixes | **Review R3 (60 min)**; freeze call |
-| D8 Mon 2 | Rehearsals ×3; video capture | Demo polish fixes | Timing log; offline drill; BTP (OD-01) | Fixes | **Review R4 (30 min)** |
-| D9 Tue 3 | Final deck; acceptance run #2 | Fixes only | Fixes only; tag | Fixes only | Go/no-go; tag approval |
+| **Fri 30 Oct** (from 17:00) | Re-plan call 18:30; inventory MOD-22/04/06/09/21 incl. the existing loader (handover from M2 if M2 wrote it); start MOD-22 | Re-plan call; receive design files (OD-10); inventory frontend; hand any loader code to M1; stub mode on goldens | **Chair re-plan 18:30**; merge contracts 1.1.1 by 21:00; log D-021…D-031 | Inventory backend; update step → owner map; list gaps vs goldens | Re-plan call; OD-09 email to coordinator; story outline from Appendix F |
+| **Sat 31 Oct** | **Data endpoints (`/scenario`, `/disruptions`, snapshot) by 12:00**; MOD-04, 06, 09 cases green by 13:00; MOD-21 endpoint + goldens by 18:00 | Command Center, Comparison, Evidence drawer on live API by 18:00 (stub until M1/M4 endpoints land) | VC-RULE green 12:00; GraphView + linearise + templates; e2e skeleton; **UI checkpoint U1 17:00 (30 min)**; OD-01/04/09 decisions by 12:00 | Golden evaluation via API by **18:00 (G2)**; decisions API started | Deck v1 + script v1 by 20:00; evidence check with M1 |
+| **Sun 1 Nov** | Early-warning panel support; evidence register final (OD-07) by 18:00 | Approval modal, Execution, Audit, early-warning panel by 15:00; a11y pass | Golden flow e2e green 16:00; **UI checkpoint U2 15:00 (45 min)**; **acceptance run #1 17:00**; **freeze 20:00** | Execution + audit + all VC-APR by 15:00 | Rehearsal #1 18:00; deck v2 with real screenshots by 22:00 |
+| **Mon 2 Nov** | Fixes; Q&A drill on sensing and evidence | Fixes; drive rehearsals; record clean run for video 16:00 | Fixes triage; LLM-off/recorded runs (VC-LLM-01) | Offline drill 11:00; BTP final (OD-01) by 12:00; timing log | Rehearsals 11:00 / 15:00 / 19:00; backup video edited by 20:00; **numbers locked (G3)** |
+| **Tue 3 Nov** | Fixes only to 14:00 | Fixes only to 14:00; package demo build | **Acceptance run #2 15:00; go/no-go 18:00 (G4)**; approve `demo-freeze` tag | Fixes only to 14:00; tag; laptops packed | Final dress rehearsal 16:30; PDF + video on USB |
+| **Wed 4 Nov** | Q&A support | Drives demo | Q&A (rules, RAG) | Q&A (engine, SAP) | Presents |
 
-Cadence: stand-up 09:30 (15 min, blockers first); merge window 18:00–19:00; M3 runs checker and e2e nightly and posts results.
+**Cadence:** stand-up 09:30 (15 min, blockers first); evening sync 21:00 (10 min); merge windows 13:00 and 19:00. M3 runs the checker and e2e after each merge window and posts the results.
+
+### 13.4 Contingencies (decided by M3 at the named time)
+| ID | Trigger | Action |
+|---|---|---|
+| C-1 | Sat 13:00: MOD-11 execution/audit not started | If M1's Sat-13:00 items are green, M1 takes the `execution` and `audit` files (exclusive) and M4 keeps decisions. If they are not, M3 cuts early-warning P1 work (cut-list items 6–7) to free M1 first. |
+| C-2 | Sat 18:00: Comparison + Evidence drawer not on live API | M2 drops FR-21 (progress timeline) and the as-of toggle (cut-list items 4 and 6). No reassignment, because M1 already carries the data pipeline. |
+| C-3 | Sun 15:00: golden flow not green | Scope frozen to P0; apply the cut list |
+| C-4 | Mon 12:00: BTP deploy not working | Local demo; SAP status slide uses "designed for" wording |
+| C-5 | Any beat red at go/no-go | Show that beat from the backup video; never fake a live screen with stub data |
 
 ---
 
 ## 14. Tests, demo acceptance, risks, assumptions, open decisions
 
-### 14.1 Test strategy
+### 14.1 Test layers
 | Layer | What | Owner | Gate |
 |---|---|---|---|
-| Contract | `python3 tools/check_contracts.py` | M3 | Every PR, CI |
-| Module | Owners convert VC-* for their module into unit tests and compare to module goldens | each owner | PR |
-| API conformance | Test client validates every response against `openapi.yaml` | M3 | PR |
-| Golden e2e | `approval_flow.json` steps 1–16 | M3 | nightly, D5+ |
-| Frontend | Vitest (formatters, state), Playwright smoke: reset → evaluate → open B finding → approve P2 → execute → verify audit | M2 | D6+ |
-| Manual | Demo acceptance DA-01…15 by M1 | M5 (accountable) | D7, D9 |
-| Non-functional | Timing log (SC-9), offline drill, LLM-off run | M3, M5 | D8 |
+| Contract | `python3 tools/check_contracts.py` | M3 | every PR |
+| Module | Owners turn their VC-* cases into unit tests | each owner | PR |
+| API conformance | Responses validate against `openapi.yaml` | M3 (tests), M4 (property) | PR |
+| Golden e2e | `approval_flow.json` 1–16 | M3 | after merge windows |
+| Boundary | MOD-21 not imported by MOD-03/10/11; oracle not imported by production code | M3 | PR |
+| Frontend | Vitest + Playwright smoke (reset → early warnings → evaluate → B finding → approve P2 → execute → verify) | M2 | Sun+ |
+| Manual | DA-01…17 | M3 (sign) / M5 (execute) / M2 (drive) | Sun 17:00, Tue 15:00 |
 
-### 14.2 Demo acceptance checklist (run by Member 1; signed by Member 5)
+### 14.2 Demo acceptance checklist
 | ID | Check |
 |---|---|
-| DA-01 | Reset works; "SYNTHETIC DATA" banner visible on every screen |
+| DA-01 | Reset works; "SYNTHETIC DATA" banner on every screen |
 | DA-02 | Command Center: 3 orders, 6/4/2 days late, ₹11,60,000 baseline |
 | DA-03 | Evaluation shows 7 steps with status and mode; completes (record seconds) |
 | DA-04 | Comparison: P1 ₹3,34,000 / ₹0 / ₹8,26,000 BLOCKED; P2 ₹4,92,000 / ₹50,000 / ₹6,18,000 PASSED; P2 recommended |
-| DA-05 | FND-DEP-SUP-B opens the graph with Chonburi ← Kedah ← Zenith highlighted and a text version |
-| DA-06 | LC finding shows 43T and 47A lines and the remedy "request amendment" |
-| DA-07 | FTA finding (Colombo) shows needs review, ₹3,87,600 at 15 % (TR-0003), TR-0002 superseded, TR-0004 draft, TR-0006 lower authority |
+| DA-05 | FND-DEP-SUP-B opens the graph with Chonburi ← Kedah ← Zenith highlighted, plus a text version |
+| DA-06 | LC finding shows the 43T and 47A lines and the remedy "request amendment" |
+| DA-07 | FTA finding (Colombo) shows needs review, ₹3,87,600 at 15% (TR-0003), TR-0002 superseded, TR-0004 draft, TR-0006 lower authority |
 | DA-08 | Approving P1 shows the server's PLAN_BLOCKED message; nothing changes |
 | DA-09 | Priya approves P2; repeating shows "already decided"; Arjun cannot approve again |
-| DA-10 | Execute → 6 simulated steps, all labelled simulated; second execute refused |
-| DA-11 | Audit list shows refusals and decisions; Verify → valid |
+| DA-10 | Execute → 6 simulated steps, all labelled; a second execute is refused |
+| DA-11 | Audit shows refusals and decisions; Verify → valid (26 events) |
 | DA-12 | Network unplugged + LLM off: same numbers and outcomes; badge "LLM: off (templates)" |
 | DA-13 | Whole approval flow by keyboard; focus visible; statuses have icon + text |
-| DA-14 | Every number on slides equals the UI |
-| DA-15 | Second run after reset gives identical plan hashes |
+| DA-14 | Every number on slides equals the UI or Appendix F |
+| DA-15 | A second run after reset gives identical plan hashes |
+| DA-16 | Early warnings: "as of 23 Oct 21:00" shows Kulim fab WARNING 97/100 with 3 signals, links to 3 orders and SUP-B; "now" shows 100; the label "heuristic index, not a probability" is visible |
+| DA-17 | The approval modal lists active warnings (level ≥ watch) that touch the plan: P1 shows the Kulim fab warning via SUP-B; P2 shows none. No number changes. |
 
-### 14.3 Risks and fallbacks
-| ID | Risk | L | I | Mitigation | Fallback | Owner |
-|---|---|---|---|---|---|---|
-| R-01 | Finale requires SAP technology and we show none | M | H | OD-01 by 22 Oct; spike BTP CF deploy D2 | Show SAP mapping slide + ask coordinator early; minimum: BTP CF hosted backend | M5 / M3 |
-| R-02 | LLM provider or venue network fails | H | M | `recorded` default; outcomes independent of LLM | `off` mode | M5 |
-| R-03 | Member 3 overloaded (critical path) | M | H | Stubs D1; oracle port; daily burndown | M4 takes execution-step generator; cut S-goals | M5 |
-| R-04 | Judges challenge legal accuracy | M | H | Evidence register; precise wording (C3–C5); synthetic labels | Say "simplified encoding; real examination follows UCP 600 / ISBP and the credit wording" | M1 |
-| R-05 | "Where does tier-2 data come from?" | H | M | Provenance on every edge; needs_review for missing data | Answer: supplier declarations, audits, trade records; we refuse to infer independence | M1 / M4 |
-| R-06 | Demo state corrupted mid-demo | M | M | Idempotent APIs; reset button | Recorded video | M2 |
-| R-07 | Numbers drift between deck and app | M | H | Deck reads goldens; DA-14 | Freeze deck D8 | M1 |
-| R-08 | Scope creep | H | M | Decision log; freeze D7 | M5 says no | M5 |
-| R-09 | Pre-window coding or code reuse breaks rules | L | H | OD-05 by 21 Oct | Treat Phase 0 code as throwaway spikes | M1 / M5 |
-| R-10 | Registration incomplete by 21 Oct | L | H | M1 checks each member on 19–20 Oct | — | M1 |
-| R-11 | Weekend availability (31 Oct–1 Nov) | M | M | Confirm at kickoff | Shift R3 to D8 morning | M5 |
-| R-12 | Similar projects by other teams | H | M | Differentiate on evidence discipline, LC/FTA precision, refusal to infer independence | No novelty claims | M1 |
+### 14.3 Risks
+| ID | Risk | L | I | Mitigation / fallback | Owner |
+|---|---|---|---|---|---|
+| R-01 | Finale needs SAP tech and we show none | M | H | OD-01 by Sat 12:00; fallback C-4 | M4 / M3 |
+| R-02 | LLM or venue network fails | H | M | `recorded` default; `off` mode | M3 |
+| R-03 | M4 overloaded (critical path) | H | H | M1 takes small modules; contingency C-1; oracle port | M3 |
+| R-04 | M2 overloaded (whole frontend) | M | H | M5's design is ready; stub mode; C-2; cut list | M3 |
+| R-13 | M1 overloaded (data pipeline + sensing + early warning + small agents + evidence register) | M | H | Data endpoints first (Sat 12:00); early warning is P1 and on the cut list; C-1 only if M1 is on schedule | M3 |
+| R-05 | Handover gaps in partly-built code | M | H | §7.5 protocol; previous author on call until Sat 13:00 | M3 |
+| R-06 | Early-warning index presented as prediction | M | H | NFR-07; Appendix F wording; DA-16 | M1 / M5 |
+| R-07 | Judges challenge LC/FTA accuracy | M | H | Precise wording C3–C5; "simplified encoding" | M5 / M3 |
+| R-08 | "Where does tier-2 data come from?" | H | M | Provenance per edge; missing → needs_review | M3 |
+| R-09 | Numbers drift between deck and app | M | H | Deck uses Appendix F; DA-14; G3 lock | M5 |
+| R-10 | Scope creep | H | M | Freeze Sun 20:00; M3 says no | M3 |
+| R-11 | Demo state corrupted mid-demo | M | M | Idempotent APIs; reset; backup video | M2 |
+| R-12 | Finale format unknown | M | M | OD-09; 10-min and 5-min versions | M5 |
 
-### 14.4 Assumptions (reversible)
+### 14.4 Assumptions
 | ID | Assumption |
 |---|---|
-| A-01 | Build window 26 Oct–3 Nov; finale 4 Nov (only the finale date is verified) |
-| A-02 | All five members available ~8 h/day including the weekend |
+| A-01 | Build continues to Tue 3 Nov; finale Wed 4 Nov |
+| A-02 | All five members are available ~8 h/day including the weekend |
 | A-03 | Demo runs on our laptop with a projector; venue internet not guaranteed |
-| A-04 | Single currency INR; FX ignored |
-| A-05 | Applicable tariff date = ETA at Indian port (India's actual rule ties duty to bill-of-entry / entry-inwards timing — Member 5 verifies before any pitch claim) |
-| A-06 | Duty = basic customs duty on (price + freight); surcharges, insurance, IGST excluded |
-| A-07 | Delayed PO quantity may be reduced without charge (synthetic force-majeure clause) |
-| A-08 | Borrowed stock is replenished by the delayed delivery; carrying cost ignored |
-| A-09 | Penalties linear per unit-day with a 10-day cap |
-| A-10 | Identity is simulated (`X-Actor-Id`); no authentication |
-| A-11 | LC amendment lead time not modelled; fee ₹8,000 |
-| A-12 | Route schedules are static fixture data |
+| A-04 | INR only; FX ignored |
+| A-05 | Applicable tariff date = ETA at the Indian port (simplification; India ties the rate to bill-of-entry timing; unverified) |
+| A-06 | Duty = basic customs duty on (price + freight) |
+| A-07 | The delayed PO may be reduced without charge (synthetic force-majeure clause) |
+| A-08 | Borrowed stock is replenished by the delayed delivery |
+| A-09 | Penalties are linear per unit-day with a 10-day cap |
+| A-10 | Identity is simulated (`X-Actor-Id`) |
+| A-11 | LC amendment lead time is not modelled; fee ₹8,000 |
+| A-12 | Route schedules are static |
 | A-13 | LC and FTA rules are simplified encodings, not legal advice |
-| A-14 | Greedy planning is a heuristic; fixture constructed so it matches the cost-optimal choice |
-| A-15 | Only one evaluation runs at a time per disruption |
+| A-14 | Greedy planning is a heuristic; the fixture is built so it matches the optimal choice |
+| A-15 | One evaluation at a time per disruption |
+| A-16 | Team ChainGang is a finalist |
+| A-17 | M5's delivered design covers the screens in Appendix E; M2 fills any gaps in the same design language |
+| A-18 | Early-warning weights are team choices for the demo, not calibrated |
 
 ### 14.5 Open decisions
-| ID | Question | Owner (research) | Decides | Deadline | Default if undecided |
+| ID | Question | Research | Decides | Deadline | Default |
 |---|---|---|---|---|---|
-| OD-01 | Which SAP technology do we actually use? Options: (a) host backend on SAP BTP Cloud Foundry trial; (b) SAP HANA Cloud for rules/vector passages; (c) SAP Generative AI Hub for live LLM; (d) SAP Build Joule Studio for one agent; (e) UI5 Web Components | M1 (ask SAP/coordinator; check Learning Hub entitlements) | M5 | Thu 22 Oct | (a), plus SAP mapping slide |
-| OD-02 | Wrap orchestrator in LangGraph for "agent framework" optics? | M3 | M5 | Thu 22 Oct | No; plain pipeline |
-| OD-03 | UI kit: Tailwind/shadcn vs UI5 Web Components | M2 | M5 | Thu 22 Oct | Tailwind/shadcn with Fiori-inspired density |
-| OD-04 | Live LLM provider and model | M5 | M5 | Sun 25 Oct | recorded mode only |
-| OD-05 | Is work before 26 Oct allowed; may prior code be reused? | M1 | M5 | Wed 21 Oct | Phase 0 = contracts and throwaway spikes only |
-| OD-06 | Confirm Sir MVIT regional date, format and SAP approval of the round | M1 | M5 | Tue 20 Oct | Prepare for 24 Oct, 10 + 5 min |
-| OD-07 | Verify primary sources: AIFTA Rule 8 official text, party list, India duty-date rule, final ISBP 821 wording | M1 | M5 | Fri 23 Oct (pitch) | Use cautious wording only |
-| OD-08 | Build stretch S-1 (amendment acceptance)? | M3 | M5 | D5 | No |
+| OD-01 | Which SAP technology do we actually use? (BTP CF hosting; HANA Cloud; Generative AI Hub; UI5) | M4 | M3 | **Sat 31 Oct 12:00** | BTP CF hosting attempt; otherwise "designed for SAP BTP" |
+| OD-04 | Live LLM provider/model | M3 | M3 | Sat 31 Oct 12:00 | `recorded` + `off` only |
+| OD-07 | Primary-source upgrade for pitch claims (UCP 600 Art. 20, ISBP, AIFTA Rule 8, party list) | M1 | M3 | Sun 1 Nov 18:00 | Cautious wording in Appendix F |
+| OD-08 | Build stretch S-1? | M4 | M3 | Sat 31 Oct 21:00 | No |
+| OD-09 | Finale format: pitch length, live demo allowed, Q&A length, projector/HDMI, internet, reporting time | M5 | M3 | **Sat 31 Oct 12:00** | Prepare 10-min and 5-min versions with a 3-min demo |
+| OD-10 | Where M5's design files live and which screens they cover | M2 (with M5, 15-min hand-off) | M3 | Fri 30 Oct 21:00 | `design/` folder in the repo |
+| OD-11 | Keep the UI kit already in use (Tailwind/shadcn vs UI5)? | M2 | M3 | Fri 30 Oct 21:00 | Keep what exists |
+
+v1 decisions OD-02 (LangGraph wrapper → no), OD-03 (UI kit → see OD-11), OD-05 and OD-06 (Round 1 rules and date) are closed or past.
 
 ---
 
-## 15. Repository conventions, contract versioning, change control, decision authority
+## 15. Repository conventions, versioning, change control, decision authority
 
 ### 15.1 Repository
 ```
 aegisshield/
   README.md
-  docs/00…05
-  contracts/{README.md, CHANGELOG.md, openapi.yaml, schemas/*.schema.json}
-  fixtures/{demo/, expected/, validation/cases.json}
-  tools/{check_contracts.py, aegis_oracle.py}
-  backend/   (M3; agents M3/M4; rules & llm M5)
-  frontend/  (M2)
-  pitch/     (M1: decks, evidence register export, rehearsal log, video)
-  ops/       (M3: runbook, BTP manifest)
-  .github/workflows/contracts.yml (M3)
-  CODEOWNERS (mirrors section 7.3)
+  docs/00-source-of-truth.md           (v1 docs/01-05 retired)
+  prompts/                             per-member plan prompts + team audit prompt
+  contracts/ fixtures/ tools/
+  backend/ frontend/ design/ pitch/ ops/
 ```
-- Branches `m<member>/<topic>`; protected `main`; squash merge after the module reviewer approves and CI is green.
-- Never force-push, rewrite shared history, or delete others' branches. Commit secrets nowhere; `.env.example` lists keys.
-- Commit messages: `<module>: <imperative summary>` (e.g. `MOD-08: block transhipment when 20(c) excluded`).
+- Branches: `m<member>/<topic>`; protected `main`; squash-merge after reviewer approval and green CI.
+- Never force-push, rewrite shared history or delete others' branches. No secrets in the repo.
+- Commit messages: `<MOD-id>: <imperative summary>`.
 
 ### 15.2 Contract versioning
-`schema_version` follows SemVer: **patch** = description/example fix; **minor** = additive optional field or enum value consumers can ignore; **major** = removal, rename, type or meaning change (avoid before the finale). Contracts are **v1.0.0 from 25 Oct**. After D5 only patch/minor; after D7 only fixes approved by Member 5.
+SemVer `schema_version`: patch = text/example fix; minor = additive; major = breaking (none before the finale). **1.1.1 since 30 Oct 20:30** (1.1.0 plus owner metadata). From Sat 31 Oct only patch changes; after the freeze only fixes M3 approves.
 
 ### 15.3 Change control
-1. Owner opens a PR changing schema + examples + fixtures + `contracts/CHANGELOG.md`, and regenerates goldens with `--write-golden` if behaviour changed (Member 3 runs it for others).
-2. Checker must pass. Reviewer (contract registry) approves. Consumers listed in the registry are tagged.
-3. Major or behaviour-changing edits also need Member 5's written OK in the decision log (`docs/05` §9).
-4. This document is updated in the same PR when a shared rule changes.
+1. One PR changes schema + examples + fixtures + CHANGELOG.
+2. M3 regenerates goldens if behaviour changed; the reviewer diffs line by line.
+3. Checker green; consumers tagged; decision-log entry (§20).
 
 ### 15.4 Decision authority
-Member 5 makes final calls on scope, design and implementation trade-offs **after consulting the accountable owner**; Member 1 is consulted on anything that changes the story or a claim. Decisions are logged within the same day with: context, options, decision, owner of follow-up. Turnaround target: 4 working hours; if no decision arrives, the accountable owner's documented proposal stands and is logged as "default".
+- **M3** makes final calls on scope, design and implementation trade-offs **after consulting the accountable owner**.
+- **M5** has the final say on pitch wording, within the claims allowed by Appendix F.
+- **M2** decides visual details within M5's delivered design.
+- Decisions are logged the same day. Turnaround target is 2 working hours; with no answer, the owner's written proposal stands as "default".
+- M3's reviews are bounded to UI checkpoints U1 and U2, PR reviews in the merge windows, and acceptance runs.
 
 ---
 
@@ -776,70 +875,377 @@ Member 5 makes final calls on scope, design and implementation trade-offs **afte
 
 | Requirement | Module | Owner | Contract | Tests |
 |---|---|---|---|---|
-| FR-01 | MOD-02 | M3 | `api.schema.json#DemoResetResponse`, `openapi /demo/reset` | G-FLOW 1–3 |
-| FR-02 | MOD-13 | M2 | `disruption.schema.json#DisruptionAssessment` | DA-02 |
-| FR-03 | MOD-04 | M4 | `disruption.schema.json` | `expected/disruption_assessment.json`, VC-SENSE-01 |
-| FR-04 | MOD-06 | M4 | `master-data#RouteOption`, `plan#SourceOption` | golden `options` |
-| FR-05/06/07 | MOD-05 | M4 | `graph.schema.json#DependencyResult` | VC-DEP-01…06, `expected/dependency_results.json` |
-| FR-08/09 | MOD-07 | M5 | `trade-rules.schema.json` | VC-RULE-01…07, `expected/rule_applicability.json` |
-| FR-10 | MOD-08 | M3 | `common#Finding`, `master-data#LetterOfCredit` | VC-LC-01…07 |
-| FR-11 | MOD-08 | M3 | `common#Finding`, `plan#Exposure` | VC-FTA-01…03, VC-FIN-02 |
-| FR-12 | MOD-09 | M3 | `master-data#InventoryPosition` | VC-INV-01…03 |
-| FR-13/14 | MOD-10 | M3 | `plan#RecoveryPlan`, `#PlanFinancials` | VC-FIN-01/03, VC-LC-05, golden plans |
-| FR-15/16 | MOD-13/14 | M2 | `plan#Evaluation`, `graph#GraphView` | DA-04…07, Playwright smoke |
-| FR-17/26 | MOD-11 | M3 | `decision#DecisionRequest`, `#Decision`, `#AmendmentRequest` | VC-APR-01…08, G-FLOW 5–10 |
-| FR-18 | MOD-13 | M2 | `openapi decidePlan` | DA-08/09 |
-| FR-19 | MOD-11 | M3 | `decision#Execution` | G-FLOW 11–13, VC-EXE-01 |
-| FR-20 | MOD-11 / MOD-13 | M3 / M2 | `decision#AuditEvent`, `#AuditVerifyResult` | G-FLOW 15–16, DA-11 |
-| FR-21 | MOD-13 | M2 | `plan#AgentStep` | DA-03 |
-| FR-22/23/24 | MOD-12 | M5 | `plan#Explanation`, `master-data#LetterOfCredit.extracted` | VC-LLM-01/02, VC-LC-07 |
-| FR-25 | MOD-13 / MOD-16 | M2 / M1 | `synthetic` flags, `Health.data_mode` | DA-01, DA-14 |
-| FR-27 | MOD-10/11 | M3 | `openapi simulateAmendmentAcceptance` | VC-AMEND-01 |
-| FR-28 | MOD-15 | M3 | OD-01 record | D8 demo |
-| NFR-01 | MOD-10 | M3 | `RecoveryPlan.plan_hash` | DA-15, VC-LLM-01 |
-| NFR-03 | MOD-02 | M3 | `openapi.yaml` | API conformance tests |
+| FR-01 | MOD-22 | M1 | `api#ScenarioResponse`, `#DisruptionList` | conformance; health snapshot |
+| FR-02, 15, 16, 18, 21, 25, 30, 33 | MOD-13/14 | M2 | `plan#Evaluation`, `graph#GraphView`, `signals#EarlyWarningResult` | DA-01…13, 16, 17; Playwright |
+| FR-03 | MOD-04 | M1 | `disruption.schema.json` | `expected/disruption_assessment.json`, VC-SENSE-01 |
+| FR-04 | MOD-06 | M1 | `master-data#RouteOption`, `plan#SourceOption` | golden `options` |
+| FR-05/06/07 | MOD-05 | M4 | `graph#DependencyResult` | VC-DEP-01…06 |
+| FR-08/09 | MOD-07 | M3 | `trade-rules.schema.json` | VC-RULE-01…07 |
+| FR-10/11 | MOD-08 | M4 | `common#Finding`, `plan#Exposure` | VC-LC-01…07, VC-FTA-01…03, VC-FIN-02 |
+| FR-12 | MOD-09 | M1 | `master-data#InventoryPosition` | VC-INV-01…03 |
+| FR-13/14 | MOD-10 | M4 | `plan#RecoveryPlan`, `#PlanFinancials` | VC-FIN-01/03, VC-LC-05 |
+| FR-17/26/27 | MOD-11 | M4 | `decision.schema.json` | VC-APR-01…08, VC-AMEND-01, G-FLOW 5–10 |
+| FR-19/20/32 | MOD-11 / MOD-02 | M4 | `decision#Execution`, `#AuditEvent`, `api#DemoResetResponse` | G-FLOW 1–3, 11–16; VC-EXE-01 |
+| FR-22/23/24 | MOD-12 | M3 | `plan#Explanation`, `LetterOfCredit.extracted` | VC-LLM-01/02, VC-LC-07 |
+| FR-28 | MOD-15 | M4 | OD-01 | D8 demo |
+| FR-29/31 | MOD-21 | M1 | `signals.schema.json` | VC-EWS-01…06; EWS goldens |
+| FR-34 | MOD-16 | M5 | Appendix F | DA-14 |
+| FR-35 | MOD-23 | M3 | `graph#LinearizedContext`, `#GraphView` | goldens |
+| FR-36 | MOD-19 | M3 | `openapi.yaml`, `approval_flow.json` | G-FLOW 1–16 |
+| NFR-01…06 | MOD-02/10/15 | M4 | `RecoveryPlan.plan_hash` | DA-12, DA-15, timing log |
+| NFR-07 | MOD-21 | M1 | `ScoringPolicy.score_note` | DA-16 |
 
 ---
 
 ## 17. Glossary
-- **AIFTA** — ASEAN–India Trade in Goods Agreement; parties get preferential duty on originating goods.
-- **ATP (available to promise)** — stock that can be committed: on hand − reserved − protected floor.
-- **BOM** — bill of materials; here PM-750 needs IGBT dies and a DBC substrate.
-- **B/L** — bill of lading, the sea transport document.
-- **Certificate of origin (CoO)** — document proving the goods qualify for the FTA rate.
-- **Direct consignment** — FTA condition that goods travel from the exporting party to the importing party without entering commerce elsewhere; transit through non-parties allowed only under conditions.
-- **Documentary credit / letter of credit (LC)** — a bank's undertaking to pay the seller against compliant documents; governed here by UCP 600.
-- **Exposure** — a possible loss if a risky assumption fails; not a cost.
-- **GraphRAG** — retrieving facts as paths in a graph and handing a linearised text version to an LLM for explanation.
-- **HITL** — human in the loop: a person must decide before anything executes.
-- **HS code** — customs classification; our label is synthetic.
-- **ISBP** — ICC's International Standard Banking Practice for examining documents under UCP 600.
-- **MFN rate** — standard (non-preferential) duty rate.
-- **MT700** — SWIFT message used to issue a documentary credit; field tags such as 43T, 44C.
-- **Temporal RAG** — retrieval that first filters by validity dates, jurisdiction and authority, then ranks text.
-- **Tier-1/2/3** — supplier, its supplier, and the next level up. Tiers are relative to a path, so the same factory can be tier-2 via one supplier and tier-3 via another (Zenith fab in our demo).
-- **Transhipment** — unloading from one vessel and reloading onto another at an intermediate port.
-- **UCP 600** — ICC rules for documentary credits; Article 20 covers bills of lading and transhipment.
+- **AIFTA:** ASEAN–India Trade in Goods Agreement.
+- **ATP:** available to promise = on hand − reserved − protected floor.
+- **as_of:** the moment an early-warning query is evaluated at; nothing observed later is used.
+- **BOM:** bill of materials. **B/L:** bill of lading. **CoO:** certificate of origin.
+- **Direct consignment:** FTA condition on how goods travel; non-party transit is allowed only under conditions.
+- **Early-warning index:** 0–100 heuristic from signal severity and source confidence; not a probability.
+- **Exposure:** possible loss if a risk materialises; never a cost.
+- **GraphRAG:** retrieving facts as graph paths and giving the LLM only a linearised version to explain.
+- **HITL:** a human decides before anything executes.
+- **LC / UCP 600 / ISBP / MT700:** documentary credit, its ICC rules, ICC's examination practice, and the SWIFT message that issues it (tags 43T, 44C…).
+- **Look-ahead:** using information that was not yet known at the decision time; forbidden.
+- **Signal:** a dated external observation (grid, weather, news, port).
+- **Temporal RAG:** filter rules by validity date, jurisdiction and authority first, then rank text.
+- **Tier-1/2/3:** supplier, its supplier, the next level. Tiers are relative to a path: Zenith fab is tier-2 via SUP-A and tier-3 via SUP-B.
+- **Transhipment:** moving cargo to another vessel at an intermediate port.
 
 ## 18. Sources
-Event (official pages block automated fetching; facts taken from search-indexed text on 19 Oct 2026):
-- [SAP Hackfest Bengaluru 2026](https://events.sap.com/in-hackfest-bangalore-2026/en_us/home.html)
-- [SAP Hackfest 2026 (themes, agents, team size, North region)](https://events.sap.com/in-hackfest-2026/en_us/home.html)
-- [Hackfest South & East Region 2026](https://events.sap.com/in-hackathon-south-east-india-2026/en_us/home.html)
-- [SAP Community: Hackfest Hackathon North Region 2026](https://community.sap.com/t5/sap-university-alliances-program-events/hackfest-hackathon-north-region-2026/ev-p/14456114)
+- [SAP Hackfest Bengaluru 2026](https://events.sap.com/in-hackfest-bangalore-2026/en_us/home.html) and its [FAQ](https://events.sap.com/in-hackfest-bangalore-2026/en_us/FAQ.html) (blocks automated reading; facts from indexed text, 19 Oct)
+- [SAP Hackfest 2026: themes and agents](https://events.sap.com/in-hackfest-2026/en_us/home.html) · [South & East Region 2026](https://events.sap.com/in-hackathon-south-east-india-2026/en_us/home.html) · [SAP Community: North Region 2026](https://community.sap.com/t5/sap-university-alliances-program-events/hackfest-hackathon-north-region-2026/ev-p/14456114)
+- [MT700 field list](https://www.iotafinance.com/SWIFT-ISO15022-Type-de-message-MT700.html) · [ICC eUCP MT700 briefing](https://library.iccwbo.org/content/tfb/DIGITAL_COM_BRIEFINGS/20240402_Commercialisation_Briefing_eUCP_MT700_templates_n_3.pdf) · [ICC Forum on UCP 600 Art. 20(c)](https://library.iccwbo.org/iccForum/viewtopic.php?p=5627) · [ISBP 821 revision draft](https://www.icc.se/wp-content/uploads/2025/01/ISBP-821-Revision-Draft-2.doc) · [AIFTA origin rules, Rule 8 (secondary)](https://www.taxmanagementindia.com/visitor/detail_act.asp?ID=11611)
+- [SAP BTP: Python on Cloud Foundry](https://developers.sap.com/tutorials/btp-cf-buildpacks-python-create..html) · [SAP HANA Cloud trial](https://developers.sap.com/tutorials/hana-cloud-mission-trial-2..html) · [SAP News, Jun 2026](https://news.sap.com/2026/06/autonomous-supply-chain-why-agentic-ai-is-rewriting-the-operating-model/)
+- Similar 2026 team projects: [clutron01/SAP-Hackathon-2026](https://github.com/clutron01/SAP-Hackathon-2026), [ArindamJaiman/SAP-HACKFEST](https://github.com/ArindamJaiman/SAP-HACKFEST)
 
-Trade finance and origin:
-- [MT700 field list (iotafinance)](https://www.iotafinance.com/SWIFT-ISO15022-Type-de-message-MT700.html)
-- [ICC: eUCP MT700 template briefing](https://library.iccwbo.org/content/tfb/DIGITAL_COM_BRIEFINGS/20240402_Commercialisation_Briefing_eUCP_MT700_templates_n_3.pdf)
-- [ICC Forum discussion of UCP 600 Article 20(c)](https://library.iccwbo.org/iccForum/viewtopic.php?p=5627)
-- [University of Southampton: Transport document and bank's security in L/C](https://eprints.soton.ac.uk/364607/1/Transport_20Document_20and_20Bank_27s_20Security.pdf)
-- [ICC Sweden: ISBP 821 revision draft 2](https://www.icc.se/wp-content/uploads/2025/01/ISBP-821-Revision-Draft-2.doc)
-- [India AIFTA origin rules 2009, Rule 8 (secondary reproduction)](https://www.taxmanagementindia.com/visitor/detail_act.asp?ID=11611)
+---
 
-SAP technology and context:
-- [SAP Developers: Python app on SAP BTP Cloud Foundry](https://developers.sap.com/tutorials/btp-cf-buildpacks-python-create..html)
-- [SAP Developers: SAP HANA Cloud trial](https://developers.sap.com/tutorials/hana-cloud-mission-trial-2..html)
-- [SAP Learning Hub](https://www.sap.com/sk/training-certification/learning-hub.html)
-- [SAP News (Ukraine), student access incl. SAP Build with Joule Studio, Sep 2026](https://news.sap.com/ukraine/2026/09/sap-%D0%B2%D1%96%D0%B4%D0%BA%D1%80%D0%B8%D0%B2%D0%B0%D1%94-%D1%83%D0%BA%D1%80%D0%B0%D1%97%D0%BD%D1%81%D1%8C%D0%BA%D0%B8%D0%BC-%D1%81%D1%82%D1%83%D0%B4%D0%B5%D0%BD%D1%82%D0%B0%D0%BC-%D1%82%D0%B0-%D0%B2/)
-- [SAP News: autonomous supply chain and the role of deterministic systems of record (Jun 2026)](https://news.sap.com/2026/06/autonomous-supply-chain-why-agentic-ai-is-rewriting-the-operating-model/)
-- Other public Hackfest 2026 repositories (evidence that "graph + agents" alone is not novel): [clutron01/SAP-Hackathon-2026](https://github.com/clutron01/SAP-Hackathon-2026), [ArindamJaiman/SAP-HACKFEST](https://github.com/ArindamJaiman/SAP-HACKFEST)
+## 19. Module specifications
+
+### Appendix A: Backend and deterministic engine (M4)
+
+**A.1 Persistence (SQLite, one file).**
+
+| Table | Notes |
+|---|---|
+| `meta` | `input_snapshot_id`; counters EVAL, PLN, DEC, EXE, AMD, AUD |
+| `evaluations` | id, disruption, status, llm_mode, snapshot, payload_json |
+| `agent_steps` | (evaluation, seq), step, owner, status, attempts, timing, mode, error |
+| `plans` | id, evaluation, version, status, outcome, plan_hash, snapshot, payload_json; only `status` mutates |
+| `decisions` | partial unique index on (plan_id, plan_version) for approve/reject |
+| `amendment_requests` | — |
+| `executions` | unique (plan_id, plan_version) |
+| `idempotency` | key, endpoint, request_hash, status, response |
+| `audit_events` | append-only; no update or delete paths |
+| `lc_versions` | — |
+
+Every state change (plan status + decision + audit; execution + audit) runs in one transaction.
+
+**A.2 Orchestrator.** Runs the §8 step table using `asyncio.wait_for(asyncio.to_thread(fn), timeout)`, writing an `agent_steps` row before and after each step plus the matching audit event. At start it supersedes undecided earlier plans. At completion it persists plans (`PLAN_CREATED` × 2) and then `EVALUATION_COMPLETED`. Ids come from counters (P1 = PLN-0001, P2 = PLN-0002). Findings and evidence are sorted by id. Options are ordered inventory first, then quotes × routes in fixture order.
+
+**A.3 Compliance finding ids.**
+
+| Check | Finding id |
+|---|---|
+| Transhipment | `FND-LC-TRANSHIPMENT-<route>` |
+| Latest shipment date | `FND-LC-LATEST_SHIPMENT-<route>` |
+| Port of loading | `FND-LC-PORT_OF_LOADING-<route>` |
+| Port of discharge | `FND-LC-PORT_OF_DISCHARGE-<route>` |
+| Presentation period | `FND-LC-PRESENTATION-<route>` |
+| Extraction consistency | `FND-LC-EXTRACTION-<route>` (only when an extraction exists) |
+| LC amount | `FND-LC-AMOUNT-<plan>-<lc>` |
+| Partial shipments | `FND-LC-PARTIAL-<plan>-<lc>` |
+| Direct consignment | `FND-FTA-DIRECT_CONSIGNMENT-<route>` |
+| Certificate of origin | `FND-FTA-CERTIFICATE_OF_ORIGIN-<route>` |
+| Rule applicability | `FND-FTA-RULES-<route>` |
+
+Evidence ids: `EVD-LCF-<lc>-<tag>`, `EVD-ROUTE-<route>`, `EVD-RULE-<rule>`, `EVD-QT-<quote>`, `EVD-LCB-<lc>`, `EVD-LCRAW-<lc>`. The rule query uses `applicable_on = route.eta_port` and `known_as_of = scenario date`.
+
+**A.4 Plan builder.** Greedy loop per order, sorted by (need_by, order_id):
+
+```
+on_time = candidates with eta_plant ≤ need_by → min by (unit_cost, eta, option_id)
+else    late candidates with eta_plant < baseline_revised_arrival → min by (eta, unit_cost, option_id)
+else    BASELINE-PO
+```
+- Lines are numbered L01, L02, … in creation order.
+- Plan findings = `FND-SENSE-<disruption>` + the findings of options used (first-use order) + plan-level findings (LC amount, partial shipments, inventory allocation from M1's `allocation_findings`).
+- `cost_breakdown` always lists all five categories.
+- `plan_hash = "sha256:" + sha256(canonical_json(plan_hash_material))`. Canonical JSON is `json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False)`.
+
+**A.5 Decision validation order** (first failure wins):
+1. Actor present and not a viewer.
+2. Idempotency-Key present.
+3. Replay (200) or key reuse (409).
+4. Plan exists.
+5. Superseded → 409.
+6. Version/hash stale → 409 with `current`.
+7. Already decided → 409.
+8. Action rules (§11.2).
+9. Commit in one transaction.
+
+Refusals from step 4 onward write `DECISION_REFUSED`. Request hash = sha256 of canonical `{path, actor_id, body}`.
+
+**A.6 Execution.**
+- **Preconditions:** checks in order: actor and key → replay → plan exists → `approved` (else 409 NOT_APPROVED / ALREADY_EXECUTED) → decision id matches → snapshot unchanged (else 409 PLAN_VERSION_STALE) → `EXE-nnnn` queued → 202.
+- **Step generation** from the plan lines:
+  1. REDUCE_PO {po_id, from_qty, to_qty}
+  2. CREATE_PO per quote {supplier_id, quote_id, qty, unit_price_inr, lc_id, lc_drawing_inr}
+  3. BOOK_FREIGHT per route {route_option_id, qty}
+  4. CREATE_STOCK_TRANSFER per source with transfer days {inventory_source_id, to_location_id, qty}
+  5. RESERVE_STOCK per plant source and order
+  6. NOTIFY_CUSTOMER per order with late units {order_id, qty_late, days_late}
+- **Failure injection:** `AEGIS_SIMULATE_FAIL_AT_STEP=N` fails step N; later steps are skipped and the plan becomes failed. No retry.
+
+**A.7 Audit.**
+- One `append_audit()` function holds a lock inside the transaction. Verify recomputes every hash.
+- Reset deletes all rows, then writes `DEMO_RESET` as seq 1.
+
+**A.8 Conventions and deployment.**
+- **Errors:** problem type `https://aegisshield.local/problems/<kebab-code>`.
+- **Serving:** in the demo, FastAPI serves `frontend/dist` (one origin).
+- **Config:** `AEGIS_DEMO_MODE=1`, `AEGIS_LLM_MODE=recorded|off`.
+- **Offline:** wheels in `ops/wheels`.
+- **BTP:** `ops/manifest.yml` (python buildpack, `uvicorn app.main:app --host 0.0.0.0 --port $PORT`). SQLite on CF is ephemeral, which is acceptable for a demo.
+
+### Appendix B: Dependency traversal (M4) and GraphRAG context and GraphView (M3)
+
+**B.1 Graph load (M4).**
+- Facilities are `FAC-*` nodes. Edges are `SUPPLIES` (provider → consumer) with `part_id`, `source_ref` and `confidence`.
+- Validate on load: unique ids; endpoints exist; part exists; source exists; no self-loops; every supplier facility exists.
+- Build a NetworkX `MultiDiGraph` keyed by edge id and iterate sorted.
+
+**B.2 Traversal (M4).** Follows §10.1. Path ids are `PATH-<supplier>-<n>` in discovery order. Every path gets evidence `EVD-PATH-<supplier>-<n>`, so passed results have evidence too. Golden results: SUP-B blocked via E-004, E-005; SUP-C passed, sharing FAC-SUBS with the primary.
+
+**B.3 Linearisation `aegis-path-v1` (M3)** must be byte-identical to the golden:
+```
+QUERY supplier=<SUP> part=<PRT> max_depth=<n> disrupted=<FAC,...>
+RESULT outcome=<outcome> reason=<REASON> coverage_complete=<true|false> truncated=<true|false>
+PATH <PATH-ID> [<kind>] (<label> | <org_name> | <country> | <node_id>)[ [DISRUPTED]] <-SUPPLIES[<part short name>; <edge_id>; <source_ref>; <confidence>]- (...)
+NOTE <CODE> <node_id>
+```
+`triples` = one per edge on any path. `allowed_citation_ids` = all path ids + edge ids.
+
+**B.4 GraphView (M3).**
+- **Nodes:** buyer, primary facility, each candidate's start and upstream nodes.
+- **Status:** disrupted · buyer · affected_primary · blocked / needs_review / candidate_passed (by candidate result) · normal.
+- **Edges:** all stored edges between kept nodes, with `highlighted` set on the focus supplier's disrupted paths; plus `CAND-<SUP>` candidate edges.
+- `text_alternative` = linearised paths.
+
+**B.5 Explanations (M3).** Prompt `dependency_explain_v1`. The validator rejects:
+- unknown citations;
+- contradictions with the outcome;
+- numbers not in the context;
+- text over 600 characters.
+
+Templates:
+- *blocked:* "<supplier> is not independent: <part> comes through <labels> from <disrupted>, the disrupted site (<path>: <edges>)."
+- *passed:* "No upstream path from <supplier> reaches the disrupted site within <n> hops; all critical inputs have known sources. Shared but undisrupted: <labels>."
+
+**B.6 Graph evaluation metrics** (report in `backend/app/agents/dependency/EVAL.md`):
+- disrupted-path recall 1.0
+- path precision 1.0
+- **false-pass rate 0**
+- determinism 100%
+- explanation grounding 100% (otherwise template)
+- latency target ≤ 50 ms (measure, don't claim)
+
+### Appendix C: Data pipeline, sensing, routing, inventory, early warning (M1)
+
+**C.1 Disruption Sensing.**
+- **Modes:** `gold` (demo default), `recorded`, `live`. Output validates as `GoldExtraction`; any mismatch with gold → issue `EXTRACTION_MISMATCH`, needs_review.
+- **Consistency issues:** `new_etd` must equal planned + delay (`NEW_ETD_INCONSISTENT_WITH_DELAY`); unknown shipment (`UNKNOWN_SHIPMENT`).
+- **Alias resolution:** exact, case-insensitive, exactly one match; otherwise `ROOT_CAUSE_ALIAS_UNRESOLVED` with an empty `disrupted_node_ids`.
+- **Impact:** revised plant arrival = planned + delay. Affected orders come from PO pegging with days late > 0. Penalty = qty × rate × min(days, cap). Severity follows `severity_policy`.
+- **Golden:** SHP-A-0901 arrives 9 Nov; penalties 6,00,000 + 3,60,000 + 2,00,000 = **11,60,000**; severity high.
+
+**C.2 Routing.** A route is eligible if its origin port equals the quote's and ETD ≥ ready date; sort by route id. QT-B-01 → RT-B-CMB, RT-B-DIR. QT-C-01 → RT-C-SIN, RT-C-DIR.
+
+**C.3 Inventory.**
+- Option `OPT-<source>`: ATP per §10.5, `eta_plant` = scenario date + transfer days, unit cost = transfer cost.
+- Findings: `FND-INV-ATP-<source>` (passed if ATP > 0, else blocked) and plan-level `FND-INV-ALLOCATION-<plan>-<source>`, exposed as `allocation_findings()` for MOD-10.
+
+**C.4 Early warning.**
+- **Function:** implements §10.9 exactly, with the endpoint `GET /api/v1/early-warnings?as_of=`; the default is the scenario clock; an invalid `as_of` returns 400 VALIDATION_ERROR.
+- **Output ids:** `EWS-<subject>`; evidence `EVD-<signal_id>` (`source_document`; authority official → `official_circular`, others → `secondary`).
+- **Summary template:** "<label>: WARNING (index 97/100) from 3 signal(s): power_grid (official), weather (official), facility_news (news). Linked to 1 purchase order(s) and 3 customer order(s). Also affects candidate supplier(s) SUP-B." Exact strings are in the goldens.
+- **Tests:** VC-EWS-01…06, plus the boundary test (§7.4 rule 6).
+- **Stretch S-8:** LLM explanation through M3's gateway, citing only `EVD-SIG-*` ids.
+
+**C.5 Enterprise data pipeline (MOD-22).**
+- **Load:** the 12 plan-input fixtures in `fixtures/demo/` (all files except `external_signals.json`), each validated against its schema at startup. A validation failure stops startup with the file and the JSON path.
+- **Snapshot:** compute `input_snapshot_id` exactly as `tools/aegis_oracle.py::input_snapshot_id`: SHA-256 of canonical JSON (`sort_keys=True`, `separators=(",", ":")`, `ensure_ascii=False`) of `{file_stem: content}` for the 12 files. It must equal the golden `sha256:d52c7ecc…d6c0`. `external_signals.json` is excluded.
+- **Provide** validated, typed in-memory models (`ScenarioContext`) to the agents and to MOD-02. Never write to the database (§7.4 rule 1).
+- **Endpoints:** `GET /api/v1/scenario` and `GET /api/v1/disruptions[/{id}]` validate against `api.schema.json#ScenarioResponse` / `#DisruptionList`. M4 mounts the routes in the existing router; M1 owns the handlers.
+- **Reset:** `POST /demo/reset` (M4) reloads through MOD-22, so the snapshot after reset equals the golden.
+- **Stretch S-9:** an OData-shaped mock adapter behind the same `ScenarioContext` interface, labelled "mock".
+
+### Appendix D: Temporal rules and LLM gateway (M3)
+
+**D.1 Rule store.** Rules load from `trade_rules.json` and validate against `TradeRule`. Applicability follows §10.2. Golden results: for all routes, MFN = TR-0003, with TR-0002 superseded, TR-0004 draft and TR-0006 lower authority; preference = TR-0005; consignment = TR-0001. Corpus rule: a real instrument enters only with `verified_primary` status; everything else is a labelled synthetic encoding.
+
+**D.2 Rule evaluation metrics** (in `backend/app/rules/EVAL.md`): applicable-set exactness 100%; exclusion-reason accuracy 100%; superseded/draft leakage **0**; VC-RULE-03 returns needs_review.
+
+**D.3 Gateway.**
+- **Modes:**
+  - `off`: templates only.
+  - `recorded`: `fixtures/llm/recorded/<prompt_id>/<request_hash>.json` (hash of `{prompt_id, prompt_version, input}`); a miss falls back to a template and marks the step `degraded`.
+  - `live`: 8 s timeout, 1 retry, then template + degraded.
+- **Prompts:** `disruption_extract_v1` (M1), `dependency_explain_v1`, `lc_extract_v1`, `plan_explain_v1`, optional `early_warning_explain_v1`.
+- **Validator:** checks schema, citations ⊆ allowed, no contradiction with the outcome, no numbers outside the context, ≤ 600 characters (plans ≤ 900), non-empty. Any failure → template.
+- **Plan templates** are exact strings in the golden `explanations[]`.
+
+### Appendix E: UI behaviour spec (M2; visual reference = M5's delivered design)
+- **E.1 Global frame.**
+  - Persistent banner: "SYNTHETIC DATA — fictional companies and figures".
+  - LLM badge: off / recorded / live, amber when degraded.
+  - Actor switcher "Simulated identity" (Priya, Arjun, Guest viewer); Reset with confirm.
+  - Navigation: Command Center · Evaluation · Execution · Audit.
+- **E.2 Command Center.** Early-warnings panel at the top:
+  - toggle "As of 23 Oct 21:00 (before the notice)" / "Now";
+  - cards sorted by score, each showing level pill + text, score, contributing signals with source kind, linked POs/orders, and "also affects candidate SUP-B";
+  - fixed caption "Heuristic early-warning index, not a probability".
+
+  Below the panel: disruption card (raw notice, severity, "Run recovery evaluation"), then the orders table with a **₹11,60,000** total.
+- **E.3 Evaluation progress.** A 7-step timeline with status icon + text, mode chip and `aria-live`.
+- **E.4 Plan Comparison.**
+  - Two cards (P1, P2): outcome pill, four numbers, check counts, allocation table with readable source names, and "Why?" / Approve / Reject.
+  - The blocked card says "on paper" and "Cannot be approved: 2 blocking findings".
+  - Callout "P1 looks ₹2,08,000 better on paper". Exposures are listed, with "either/or" for mutually exclusive ones.
+- **E.5 Evidence drawer.**
+  - Tabs by evidence kind:
+    - **Graph:** Cytoscape preset layout by role columns; arrows source → target; disrupted = octagon + "Disrupted"; highlighted path thicker; text alternative listed below.
+    - **Letter of credit:** monospace MT700 lines with the cited tag highlighted.
+    - **Rules:** applied / superseded / draft / lower authority / not yet effective / expired.
+    - **Record.**
+  - AI explanation labelled with its mode and "Explanation only — decisions come from the checks above".
+- **E.6 Approval modal.**
+  - Shows version + short hash; acknowledgement rows with role gating; justification; Approve (disabled for blocked plans, with the reason); Reject; Request LC amendment (compliance role only).
+  - **Active warnings** section (FR-30, advisory) lists warnings at level ≥ watch where the subject is a plan supplier's facility, `affected_candidate_supplier_ids` includes a plan supplier, or the location is on a plan route. This is display filtering only: it changes no outcome or number. Expected: P1 shows the Kulim fab warning (via SUP-B); P2 shows none.
+  - One idempotency key per intent, reused on retry. Problem+json handling: 409 → Reload; 403 → switch actor; 422 → field errors.
+- **E.7 Execution and Audit.**
+  - Execution: steps with a "Simulated" chip and "Proposed SAP mapping"; poll every 500 ms; no retry button.
+  - Audit: table plus "Verify chain".
+- **E.8 States.** Loading skeletons; empty states with an action; backend offline banner; LLM degraded badge. Fixed outcome vocabulary: Passed, Needs review, Blocked, Not applicable, each with the same icons everywhere.
+- **E.9 Formatting.** Money with `Intl.NumberFormat('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 0})`; dates as "3 Nov 2026"; bps → %. **The UI never computes money or outcomes.**
+- **E.10 Accessibility.** WCAG 2.2 AA contrast; icon + text status; visible focus; modal focus trap; `aria-live`; graph text alternative; targets ≥ 24 px; respects reduced motion.
+- **E.11 Checkpoints with M3.**
+  - U1: Sat 31 Oct 17:00, 30 min. U2: Sun 1 Nov 15:00, 45 min. At most 5 change requests each, tagged must/should.
+  - Criteria:
+    1. A first-time viewer can name the recommended plan and why P1 is blocked within 10 s.
+    2. Numbers equal the goldens.
+    3. Consistent vocabulary and icons.
+    4. Evidence within 2 clicks.
+    5. Synthetic label on every screen.
+    6. No certainty words.
+    7. Accessibility checks pass.
+    8. Legible on a projector.
+    9. Error states work.
+    10. Early warnings labelled as heuristic.
+
+### Appendix F: Pitch canon (M5 owns wording; M1 owns evidence; M3 approves claims)
+
+**F.1 Numbers** (all SYNTHETIC; nothing else may appear on slides):
+
+| Item | Value |
+|---|---|
+| Orders at risk | 3 orders, ₹1,89,00,000 order value (84 L + 63 L + 42 L) |
+| Baseline loss | ₹11,60,000 (late 6 / 4 / 2 days) |
+| P1 | Recovery ₹3,34,000 · residual ₹0 · net ₹8,26,000 **on paper** · BLOCKED · worst-case exposure ₹5,10,000 · looks ₹2,08,000 better |
+| P2 | Recovery ₹4,92,000 · residual ₹50,000 · net ₹6,18,000 · PASSED · 100 units 2 days late |
+| Duty at risk on the Colombo route | ₹3,87,600 at 15% (₹2,58,400 if the repealed 10% rule were wrongly used) |
+| Early warning | Kulim fab index 97/100 "warning" at 23 Oct 21:00, from 3 signals; supplier notice 59 h 40 min later; 100/100 at scenario time |
+| Checks | P1: 15 passed, 1 needs review, 2 blocked · P2: 15 passed |
+| Audit | 26 events after the full demo; chain verifies |
+| Validation cases | 48 defined, 45 automated in the reference checker. On stage, say "our test cases", not an accuracy number. |
+
+**F.2 Wording.**
+
+Allowed:
+- "early-warning index (heuristic)"
+- "flagged 59 hours before the supplier told us — in our synthetic scenario"
+- "code decides, AI explains"
+- "missing data means a human reviews it"
+- "designed for SAP BTP", or "runs on SAP BTP" only if OD-01 = Built
+- "simplified encoding of UCP 600 / AIFTA rules"
+
+Banned:
+- "probability" or "predicts outages"
+- accuracy percentages; "first", "no one else", "guaranteed", "never wrong"; "<100 ms"; scores out of 10
+- SAP product names as integrations unless Built (§2.4)
+
+**F.3 Real vs simulated vs proposed.**
+- *Real:* the working software; deterministic checks; test cases; the audit chain.
+- *Simulated:* companies, prices, signals, schedules, the LC, the rules, execution.
+- *Proposed:* SAP product integrations except the ones marked Built.
+
+**F.4 Q&A owners** (answer outlines carried over from v1):
+
+| Question | Answers |
+|---|---|
+| Where does tier-2/3 data come from? | M3 |
+| Does transhipment always break an LC? | M4 |
+| Does Colombo transit kill the FTA preference? | M4 |
+| How do you pick the right tariff rule? | M3 |
+| What does the AI actually do? | M3 |
+| How does the early warning work, and is it a prediction? | M1 |
+| Why not fully autonomous? | M4 |
+| Two official sources disagree? | M3 |
+| How accurate is it? (no real-world claim) | M4 |
+| Which SAP technology did you use? (OD-01) | M4 |
+| Will it scale? | M4 |
+| Who pays, and why ASEAN–India? | M5 |
+| Isn't the data fake? | M5 |
+| Liability? | M3 |
+
+**F.5 Evidence register seed** (M1 maintains it in `pitch/evidence-register.md`). Statuses: V-P verified primary, V-S verified secondary, U unverified, SYN synthetic.
+- **E-03 (V-P):** shortlist 25 Oct, finale 4 Nov at NHCE.
+- **E-04 (V-P regional, U Bengaluru):** finale needs SAP technologies.
+- **E-05 (V-P):** five agent roles + human approval.
+- **E-08 (V-S):** MT700 43T / 43P / 44C.
+- **E-09 (V-S):** UCP 600 20(c).
+- **E-10 (V-S draft):** ISBP on excluding 20(c).
+- **E-11 (V-S):** AIFTA Rule 8.
+- **E-12 (U):** India's duty-date rule.
+- **E-13 (V-P):** BTP Python on CF.
+- **E-15 (V-P):** SAP says deterministic systems of record stay essential.
+- **E-16 (V-P):** similar 2026 projects exist.
+- **E-19 (SYN):** all demo data.
+- **E-22 (SYN):** early-warning signals and weights.
+
+---
+
+## 20. Decision log (append-only)
+
+Format: `| D-0NN | date | decision | why | consulted |`
+
+| ID | Date | Decision | Why | Consulted |
+|---|---|---|---|---|
+| D-001 | 19 Oct | Final idea is AegisShield AI; no re-scoring | [REQ] | all |
+| D-003 | 19 Oct | One synthetic scenario; numbers canonical in `fixtures/expected/` | PDF figures inconsistent | — |
+| D-004 | 19 Oct | Two plans: P1 `cost_time_only`, P2 `constraint_verified` | Naive vs verified contrast | — |
+| D-005 | 19 Oct | 43T = transhipment; block only when 20(c) excluded or the exception fails | C3, C4 | — |
+| D-006 | 19 Oct | Non-party AIFTA transit → needs_review | C4 | — |
+| D-007 | 19 Oct | Arrival is never an LC input | C5 | — |
+| D-008 | 19 Oct | Money definitions; exposures separate; mutually exclusive exposures not summed | Avoid double counting | — |
+| D-010 | 19 Oct | LLM modes live/recorded/off; outcomes independent of the LLM | Venue risk; trust | — |
+| D-011 | 19 Oct | Every plan needs human approval; blocked never approvable; role-specific acknowledgements | HITL [REQ] | — |
+| D-012 | 19 Oct | Execution simulated; first failure stops; no auto-retry | Bounded execution | — |
+| D-013 | 19 Oct | Hash-chained audit with verify | Auditability | — |
+| D-016 | 19 Oct | Graph edges provider → consumer everywhere | One convention | — |
+| D-019 | 19 Oct | No novelty, performance or score claims | C7 | — |
+| D-002, D-009, D-014, D-015, D-017, D-018, D-020 | 19 Oct | v1 ownership, stack, freeze dates, A-05, layout, review cadence and Phase-0 rule | — | **Superseded by D-021…D-030** where they conflict |
+| **D-021** | 30 Oct | Member numbering follows the team context file. M5 = pitch, deck, scripts only (no UI/UX). UI/UX + frontend → M2. Final decisions → M3. v1 docs 01–05 retired. | [REQ 30 Oct]; M2's data pipeline is the lightest remaining job and owns the data the dashboard shows; M4 is on the critical path | Team (instruction of 30 Oct) |
+| D-022 | 30 Oct | Module reassignment per §7.3: routing, inventory, sensing and early warning → M1; GraphRAG context, GraphView, contracts, e2e → M3; M4 keeps the backend core and deterministic engine | Balance load around M4's critical path | M3, M4 |
+| D-023 | 30 Oct | Early-warning index: heuristic 0–100, never called a probability; advisory only; excluded from `input_snapshot_id`; never imported by plan code | F1, F2; no historical data | M1, M5 |
+| D-024 | 30 Oct | Context-file profitability formula mapped to canonical definitions (§10.10); no expected-value netting | F3 | M4, M5 |
+| D-025 | 30 Oct | Contracts 1.1.0: additive EWS contract + owner remap; the 12 plan-input fixtures unchanged; plan hashes unchanged | Parallel work without breaking built code | M4 |
+| D-026 | 30 Oct | M3 reviews the UI at U1/U2 only; M5's delivered design is the visual reference; M2 decides visual details | Bounded review; M5 off UI | M2 |
+| D-027 | 30 Oct | Demo acceptance: M5 executes during rehearsals, M2 drives, M3 signs | Independent check without UI work for M5 | M5 |
+| D-028 | 30 Oct | Contingencies C-1…C-5 (§13.4) | Overload risk R-03, R-04 | M1, M2, M4 |
+| D-029 | 30 Oct | Narrative "power-related shutdown"; fixture notice text unchanged | F9; hash stability | M5 |
+| D-030 | 30 Oct | Freeze Sun 1 Nov 20:00; patch-only contracts from Sat 31 Oct | 4½ days left | all |
+| **D-031** | 30 Oct 20:30 | Enterprise data pipeline (MOD-22, FR-01, master-data contract and the eight data fixtures) moves from M2 to **M1**; M2 = UI/UX and frontend only. C-2 no longer reassigns work to M1; C-1 applies only if M1 is on schedule. Contracts 1.1.1 (owner metadata only). Supersedes D-021 in part. | [REQ 30 Oct]; keep M2 on the frontend critical path | Team (instruction of 30 Oct) |

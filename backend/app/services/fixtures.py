@@ -20,6 +20,8 @@ FIXTURE_SCHEMAS = {
     "policies": "fixtures.schema.json#/$defs/PoliciesFile",
     "sources": "fixtures.schema.json#/$defs/SourcesFile",
 }
+# Validated on load but never part of the plan inputs or input_snapshot_id (contracts 1.1.0, docs/00 §10.9).
+NON_PLAN_FIXTURES = {"external_signals": "signals.schema.json#/$defs/SignalsFile"}
 
 
 def canonical_json(value: Any) -> str:
@@ -30,7 +32,7 @@ def digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def load_fixtures(root: Path) -> dict[str, Any]:
+def load_fixtures(root: Path, include_non_plan: bool = False) -> dict[str, Any]:
     root = Path(root)
     fixture_dir = root / "demo"
     if fixture_dir.is_dir():
@@ -47,7 +49,7 @@ def load_fixtures(root: Path) -> dict[str, Any]:
     result = {}
     for path in sorted(fixture_dir.glob("*.json")):
         value = json.loads(path.read_text(encoding="utf-8-sig"))
-        schema_ref = FIXTURE_SCHEMAS.get(path.stem)
+        schema_ref = FIXTURE_SCHEMAS.get(path.stem) or NON_PLAN_FIXTURES.get(path.stem)
         if not schema_ref:
             raise ValueError(f"No contract schema is registered for fixture {path.name}")
         schema_uri, fragment = schema_ref.split("#", 1)
@@ -57,9 +59,15 @@ def load_fixtures(root: Path) -> dict[str, Any]:
             error = errors[0]
             location = "/".join(map(str, error.absolute_path)) or "<root>"
             raise ValueError(f"Fixture {path.name} violates its contract at {location}: {error.message}")
+        if path.stem in NON_PLAN_FIXTURES and not include_non_plan:
+            continue
         result[path.stem] = value
     return result
 
 
 def snapshot_id(fixtures: dict[str, Any]) -> str:
     return digest(fixtures)
+
+
+def load_signals(root: Path) -> dict[str, Any]:
+    return load_fixtures(root, include_non_plan=True)["external_signals"]

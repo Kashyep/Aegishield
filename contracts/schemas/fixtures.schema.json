@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Fixture file wrappers",
-  "description": "Shapes of the files in fixtures/demo and fixtures/validation. Owner: Member 3. Reviewer: Member 5. Contract version 1.0.0.",
+  "description": "Shapes of the files in fixtures/demo and fixtures/validation. Owner: Member 3. Reviewer: Member 4. Contract version 1.1.0.",
   "$defs": {
     "FileHeader": {
       "type": "object",
@@ -308,7 +308,8 @@
             "sources",
             "supplier_quotes",
             "supply_graph",
-            "trade_rules"
+            "trade_rules",
+            "external_signals"
           ]
         },
         "collection": {
@@ -408,7 +409,8 @@
             "inventory_rebalancing",
             "plan_builder",
             "approvals",
-            "llm_gateway"
+            "llm_gateway",
+            "early_warning"
           ]
         },
         "owner": {

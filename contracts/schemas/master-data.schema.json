@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AegisShield enterprise master data (synthetic ERP)",
-  "description": "Entities loaded from fixtures/demo. Owner: Member 3. Reviewers: Member 4 (suppliers, parts, routes), Member 5 (letters of credit). Contract version 1.0.0.",
+  "description": "Entities loaded from fixtures/demo. Owner: Member 1 (enterprise data pipeline). Reviewers: Member 4 (orders, POs, quotes, routes, inventory), Member 3 (letters of credit, agreements). Contract version 1.1.1 (owner metadata only).",
   "$defs": {
     "Scenario": {
       "type": "object",

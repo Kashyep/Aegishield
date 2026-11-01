@@ -1,3 +1,4 @@
+
 interface NeuChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'accent' | 'neutral';
   size?: 'sm' | 'md';
@@ -5,31 +6,28 @@ interface NeuChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   dotColor?: 'success' | 'warning' | 'error' | 'info' | 'neutral';
 }
 
-export function NeuChip({ variant = 'neutral', size = 'md', dot, dotColor, className = '', children, ...props }: NeuChipProps) {
-  const variantClasses = {
-    primary: 'neu-chip neu-chip-primary',
-    success: 'neu-chip neu-chip-success',
-    warning: 'neu-chip neu-chip-warning',
-    error: 'neu-chip neu-chip-error',
-    info: 'neu-chip neu-chip-info',
-    accent: 'neu-chip neu-chip-accent',
-    neutral: 'neu-chip neu-chip-neutral',
-  };
+const chipColors = {
+  primary: '8',
+  success: '8',
+  warning: '5',
+  error: '1',
+  info: '6',
+  accent: '7',
+  neutral: '9',
+};
 
-  const sizeStyles = {
-    sm: { padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)' },
-    md: { padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)' },
-  };
-
+export function NeuChip({
+  variant = 'neutral',
+  dot,
+  className = '',
+  children,
+  ...props
+}: NeuChipProps) {
   return (
-    <span
-      className={`${variantClasses[variant]} ${className}`}
-      style={{ ...sizeStyles[size] }}
-      {...props}
-    >
-      {dot && <span className={`neu-badge-dot ${dotColor || variant}`} aria-hidden="true" />}
+    <ui5-badge color-scheme={chipColors[variant]} className={className} {...props}>
+      {dot && <span aria-hidden="true">● </span>}
       {children}
-    </span>
+    </ui5-badge>
   );
 }
 
@@ -38,11 +36,17 @@ interface NeuPillProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
 }
 
-export function NeuPill({ active = false, icon, className = '', children, ...props }: NeuPillProps) {
+export function NeuPill({
+  active = false,
+  icon,
+  className = '',
+  children,
+  ...props
+}: NeuPillProps) {
   return (
     <button
       className={`neu-pill ${active ? 'active' : ''} ${className}`}
-      aria-selected={active}
+      aria-pressed={active}
       {...props}
     >
       {icon && <span aria-hidden="true">{icon}</span>}
@@ -59,9 +63,27 @@ interface NeuPillsProps {
   'aria-label'?: string;
 }
 
-export function NeuPills({ tabs, activeTab, onChange, className = '', 'aria-label': ariaLabel = 'Tab navigation' }: NeuPillsProps) {
+export function NeuPills({
+  tabs,
+  activeTab,
+  onChange,
+  className = '',
+  'aria-label': ariaLabel = 'Tab navigation',
+}: NeuPillsProps) {
   return (
-    <div role="tablist" aria-label={ariaLabel} className={`neu-pills ${className}`} style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className={`neu-pills ${className}`}
+      style={{
+        display: 'flex',
+        gap: 'var(--space-1)',
+        flexWrap: 'wrap',
+        borderBottom: '1px solid var(--color-border)',
+        paddingBottom: 'var(--space-2)',
+        marginBottom: 'var(--space-3)',
+      }}
+    >
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -75,7 +97,9 @@ export function NeuPills({ tabs, activeTab, onChange, className = '', 'aria-labe
           {tab.icon && <span aria-hidden="true">{tab.icon}</span>}
           {tab.label}
           {tab.count !== undefined && (
-            <span style={{ marginLeft: 'var(--space-1)', opacity: 0.7 }}>{tab.count}</span>
+            <span style={{ marginLeft: 'var(--space-1)', opacity: 0.7 }}>
+              {tab.count}
+            </span>
           )}
         </button>
       ))}
@@ -88,19 +112,17 @@ interface NeuBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   dot?: boolean;
 }
 
-export function NeuBadge({ variant = 'neutral', dot = false, className = '', children, ...props }: NeuBadgeProps) {
-  const variantClasses = {
-    success: 'neu-badge neu-badge-dot success',
-    warning: 'neu-badge neu-badge-dot warning',
-    error: 'neu-badge neu-badge-dot error',
-    info: 'neu-badge neu-badge-dot info',
-    neutral: 'neu-badge neu-badge-dot neutral',
-  };
-
+export function NeuBadge({
+  variant = 'neutral',
+  dot = false,
+  className = '',
+  children,
+  ...props
+}: NeuBadgeProps) {
   return (
-    <span className={`${variantClasses[variant]} ${className}`} {...props}>
-      {dot && <span className="neu-badge-dot" style={{ backgroundColor: 'currentColor' }} aria-hidden="true" />}
+    <ui5-badge color-scheme={chipColors[variant]} className={className} {...props}>
+      {dot && <span aria-hidden="true">● </span>}
       {children}
-    </span>
+    </ui5-badge>
   );
 }

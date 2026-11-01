@@ -53,7 +53,15 @@ export function Modal({ isOpen, onClose, title, children, actions, maxWidth, cla
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      previouslyFocused.current?.focus();
+      const trigger = previouslyFocused.current;
+
+if (trigger?.isConnected) {
+  requestAnimationFrame(() => {
+    if (trigger.isConnected) {
+      trigger.focus();
+    }
+  });
+}
     };
   }, [isOpen, onClose]);
 

@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { navItems, screenLabel, type Screen } from '../../app/navigation';
 
@@ -21,29 +22,28 @@ export function Sidebar({
   const isExpanded = state === 'expanded';
   const isMobileOpen = state === 'mobile-open';
 
-  // Close mobile drawer on navigation
   useEffect(() => {
     if (isMobileOpen) onCloseMobile();
   }, [activeScreen, isMobileOpen, onCloseMobile]);
 
-  if (isMobile && state === 'collapsed') return null; // Hidden on mobile when collapsed
+  if (isMobile && state === 'collapsed') return null;
 
   return (
     <aside
-      className={`sidebar neu-card raised-lg ${isMobileOpen ? 'mobile-open' : ''}`}
+      className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}
       style={{
-        width: isExpanded ? 'var(--sidebar-width-expanded)' :
-               isMobileOpen ? '100%' :
-               'var(--sidebar-width-collapsed)',
-        transform: isMobileOpen ? 'translateX(0)' : 'translateX(0)',
+        width: isExpanded
+          ? 'var(--sidebar-width-expanded)'
+          : isMobileOpen
+            ? '100%'
+            : 'var(--sidebar-width-collapsed)',
       }}
       role="navigation"
       aria-label="Main navigation"
     >
-      {/* Brand */}
-      <div className="brand" style={{ opacity: isExpanded || isMobileOpen ? 1 : 0, pointerEvents: isExpanded || isMobileOpen ? 'auto' : 'none' }}>
-        <div className="brand-mark neu-avatar">A</div>
-        {isExpanded && (
+      <div className="brand">
+        <div className="brand-mark">A</div>
+        {(isExpanded || isMobileOpen) && (
           <div>
             <strong>AegisShield</strong>
             <span>AI RECOVERY PLATFORM</span>
@@ -54,42 +54,60 @@ export function Sidebar({
       <nav
         className="sidebar-nav"
         aria-label="Workspace navigation"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: 1 }}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-1)',
+          flex: 1,
+        }}
       >
-        {isExpanded && <p className="nav-heading">WORKSPACE</p>}
+        {(isExpanded || isMobileOpen) && (
+          <p className="nav-heading">WORKSPACE</p>
+        )}
+
         {navItems.map((item) => (
-          <button
+          <ui5-button
             key={item.id}
-            className={`nav-item neu-btn neu-btn-ghost ${activeScreen === item.id ? 'active' : ''}`}
+            design={activeScreen === item.id ? 'Emphasized' : 'Transparent'}
+            className={`nav-item ${activeScreen === item.id ? 'active' : ''}`}
             onClick={() => onNavigate(item.id)}
             style={{
-              justifyContent: isExpanded ? 'flex-start' : 'center',
-              padding: isExpanded ? 'var(--space-3) var(--space-3)' : 'var(--space-3)',
+              justifyContent: isExpanded || isMobileOpen ? 'flex-start' : 'center',
+              width: '100%',
             }}
             aria-current={activeScreen === item.id ? 'page' : undefined}
-            title={isExpanded ? undefined : screenLabel(item.id)}
+            title={isExpanded || isMobileOpen ? undefined : screenLabel(item.id)}
           >
             <item.icon aria-hidden="true" size={18} strokeWidth={1.75} />
-            {isExpanded && <span style={{ marginLeft: 'var(--space-3)' }}>{item.label}</span>}
-          </button>
+            {(isExpanded || isMobileOpen) && (
+              <span style={{ marginLeft: 'var(--space-3)' }}>
+                {item.label}
+              </span>
+            )}
+          </ui5-button>
         ))}
       </nav>
 
-      {/* Sidebar bottom - status */}
-      <div className="sidebar-bottom" style={{ display: isExpanded || isMobileOpen ? 'grid' : 'none' }}>
+      <div
+        className="sidebar-bottom"
+        style={{
+          display: isExpanded || isMobileOpen ? 'grid' : 'none',
+        }}
+      >
         <span className="status-dot" aria-hidden="true" />
-        <small className="llm-badge" aria-label="LLM mode">{llmBadgeFull}</small>
+        <small className="llm-badge" aria-label="LLM mode">
+          {llmBadgeFull}
+        </small>
       </div>
 
-      {/* Mobile close button */}
       {isMobileOpen && (
-        <button
-          className="neu-btn neu-btn-secondary"
+        <ui5-button
+          design="Default"
           onClick={onCloseMobile}
           style={{ marginTop: 'var(--space-4)', width: '100%' }}
         >
           Close navigation
-        </button>
+        </ui5-button>
       )}
     </aside>
   );

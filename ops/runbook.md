@@ -49,7 +49,7 @@ Copy-Item .env.example .env
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `AEGIS_LLM_MODE` | `off` | LLM execution mode: `off`, `recorded`, or `live`. For the demo, use `off`. |
+| `AEGIS_LLM_MODE` | `off` | LLM execution mode: `off`, `recorded`, or `live`. Demo: `recorded` (ops/demo.ps1 default); offline drill and BTP: `off` (D-033). |
 | `AEGIS_DEMO_MODE` | `1` | Enables demo reset and synthetic scenario controls (`1` or `0`). |
 | `AEGIS_DB_PATH` | `work/aegis-demo.sqlite3` | SQLite database file location (`/tmp/aegis-demo.sqlite3` in cloud). |
 | `AEGIS_CORS_ORIGINS` | `http://localhost:5173,...` | Comma-separated allowed browser origins for dual-server dev mode. |
@@ -72,9 +72,17 @@ Copy-Item .env.example .env
 
 ## 4. Run Locally
 
-### Option A: Same-Origin Single Server (Recommended Demo Setup)
+### Option A: One-Command Demo Launcher (Recommended Demo Setup)
 
-FastAPI serves both the API (`/api/v1/*`) and the built frontend (`/`) from a single origin on port 8000 when `frontend/dist` is built.
+The primary way to start the demo is the launcher script (recorded LLM mode per docs/00 D-033; `-Offline` for the unplugged drill, DA-12):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ops/demo.ps1
+```
+
+*(For the unplugged drill or offline testing, add `-Offline`: `powershell -ExecutionPolicy Bypass -File ops/demo.ps1 -Offline`).*
+
+Alternatively, start manually with the same-origin single server (FastAPI serves both the API at `/api/v1/*` and the built frontend at `/` on port 8000 when `frontend/dist` is built):
 
 ```powershell
 # 1. Build frontend dist
@@ -240,7 +248,7 @@ cd ..
 ## 9. Troubleshooting
 
 ### LLM Badge Shows "Degraded" or Unexpected Mode
-- Verify `AEGIS_LLM_MODE=off` in `.env` (or environment variables).
+- The launcher (`ops/demo.ps1`) sets the mode explicitly, overriding `.env`.
 - The sidebar badge should display `LLM: off (templates)`.
 - If set to `live` without credentials or with an invalid model, the system degrades to templates only.
 - Query `GET /api/v1/health` to inspect the reported `llm_mode`.

@@ -82,14 +82,15 @@ Machine evidence only. It is not the human acceptance run, and nobody has signed
 | DA-03 | Golden evaluation has 7 steps; UI reports "Evaluation EVAL-0001 completed." | pass (UI step list: check by hand) |
 | DA-04 | P1 ₹3,34,000 / ₹0 / ₹8,26,000 BLOCKED; P2 ₹4,92,000 / ₹50,000 / ₹6,18,000 PASSED; "P2 · Recommended" | pass |
 | DA-05 | `frontend/tests-live/live-demo.spec.ts`: SUP-B graph with 2 highlighted path elements; SUP-C passed | pass (text version: check by hand) |
-| DA-06, DA-07 | Not automated (evidence-drawer selector changed in the UI redesign) | check by hand |
+| DA-06, DA-07 | UI walk (live stack): LC finding shows 43T, 47A and the amendment remedy; FTA finding shows NEEDS REVIEW, ₹3,87,600, 15%, TR-0003, TR-0002 superseded, TR-0004 draft, TR-0006 lower authority; Escape closes the drawer | pass |
 | DA-08 | P1 Approve disabled with "Cannot be approved: 2 blocking findings. P1 remains blocked."; API refusal `422 PLAN_BLOCKED` in golden e2e step 5 | pass (per D-043) |
 | DA-09–DA-11 | `work/audit/flow_runner.py` against the real API, run 1 Nov: `approval_flow` steps 1–16 pass twice in `off` (15:09) and twice in `recorded` (15:29), identical plan hashes | pass at API level; check UI by hand |
 | DA-12 | The `off` runs above: 16/16, same plan hashes as `recorded` (only the explanation text differs, as VC-LLM-01 allows) | pass at API level; network-unplugged drill by hand |
-| DA-13 | Not automated | check by hand |
+| DA-13 | UI walk: P2 Approve opened by keyboard (Enter), Tab reaches "Approve plan", Enter approves; statuses use icon + text | pass (focus visibility: check by eye) |
 | DA-14 | Deck not in repo | M5 |
 | DA-15 | Two runs after reset: P1 `sha256:e51b38ab…`, P2 `sha256:3324f97f…` both times | pass |
-| DA-16, DA-17 | Cut (D-034): early warning shown as one slide built from the EWS goldens | cut |
+| DA-16 | `frontend/tests-live/live-demo.spec.ts` (live API) + UI walk: Early warnings screen, "As of 23 Oct 21:00" → Zenith Kulim wafer fab WARNING 97/100, 3 signals, SO-1001/1002/1003, SUP-B; "Now" → 100/100; "Heuristic index, not a probability" visible | pass (D-044) |
+| DA-17 | `frontend/tests-live/live-demo.spec.ts`: P1 card: "Early warning (advisory): Zenith Kulim wafer fab · WARNING 100/100 via SUP-B"; P2 card: none; numbers unchanged | pass (D-044) |
 
 KR candidates for the run (M3): none blocking. Note for presenters: P1's Approve is disabled by design (D-043).
 

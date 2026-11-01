@@ -193,6 +193,7 @@ export type Evaluation = {
   evidence: Evidence[]
   rule_results: RuleResult[]
   dependency_results?: DependencyResult[]
+  options?: { option_id: string; supplier_id?: string | null; [key: string]: unknown }[]
 }
 
 export type DependencyResult = {
@@ -414,4 +415,65 @@ export type DemoResetResponse = {
   reset_at: string
   counters_reset: boolean
   audit_event_id: string
+}
+
+
+export type EarlyWarningSubjectType = 'node' | 'location'
+export type EarlyWarningLevel = 'none' | 'watch' | 'warning'
+export type EarlyWarningSeverity = 'low' | 'medium' | 'high' | 'critical'
+export type EarlyWarningSourceKind = 'official' | 'operator' | 'news' | 'social'
+
+export type EarlyWarningContribution = {
+  signal_id: string
+  category: string
+  source_kind: EarlyWarningSourceKind
+  severity: EarlyWarningSeverity
+  observed_at: string
+  severity_points: number
+  confidence_pct: number
+  contribution: number
+}
+
+export type EarlyWarningExposure = {
+  downstream_node_ids: string[]
+  po_ids: string[]
+  order_ids: string[]
+  shipment_ids: string[]
+  route_option_ids: string[]
+  affected_candidate_supplier_ids: string[]
+}
+
+export type EarlyWarning = {
+  warning_id: string
+  subject: {
+    type: EarlyWarningSubjectType
+    id: string
+  }
+  label: string
+  area_ids: string[]
+  raw_points: number
+  score: number
+  level: EarlyWarningLevel
+  contributing: EarlyWarningContribution[]
+  exposure: EarlyWarningExposure
+  evidence_ids: string[]
+  summary: string
+}
+
+export type EarlyWarningExcludedSignal = {
+  signal_id: string
+  reason: 'not_yet_observed' | 'outside_window' | 'unmapped_area'
+}
+
+export type EarlyWarningResult = {
+  schema_version: string
+  query: {
+    as_of: string
+    window_hours: number
+  }
+  score_kind: 'heuristic_index'
+  score_note: string
+  warnings: EarlyWarning[]
+  excluded_signals: EarlyWarningExcludedSignal[]
+  evidence: Evidence[]
 }

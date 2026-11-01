@@ -49,7 +49,7 @@ Copy-Item .env.example .env
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `AEGIS_LLM_MODE` | `off` | LLM execution mode: `off`, `recorded`, or `live`. For the demo, use `off`. |
+| `AEGIS_LLM_MODE` | `off` | LLM execution mode: `off`, `recorded`, or `live`. Demo: `recorded` (ops/demo.ps1 default); offline drill and BTP: `off` (D-033). |
 | `AEGIS_DEMO_MODE` | `1` | Enables demo reset and synthetic scenario controls (`1` or `0`). |
 | `AEGIS_DB_PATH` | `work/aegis-demo.sqlite3` | SQLite database file location (`/tmp/aegis-demo.sqlite3` in cloud). |
 | `AEGIS_CORS_ORIGINS` | `http://localhost:5173,...` | Comma-separated allowed browser origins for dual-server dev mode. |
@@ -72,9 +72,17 @@ Copy-Item .env.example .env
 
 ## 4. Run Locally
 
-### Option A: Same-Origin Single Server (Recommended Demo Setup)
+### Option A: One-Command Demo Launcher (Recommended Demo Setup)
 
-FastAPI serves both the API (`/api/v1/*`) and the built frontend (`/`) from a single origin on port 8000 when `frontend/dist` is built.
+The primary way to start the demo is the launcher script (recorded LLM mode per docs/00 D-033; `-Offline` for the unplugged drill, DA-12):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ops/demo.ps1
+```
+
+*(For the unplugged drill or offline testing, add `-Offline`: `powershell -ExecutionPolicy Bypass -File ops/demo.ps1 -Offline`).*
+
+Alternatively, start manually with the same-origin single server (FastAPI serves both the API at `/api/v1/*` and the built frontend at `/` on port 8000 when `frontend/dist` is built):
 
 ```powershell
 # 1. Build frontend dist
@@ -237,10 +245,36 @@ cd ..
 
 ---
 
-## 9. Troubleshooting
+## 9. Failure Drills and Recovery
+
+### Simulated execution failure (VC-EXE-01)
+
+Use a disposable local demo run. The injected failure is deterministic and does not call SAP or any external system.
+
+```powershell
+# Stop the normal demo server first, then start a drill instance:
+$env:AEGIS_LLM_MODE = "off"
+$env:AEGIS_SIMULATE_FAIL_AT_STEP = "3"
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
+
+Reset the demo, evaluate, approve P2, and execute it. The execution should show two succeeded steps, step 3 failed, and all later steps skipped; the plan status becomes `failed`, and the audit chain remains valid. No retry or compensation is performed. After the drill, stop the server and clear the injection before restarting normally:
+
+```powershell
+Remove-Item Env:AEGIS_SIMULATE_FAIL_AT_STEP -ErrorAction SilentlyContinue
+powershell -ExecutionPolicy Bypass -File ops/demo.ps1
+```
+
+### Backup recording
+
+The 1 min 51 s backup recording is `demo-backup.mp4`. As of 2026-11-01 it is kept outside Git (17 MB) and was shared by M3; keep a copy on both demo devices and the presentation USB. The intended repository staging location is `pitch/finale/demo-backup.mp4`, but that file is not present in this checkout. Use it with the deck if the live backend is unavailable; do not substitute fixture stubs for a live screen.
+
+---
+
+## 10. Troubleshooting
 
 ### LLM Badge Shows "Degraded" or Unexpected Mode
-- Verify `AEGIS_LLM_MODE=off` in `.env` (or environment variables).
+- The launcher (`ops/demo.ps1`) sets the mode explicitly, overriding `.env`.
 - The sidebar badge should display `LLM: off (templates)`.
 - If set to `live` without credentials or with an invalid model, the system degrades to templates only.
 - Query `GET /api/v1/health` to inspect the reported `llm_mode`.

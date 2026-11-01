@@ -5,7 +5,7 @@ import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
 import { NeuChip } from '../ui/NeuChip';
 import { type Screen } from '../../app/navigation';
-import type { Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
+import type { EarlyWarning, Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
 
 interface CommandCenterProps {
   evaluation: Evaluation | null;
@@ -27,6 +27,7 @@ interface CommandCenterProps {
   actorCanAmend: boolean;
   startPlanExecution: (plan: Plan) => void;
   executionSubmitting: boolean;
+  planWarnings?: Record<string, EarlyWarning[]>;
 }
 
 export function CommandCenter({
@@ -49,6 +50,7 @@ export function CommandCenter({
   actorCanAmend,
   startPlanExecution,
   executionSubmitting,
+  planWarnings,
 }: CommandCenterProps) {
   const plans = evaluation?.comparison?.plans ?? [];
   const recommendedPlanId = evaluation?.comparison?.recommended_plan_id;
@@ -351,6 +353,12 @@ export function CommandCenter({
                     Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. {formatPlanId(plan.plan_id)} remains blocked.
                   </p>
                 )}
+                {(planWarnings?.[plan.plan_id] ?? []).map((w) => (
+                  <p key={w.warning_id} className="plan-warning" role="note" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-start', margin: 'var(--space-3) 0 0', fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>
+                    <AlertTriangle size={16} aria-hidden="true" style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
+                    <span>Early warning (advisory): {w.label} · {w.level.toUpperCase()} {w.score}/100 via {w.exposure.affected_candidate_supplier_ids.join(', ')}. Heuristic index, not a probability; plan unchanged.</span>
+                  </p>
+                ))}
               </ui5-card>
             );
           })}

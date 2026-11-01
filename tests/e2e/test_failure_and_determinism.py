@@ -14,7 +14,9 @@ def client():
 
 
 def test_execution_failure_stops_later_steps_and_is_audited(client, monkeypatch):
-    monkeypatch.setenv("AEGIS_SIMULATE_FAIL_AT_STEP", "2")
+    # VC-EXE-01 injects the third step failure: earlier actions stay recorded,
+    # the first failure stops the run, and all later actions are skipped.
+    monkeypatch.setenv("AEGIS_SIMULATE_FAIL_AT_STEP", "3")
     client.post("/api/v1/demo/reset", headers={"X-Actor-Id": "USR-PRIYA"})
     evaluation = client.post(
         "/api/v1/evaluations",
@@ -37,7 +39,7 @@ def test_execution_failure_stops_later_steps_and_is_audited(client, monkeypatch)
     assert execution.status_code == 202
     details = client.get(f"/api/v1/executions/{execution.json()['execution_id']}").json()
     assert details["status"] == "failed"
-    assert [step["status"] for step in details["steps"]] == ["succeeded", "failed", "skipped", "skipped", "skipped", "skipped"]
+    assert [step["status"] for step in details["steps"]] == ["succeeded", "succeeded", "failed", "skipped", "skipped", "skipped"]
     assert client.get("/api/v1/audit-events/verify").json()["valid"] is True
 
 

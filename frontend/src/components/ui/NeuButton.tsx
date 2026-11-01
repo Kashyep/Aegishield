@@ -1,3 +1,4 @@
+
 import type { HTMLAttributes } from 'react';
 
 interface NeuButtonProps extends HTMLAttributes<HTMLElement> {
@@ -22,18 +23,23 @@ export function NeuButton({
   disabled,
   children,
   className,
-    size: _size,
+  size: _size,
   iconOnly: _iconOnly,
   type = 'button',
+  'aria-label': ariaLabel,
+  title,
   ...props
 }: NeuButtonProps) {
-    void _size;
+  void _size;
   void _iconOnly;
+
   return (
     <ui5-button
       design={designs[variant]}
       disabled={disabled || loading}
       submit={type === 'submit'}
+      accessibleName={ariaLabel || title || undefined}
+      title={title}
       aria-busy={loading || undefined}
       className={className}
       {...props}

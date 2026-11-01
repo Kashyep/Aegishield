@@ -19,6 +19,7 @@ declare module 'react' {
         submit?: boolean;
         icon?: string;
         value?: string;
+        accessibleName?: string;
       };
       'ui5-input': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
         value?: string;

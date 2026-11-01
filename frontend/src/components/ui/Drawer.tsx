@@ -52,7 +52,15 @@ export function Drawer({ isOpen, onClose, title, children, width, className = ''
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      previouslyFocused.current?.focus();
+      const trigger = previouslyFocused.current;
+
+if (trigger?.isConnected) {
+  requestAnimationFrame(() => {
+    if (trigger.isConnected) {
+      trigger.focus();
+    }
+  });
+}
     };
   }, [isOpen, onClose]);
 

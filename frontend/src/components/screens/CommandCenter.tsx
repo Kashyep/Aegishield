@@ -225,6 +225,18 @@ export function CommandCenter({
           {plans.map((plan) => {
             const fullPlan = evaluation?.plans?.find((candidate) => candidate.plan_id === plan.plan_id);
             const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked';
+            console.log("LC BUTTON DEBUG", {
+  planId: plan.plan_id,
+  fullPlanId: fullPlan?.plan_id,
+  fullPlanStatus: fullPlan?.status,
+  findingIds: fullPlan?.finding_ids,
+  blockedLcFindings: evaluation?.findings?.filter(
+    (finding) =>
+      fullPlan?.finding_ids?.includes(finding.finding_id) &&
+      finding.outcome === "blocked" &&
+      finding.check_code.startsWith("LC.")
+  ),
+});
             const planStatus = fullPlan?.status ?? plan.outcome;
             const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-');
             const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);

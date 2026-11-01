@@ -38,7 +38,7 @@ export function NeuButton({
       design={designs[variant]}
       disabled={disabled || loading}
       submit={type === 'submit'}
-      accessibleName={ariaLabel || title || undefined}
+     accessibleName={ariaLabel || undefined}
       title={title}
       aria-busy={loading || undefined}
       className={className}

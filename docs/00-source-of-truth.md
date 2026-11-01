@@ -783,7 +783,7 @@ Every step carries `simulated: true` and a `proposed_sap_mapping` string. The fi
 | DA-14 | Every number on slides equals the UI or Appendix F |
 | DA-15 | A second run after reset gives identical plan hashes |
 | DA-16 | Early warnings: "as of 23 Oct 21:00" shows Kulim fab WARNING 97/100 with 3 signals, links to 3 orders and SUP-B; "now" shows 100; the label "heuristic index, not a probability" is visible |
-| DA-17 | The approval modal lists active warnings (level ≥ watch) that touch the plan: P1 shows the Kulim fab warning via SUP-B; P2 shows none. No number changes. |
+| DA-17 | Active warnings (level ≥ watch) that touch a plan appear on its plan card and in its approval modal: P1's card shows the Kulim fab warning via SUP-B; P2 shows none. No number changes (D-044) |
 
 ### 14.3 Risks
 | ID | Risk | L | I | Mitigation / fallback | Owner |
@@ -1261,3 +1261,4 @@ Format: `| D-0NN | date | decision | why | consulted |`
 | D-041 | 1 Nov 15:30 | Golden e2e and API conformance tests stay in root `tests/e2e` and `tests/conformance` (CI runs `pytest tests`); references to `backend/tests/e2e` mean these | Moving them before the freeze adds risk only | M4 |
 | D-042 | 1 Nov 15:30 | `/health.contract_version` reports `1.1.1` (was a stale `1.0.0`) | Matches promoted contracts (PR #17) | M4 |
 | D-043 | 1 Nov 15:25 | F-13a: keep P1's Approve disabled with the reason on the card; amend DA-08/DA-11 to match. Server enforcement stays proven by `tests/e2e/test_golden_flow.py` step 5 (VC-APR-01) | UI built that way (PRs #12–#15); no UI change 4 h before the freeze; never-cut "server-side approval enforcement" still met | M2, M4, M5 |
+| D-044 | 1 Nov | D-034 reversed: MOD-21 landed green before the freeze. `GET /api/v1/early-warnings` equals both EWS goldens (`backend/app/agents/early_warning`, `backend/tests/test_early_warning.py`, VC-EWS automated) plus the "Early warnings" screen with the as-of toggle. DA-17 is shown on plan cards as well as in the approval modal, because P1 is blocked and its Approve button is disabled (D-043), so the approval path never shows P1's warning. Built by M3 to unblock M1; M1 reviews | Demo story needs the pre-notice warning; boundary tests stay green; plan hashes unchanged | M1, M2 |

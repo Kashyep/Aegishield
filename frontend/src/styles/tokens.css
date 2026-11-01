@@ -1,5 +1,91 @@
 /* AegisShield security-operations tokens. Keep this file as the single source of truth. */
-@import url('https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700;800&family=Overpass:wght@400;500;600;700;800&family=Shanti&family=JetBrains+Mono:wght@400;500&display=swap');
+@font-face {
+  font-family: 'Alegreya SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/alegreya-sc-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya SC';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/alegreya-sc-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya SC';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/alegreya-sc-800.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/overpass-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/overpass-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/overpass-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/overpass-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/overpass-800.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Shanti';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/shanti-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-500.woff2') format('woff2');
+}
 
 :root {
   --font-heading: "Alegreya SC", Georgia, serif;

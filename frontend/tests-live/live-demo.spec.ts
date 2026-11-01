@@ -6,6 +6,13 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await page.getByRole('dialog', { name: 'Reset demo?' }).getByRole('button', { name: 'Reset demo' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Demo reset' })).toBeVisible()
 
+  await page.getByRole('button', { name: /Early warnings/ }).click()
+  await expect(page.getByText('97/100')).toBeVisible()
+  await expect(page.getByText(/Heuristic index, not a probability/).first()).toBeVisible()
+  await page.getByRole('button', { name: /^Now/ }).click()
+  await expect(page.getByText('100/100').first()).toBeVisible()
+  await page.getByRole('button', { name: /Command Center/ }).click()
+
   await page.getByRole('button', { name: 'Run evaluation' }).click()
   await expect(page.getByText('Evaluation EVAL-0001 is completed.')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByLabel('LLM mode')).toHaveText('LLM: recorded')
@@ -17,6 +24,8 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await expect(page.getByRole('region', { name: 'Dependency check result' })).toContainText('SUP-C · Passed')
 
   await page.getByRole('button', { name: /Command Center/ }).click()
+  await expect(page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' }).locator('.plan-warning')).toContainText('Zenith Kulim wafer fab')
+  await expect(page.locator('.plan-card').filter({ hasText: 'P2 AegisShield verified' }).locator('.plan-warning')).toHaveCount(0)
   await page.getByLabel('Simulated identity').selectOption('USR-ARJUN')
   await page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' }).getByRole('button', { name: 'Request LC amendment' }).click()
   const p1 = page.getByRole('dialog', { name: 'Review P1 Fastest-cheapest' })

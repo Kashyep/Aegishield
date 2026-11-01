@@ -245,7 +245,33 @@ cd ..
 
 ---
 
-## 9. Troubleshooting
+## 9. Failure Drills and Recovery
+
+### Simulated execution failure (VC-EXE-01)
+
+Use a disposable local demo run. The injected failure is deterministic and does not call SAP or any external system.
+
+```powershell
+# Stop the normal demo server first, then start a drill instance:
+$env:AEGIS_LLM_MODE = "off"
+$env:AEGIS_SIMULATE_FAIL_AT_STEP = "3"
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
+
+Reset the demo, evaluate, approve P2, and execute it. The execution should show two succeeded steps, step 3 failed, and all later steps skipped; the plan status becomes `failed`, and the audit chain remains valid. No retry or compensation is performed. After the drill, stop the server and clear the injection before restarting normally:
+
+```powershell
+Remove-Item Env:AEGIS_SIMULATE_FAIL_AT_STEP -ErrorAction SilentlyContinue
+powershell -ExecutionPolicy Bypass -File ops/demo.ps1
+```
+
+### Backup recording
+
+The 1 min 51 s backup recording is `demo-backup.mp4`. As of 2026-11-01 it is kept outside Git (17 MB) and was shared by M3; keep a copy on both demo devices and the presentation USB. The intended repository staging location is `pitch/finale/demo-backup.mp4`, but that file is not present in this checkout. Use it with the deck if the live backend is unavailable; do not substitute fixture stubs for a live screen.
+
+---
+
+## 10. Troubleshooting
 
 ### LLM Badge Shows "Degraded" or Unexpected Mode
 - The launcher (`ops/demo.ps1`) sets the mode explicitly, overriding `.env`.

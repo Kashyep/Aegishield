@@ -774,10 +774,10 @@ Every step carries `simulated: true` and a `proposed_sap_mapping` string. The fi
 | DA-05 | FND-DEP-SUP-B opens the graph with Chonburi ← Kedah ← Zenith highlighted, plus a text version |
 | DA-06 | LC finding shows the 43T and 47A lines and the remedy "request amendment" |
 | DA-07 | FTA finding (Colombo) shows needs review, ₹3,87,600 at 15% (TR-0003), TR-0002 superseded, TR-0004 draft, TR-0006 lower authority |
-| DA-08 | Approving P1 shows the server's PLAN_BLOCKED message; nothing changes |
+| DA-08 | P1's Approve is disabled with the reason on the card ("Cannot be approved: 2 blocking findings"); nothing changes. Server-side refusal (`422 PLAN_BLOCKED`) is proven by the golden e2e step 5 (D-043) |
 | DA-09 | Priya approves P2; repeating shows "already decided"; Arjun cannot approve again |
 | DA-10 | Execute → 6 simulated steps, all labelled; a second execute is refused |
-| DA-11 | Audit shows refusals and decisions; Verify → valid (26 events) |
+| DA-11 | Audit shows decisions; Verify → valid. 26 events only for the full API golden flow (with refusals); a UI-only run shows fewer events (D-043) |
 | DA-12 | Network unplugged + LLM off: same numbers and outcomes; badge "LLM: off (templates)" |
 | DA-13 | Whole approval flow by keyboard; focus visible; statuses have icon + text |
 | DA-14 | Every number on slides equals the UI or Appendix F |
@@ -1249,3 +1249,15 @@ Format: `| D-0NN | date | decision | why | consulted |`
 | D-029 | 30 Oct | Narrative "power-related shutdown"; fixture notice text unchanged | F9; hash stability | M5 |
 | D-030 | 30 Oct | Freeze Sun 1 Nov 20:00; patch-only contracts from Sat 31 Oct | 4½ days left | all |
 | **D-031** | 30 Oct 20:30 | Enterprise data pipeline (MOD-22, FR-01, master-data contract and the eight data fixtures) moves from M2 to **M1**; M2 = UI/UX and frontend only. C-2 no longer reassigns work to M1; C-1 applies only if M1 is on schedule. Contracts 1.1.1 (owner metadata only). Supersedes D-021 in part. | [REQ 30 Oct]; keep M2 on the frontend critical path | Team (instruction of 30 Oct) |
+| D-032 | 1 Nov 15:08 | C-3 check: golden flow green on `main` 1a6c7b4 (`approval_flow` 16/16 twice, identical plan hashes; `check_contracts` PASSED; backend 77 + e2e 7 tests pass) → no scope freeze under C-3 | §13.4 | — |
+| D-033 | 1 Nov 15:30 | OD-04 / cut-list item 1: no live LLM in the demo. The local demo runs `recorded`; BTP (`ops/btp/manifest.yml`) and the offline fallback run `off` (DA-12). Live code stays but is not shown | Free model returned 404 on 23 Oct; outcomes never depend on the LLM (D-010) | M4 |
+| D-034 | 1 Nov 15:30 | Cut-list items 6–7: early-warning as-of toggle and panel cut; shown as one slide built from `early_warnings_pre_notice.json` / `early_warnings_scenario_time.json`. DA-16/17 are reported as "cut (D-034)" in acceptance runs (`pitch/rehearsal-log.md` §7a). Reversed only if the MOD-21 endpoint (VC-EWS-01…06 green) and panel merge green before the 20:00 freeze | SC-10 (Sat 18:00) missed: no MOD-21 code or branch on origin at 15:10; R-13 | M1, M2, M5 |
+| D-035 | 1 Nov 15:30 | OD-01: BTP Cloud Foundry hosting is the SAP technology used (app live, `/health` 200, synthetic, LLM off). HANA Cloud, Generative AI Hub and UI5 are "designed for" only. Redeploy from `main` before Tue (deployed build reports contract 1.0.0); C-4 still applies Mon 12:00 | Evidence: health check 1 Nov | M4 |
+| D-036 | 1 Nov 15:30 | OD-08: no further stretch work. S-1 (simulated amendment acceptance + re-evaluation) is already merged and tested; keep it, but it is not on the 3-min demo path | Freeze 20:00 | M4 |
+| D-037 | 1 Nov 15:30 | OD-09: §14.5 default — prepare 10-min and 5-min versions with a 3-min demo; M5 confirms the format with organisers and reports changes | No organiser answer recorded | M5 |
+| D-038 | 1 Nov 15:30 | OD-10: no `design/` folder exists; the shipped UI (PRs #12–#15) is the visual reference. No further design hand-off | Default location empty | M2, M5 |
+| D-039 | 1 Nov 15:30 | OD-11: keep the current stack (React + Vite, hand-written CSS, `lucide-react` icons); no UI5 or UI-kit migration | Freeze 20:00 | M2 |
+| D-040 | 1 Nov 15:30 | OD-07: no primary-source upgrade; Appendix F keeps its cautious wording | No upgraded sources recorded | M1, M5 |
+| D-041 | 1 Nov 15:30 | Golden e2e and API conformance tests stay in root `tests/e2e` and `tests/conformance` (CI runs `pytest tests`); references to `backend/tests/e2e` mean these | Moving them before the freeze adds risk only | M4 |
+| D-042 | 1 Nov 15:30 | `/health.contract_version` reports `1.1.1` (was a stale `1.0.0`) | Matches promoted contracts (PR #17) | M4 |
+| D-043 | 1 Nov 15:50 | F-13a: keep P1's Approve disabled with the reason on the card; amend DA-08/DA-11 to match. Server enforcement stays proven by `tests/e2e/test_golden_flow.py` step 5 (VC-APR-01) | UI built that way (PRs #12–#15); no UI change 4 h before the freeze; never-cut "server-side approval enforcement" still met | M2, M4, M5 |

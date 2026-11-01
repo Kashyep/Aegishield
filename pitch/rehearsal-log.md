@@ -71,6 +71,28 @@ Ground rules for every run section below:
 - KR tags raised: `(pending)`
 - Sign-offs: `(pending)` — M5 signs the MOD-18 gate on this run (`docs/05` l.106).
 
+## 7a. Automated pre-check before the Sun 17:00 acceptance run (M3, 1 Nov 2026 ~16:00)
+
+Machine evidence only. It is not the human acceptance run, and nobody has signed it off. Source: `main` 1a6c7b4 plus `/health` version fix. Local stack: uvicorn with `AEGIS_LLM_MODE=recorded` + Vite in live API mode.
+
+| DA | Automated evidence | Result |
+| --- | --- | --- |
+| DA-01 | "SYNTHETIC DATA" banner visible on Command Center (page snapshot) | pass (other screens: check by hand) |
+| DA-02 | SO-1001/1002/1003 at 6/4/2 days late; baseline ₹11,60,000 | pass |
+| DA-03 | Golden evaluation has 7 steps; UI reports "Evaluation EVAL-0001 completed." | pass (UI step list: check by hand) |
+| DA-04 | P1 ₹3,34,000 / ₹0 / ₹8,26,000 BLOCKED; P2 ₹4,92,000 / ₹50,000 / ₹6,18,000 PASSED; "P2 · Recommended" | pass |
+| DA-05 | `frontend/tests-live/live-demo.spec.ts`: SUP-B graph with 2 highlighted path elements; SUP-C passed | pass (text version: check by hand) |
+| DA-06, DA-07 | Not automated (evidence-drawer selector changed in the UI redesign) | check by hand |
+| DA-08 | P1 Approve disabled with "Cannot be approved: 2 blocking findings. P1 remains blocked."; API refusal `422 PLAN_BLOCKED` in golden e2e step 5 | pass (per D-043) |
+| DA-09–DA-11 | `work/audit/flow_runner.py` against the real API, run 1 Nov: `approval_flow` steps 1–16 pass twice in `off` (15:09) and twice in `recorded` (16:30), identical plan hashes | pass at API level; check UI by hand |
+| DA-12 | The `off` runs above: 16/16, same plan hashes as `recorded` (only the explanation text differs, as VC-LLM-01 allows) | pass at API level; network-unplugged drill by hand |
+| DA-13 | Not automated | check by hand |
+| DA-14 | Deck not in repo | M5 |
+| DA-15 | Two runs after reset: P1 `sha256:e51b38ab…`, P2 `sha256:3324f97f…` both times | pass |
+| DA-16, DA-17 | Cut (D-034): early warning shown as one slide built from the EWS goldens | cut |
+
+KR candidates for the run (M3): none blocking. Note for presenters: P1's Approve is disabled by design (D-043).
+
 ## 8. Feeding the Go/No-go
 
 MOD-18 Go requires: all DA pass or agreed workaround; CI green; golden flow twice after reset; offline drill passed; backup video exists (`docs/05` l.105–106). The rows above (R1–R4 + D9) plus the offline-drill log table are the inputs; the decision itself is recorded by M5 at the D9 gate — *(You prepare, humans decide.)*

@@ -46,13 +46,12 @@ export function Topbar({
           minWidth: 0,
         }}
       >
-        <ui5-button
-          design="Default"
-          icon="menu"
-          onClick={onMenuClick}
-          aria-label="Toggle navigation"
-          style={{ color: '#527d20' }}
-        />
+       <ui5-button
+  design="Default"
+  icon="menu"
+  onClick={onMenuClick}
+  accessibleName="Toggle navigation"
+/>
 
         <div
           className="topbar-breadcrumb"

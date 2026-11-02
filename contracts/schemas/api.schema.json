@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Service-level API payloads",
-  "description": "Owner: Member 3. Reviewer: Member 2. Contract version 1.0.0.",
+  "description": "Owner: Member 4. Reviewer: Member 2. Contract version 1.1.0.",
   "$defs": {
     "Health": {
       "type": "object",

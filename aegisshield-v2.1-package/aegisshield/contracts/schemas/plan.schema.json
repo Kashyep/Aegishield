@@ -1,0 +1,910 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Source options, recovery plans, financials and evaluations",
+  "description": "Owner: Member 4. Reviewers: Member 3 (plans, comparison, explanations), Member 2 (evaluation payload). Contract version 1.1.0.",
+  "$defs": {
+    "PlanStatus": {
+      "type": "string",
+      "enum": [
+        "blocked",
+        "needs_review",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "executing",
+        "completed",
+        "failed",
+        "superseded"
+      ]
+    },
+    "Strategy": {
+      "type": "string",
+      "enum": [
+        "cost_time_only",
+        "constraint_verified"
+      ]
+    },
+    "SourceOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_id",
+        "kind",
+        "inventory_source_id",
+        "quote_id",
+        "supplier_id",
+        "route_option_id",
+        "capacity_group",
+        "capacity_units",
+        "eta_plant",
+        "unit_incremental_cost_inr",
+        "cost_components_per_unit",
+        "finding_ids",
+        "outcome"
+      ],
+      "description": "One way to bring units to the plant: an inventory source, or a supplier quote paired with an eligible route (route.origin_port_id = quote.origin_port_id and route.etd >= quote.ready_date). capacity_group is shared by all routes of one quote.",
+      "properties": {
+        "option_id": {
+          "$ref": "common.schema.json#/$defs/OptionId"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "inventory",
+            "supplier"
+          ]
+        },
+        "inventory_source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quote_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "supplier_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/SupplierId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "route_option_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/RouteOptionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capacity_group": {
+          "type": "string"
+        },
+        "capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eta_plant": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "unit_incremental_cost_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr",
+          "description": "(quote price - baseline PO price) + freight per unit, or inventory transfer cost per unit."
+        },
+        "cost_components_per_unit": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "supplier_price_premium": {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            },
+            "freight": {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            },
+            "inventory_transfer": {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            }
+          }
+        },
+        "finding_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/FindingId"
+          }
+        },
+        "outcome": {
+          "$ref": "common.schema.json#/$defs/Outcome"
+        }
+      }
+    },
+    "PlanLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "line_id",
+        "order_id",
+        "option_id",
+        "qty",
+        "need_by",
+        "eta_plant",
+        "days_late"
+      ],
+      "properties": {
+        "line_id": {
+          "type": "string",
+          "pattern": "^L[0-9]{2}$"
+        },
+        "order_id": {
+          "$ref": "common.schema.json#/$defs/OrderId"
+        },
+        "option_id": {
+          "$ref": "common.schema.json#/$defs/OptionId",
+          "description": "BASELINE-PO = units left on the delayed original purchase order."
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "need_by": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "eta_plant": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "days_late": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exposure_id",
+        "line_id",
+        "finding_id",
+        "kind",
+        "amount_inr",
+        "mutually_exclusive_group",
+        "basis"
+      ],
+      "description": "A loss that may happen if a non-passed finding materialises. Never added to recovery_cost_inr.",
+      "properties": {
+        "exposure_id": {
+          "type": "string",
+          "pattern": "^EXP-(DEP|FTA|LC)-L[0-9]{2}$"
+        },
+        "line_id": {
+          "type": "string",
+          "pattern": "^L[0-9]{2}$"
+        },
+        "finding_id": {
+          "$ref": "common.schema.json#/$defs/FindingId"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "penalty_if_supply_fails",
+            "duty_if_preference_denied",
+            "documentary_discrepancy"
+          ]
+        },
+        "amount_inr": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/MoneyInr"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null = not quantified."
+        },
+        "mutually_exclusive_group": {
+          "type": "string",
+          "description": "Exposures in one group are alternative futures. worst_case = sum over groups of the largest per-kind total within the group."
+        },
+        "basis": {
+          "type": "string"
+        }
+      }
+    },
+    "PlanFinancials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currency",
+        "baseline_loss_inr",
+        "recovery_cost_inr",
+        "residual_loss_inr",
+        "net_avoided_loss_inr",
+        "cost_breakdown",
+        "residual_breakdown",
+        "exposures",
+        "worst_case_exposure_inr",
+        "formula"
+      ],
+      "description": "baseline_loss = penalties with no action; recovery_cost = incremental cash cost of the plan; residual_loss = penalties still incurred under the plan; net_avoided_loss = baseline_loss - recovery_cost - residual_loss.",
+      "properties": {
+        "currency": {
+          "const": "INR"
+        },
+        "baseline_loss_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "recovery_cost_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "residual_loss_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "net_avoided_loss_inr": {
+          "$ref": "common.schema.json#/$defs/SignedMoneyInr"
+        },
+        "cost_breakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "category",
+              "amount_inr"
+            ],
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": [
+                  "supplier_price_premium",
+                  "freight",
+                  "inventory_transfer",
+                  "lc_amendment_fee",
+                  "duty_incremental"
+                ]
+              },
+              "amount_inr": {
+                "$ref": "common.schema.json#/$defs/MoneyInr"
+              }
+            }
+          }
+        },
+        "residual_breakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "order_id",
+              "qty",
+              "days_late",
+              "amount_inr"
+            ],
+            "properties": {
+              "line_id": {
+                "type": "string"
+              },
+              "order_id": {
+                "$ref": "common.schema.json#/$defs/OrderId"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "days_late": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "amount_inr": {
+                "$ref": "common.schema.json#/$defs/MoneyInr"
+              }
+            }
+          }
+        },
+        "exposures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Exposure"
+          }
+        },
+        "worst_case_exposure_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "formula": {
+          "type": "string"
+        }
+      }
+    },
+    "RecoveryPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "plan_id",
+        "evaluation_id",
+        "version",
+        "label",
+        "strategy",
+        "lines",
+        "finding_ids",
+        "check_outcome_counts",
+        "outcome",
+        "status",
+        "financials",
+        "input_snapshot_id",
+        "amendment_request_ids",
+        "plan_hash"
+      ],
+      "description": "plan_hash = 'sha256:' + hex(sha256(canonical_json(hash_material))). canonical_json = json.dumps(sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded UTF-8. hash_material = {plan_id, version, evaluation_id, strategy, lines, finding_ids, outcome, financials: {baseline_loss_inr, recovery_cost_inr, residual_loss_inr, net_avoided_loss_inr, worst_case_exposure_inr, cost_breakdown: [[category, amount_inr]...], exposures: [[exposure_id, amount_inr]...]}, input_snapshot_id}. status is excluded so decisions do not change the hash.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "plan_id": {
+          "$ref": "common.schema.json#/$defs/PlanId"
+        },
+        "evaluation_id": {
+          "$ref": "common.schema.json#/$defs/EvaluationId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "strategy": {
+          "$ref": "#/$defs/Strategy"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/PlanLine"
+          }
+        },
+        "finding_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/FindingId"
+          }
+        },
+        "check_outcome_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "passed",
+            "needs_review",
+            "blocked"
+          ],
+          "properties": {
+            "passed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "needs_review": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "blocked": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "outcome": {
+          "$ref": "common.schema.json#/$defs/Outcome"
+        },
+        "status": {
+          "$ref": "#/$defs/PlanStatus"
+        },
+        "financials": {
+          "$ref": "#/$defs/PlanFinancials"
+        },
+        "input_snapshot_id": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "amendment_request_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/AmendmentRequestId"
+          }
+        },
+        "plan_hash": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "decision_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/DecisionId"
+          },
+          "description": "Present on GET /plans/{id}; omitted in evaluation goldens."
+        },
+        "execution_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ExecutionId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present on GET /plans/{id} after execution starts."
+        }
+      }
+    },
+    "PlanComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline_loss_inr",
+        "plans",
+        "recommended_plan_id",
+        "recommendation_rule",
+        "paper_advantage_of_best_blocked_plan_inr"
+      ],
+      "properties": {
+        "baseline_loss_inr": {
+          "$ref": "common.schema.json#/$defs/MoneyInr"
+        },
+        "plans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "plan_id",
+              "label",
+              "outcome",
+              "executable",
+              "recovery_cost_inr",
+              "residual_loss_inr",
+              "net_avoided_loss_inr",
+              "worst_case_exposure_inr",
+              "check_outcome_counts"
+            ],
+            "properties": {
+              "plan_id": {
+                "$ref": "common.schema.json#/$defs/PlanId"
+              },
+              "label": {
+                "type": "string"
+              },
+              "outcome": {
+                "$ref": "common.schema.json#/$defs/Outcome"
+              },
+              "executable": {
+                "type": "boolean"
+              },
+              "recovery_cost_inr": {
+                "$ref": "common.schema.json#/$defs/MoneyInr"
+              },
+              "residual_loss_inr": {
+                "$ref": "common.schema.json#/$defs/MoneyInr"
+              },
+              "net_avoided_loss_inr": {
+                "$ref": "common.schema.json#/$defs/SignedMoneyInr"
+              },
+              "worst_case_exposure_inr": {
+                "$ref": "common.schema.json#/$defs/MoneyInr"
+              },
+              "check_outcome_counts": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "recommended_plan_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/PlanId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recommendation_rule": {
+          "type": "string"
+        },
+        "paper_advantage_of_best_blocked_plan_inr": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/SignedMoneyInr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AgentStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "step",
+        "owner",
+        "status",
+        "attempts",
+        "timeout_ms",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "mode",
+        "error"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "step": {
+          "type": "string",
+          "enum": [
+            "disruption_sensing",
+            "supplier_dependency",
+            "routing",
+            "inventory_rebalancing",
+            "trade_compliance",
+            "plan_assembly",
+            "explanation"
+          ]
+        },
+        "owner": {
+          "$ref": "common.schema.json#/$defs/Owner"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "running",
+            "succeeded",
+            "degraded",
+            "failed",
+            "skipped"
+          ],
+          "description": "degraded = configured LLM mode failed and the deterministic/template fallback was used; outcomes are unchanged."
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 100
+        },
+        "started_at": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "gold",
+            "recorded",
+            "live",
+            "deterministic",
+            "template"
+          ]
+        },
+        "error": {
+          "$ref": "common.schema.json#/$defs/StepError"
+        }
+      }
+    },
+    "Explanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "explanation_id",
+        "subject_id",
+        "mode",
+        "prompt_id",
+        "model",
+        "text",
+        "cited_ids",
+        "validation",
+        "generated_at"
+      ],
+      "description": "Narrative only. Explanations never change outcomes, quantities or money. A live/recorded explanation that cites an id outside the allowed set is rejected and replaced by the template.",
+      "properties": {
+        "explanation_id": {
+          "type": "string",
+          "pattern": "^XPL-[A-Z0-9-]+$"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "live",
+            "recorded",
+            "template"
+          ]
+        },
+        "prompt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "cited_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "passed",
+            "errors"
+          ],
+          "properties": {
+            "passed": {
+              "type": "boolean"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "UNKNOWN_CITATION",
+                  "OUTCOME_CONTRADICTION",
+                  "NUMBER_NOT_IN_CONTEXT",
+                  "TOO_LONG",
+                  "EMPTY"
+                ]
+              }
+            }
+          }
+        },
+        "generated_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        }
+      }
+    },
+    "EvaluationCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disruption_id"
+      ],
+      "properties": {
+        "disruption_id": {
+          "$ref": "disruption.schema.json#/$defs/DisruptionId"
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Optional override of policies.dependency_policy.max_depth."
+        }
+      }
+    },
+    "EvaluationAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluation_id",
+        "status",
+        "poll_url",
+        "superseded_plan_ids"
+      ],
+      "properties": {
+        "evaluation_id": {
+          "$ref": "common.schema.json#/$defs/EvaluationId"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running"
+          ]
+        },
+        "poll_url": {
+          "type": "string"
+        },
+        "superseded_plan_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/PlanId"
+          },
+          "description": "Undecided plans from earlier evaluations of the same disruption, now superseded."
+        }
+      }
+    },
+    "Evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "evaluation_id",
+        "disruption_id",
+        "status",
+        "data_mode",
+        "llm_mode",
+        "input_snapshot_id",
+        "created_at",
+        "completed_at",
+        "steps",
+        "assessment",
+        "dependency_results",
+        "rule_results",
+        "options",
+        "findings",
+        "evidence",
+        "plans",
+        "comparison",
+        "explanations",
+        "error"
+      ],
+      "description": "GET /api/v1/evaluations/{id}. While status is queued or running, result fields are null or empty arrays and steps show progress.",
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "evaluation_id": {
+          "$ref": "common.schema.json#/$defs/EvaluationId"
+        },
+        "disruption_id": {
+          "$ref": "disruption.schema.json#/$defs/DisruptionId"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed"
+          ]
+        },
+        "data_mode": {
+          "const": "synthetic"
+        },
+        "llm_mode": {
+          "type": "string",
+          "enum": [
+            "live",
+            "recorded",
+            "off"
+          ]
+        },
+        "input_snapshot_id": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        },
+        "created_at": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "completed_at": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AgentStep"
+          }
+        },
+        "assessment": {
+          "oneOf": [
+            {
+              "$ref": "disruption.schema.json#/$defs/DisruptionAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dependency_results": {
+          "type": "array",
+          "items": {
+            "$ref": "graph.schema.json#/$defs/DependencyResult"
+          }
+        },
+        "rule_results": {
+          "type": "array",
+          "items": {
+            "$ref": "trade-rules.schema.json#/$defs/RuleApplicabilityResult"
+          }
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceOption"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Finding"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Evidence"
+          }
+        },
+        "plans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RecoveryPlan"
+          }
+        },
+        "comparison": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PlanComparison"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "explanations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Explanation"
+          }
+        },
+        "error": {
+          "$ref": "common.schema.json#/$defs/StepError"
+        }
+      }
+    }
+  }
+}

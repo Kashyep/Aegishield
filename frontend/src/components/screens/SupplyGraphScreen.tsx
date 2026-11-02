@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
-import { NeuButton } from '../ui/NeuButton';
 import { DependencyGraph } from '../../components/DependencyGraph';
+import "@ui5/webcomponents/dist/Button.js";
 import type { Evaluation, GraphView, GraphViewNode } from '../../api/types';
 
 interface SupplyGraphScreenProps {
@@ -23,10 +24,11 @@ export function SupplyGraphScreen({
   setSelectedGraphNode,
   evaluation,
 }: SupplyGraphScreenProps) {
-  const candidates = (evaluation?.dependency_results ?? []).map((result) => ({
+  // ⚡ Bolt Optimization: Memoize props passed to DependencyGraph to prevent re-rendering it
+  const candidates = useMemo(() => (evaluation?.dependency_results ?? []).map((result) => ({
     supplierId: result.supplier_id,
     label: graphView?.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
-  }));
+  })), [evaluation?.dependency_results, graphView?.nodes]);
 
   return (
     <>
@@ -61,7 +63,9 @@ export function SupplyGraphScreen({
                     <p className="eyebrow">SELECTED FACILITY</p>
                     <h2 style={{ marginBottom: 0, color: 'var(--color-text)', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>{selectedGraphNode.label}</h2>
                   </div>
-                  <NeuButton variant="secondary" onClick={() => setSelectedGraphNode(null)}>Clear selection</NeuButton>
+                  <ui5-button design="Transparent" onClick={() => setSelectedGraphNode(null)}>
+                  Clear selection
+                  </ui5-button>
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0 var(--space-6)', margin: 'var(--space-4) 0 0' }}>
                   <div style={{ padding: 'var(--space-3) 0', borderTop: '1px solid var(--color-border-light)' }}>

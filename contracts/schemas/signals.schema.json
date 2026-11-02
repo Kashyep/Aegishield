@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "External signals and early-warning index",
+  "description": "Owner: Member 1. Reviewer: Member 3. Contract version 1.1.0 (additive). The early-warning index is a deterministic heuristic (0-100) from synthetic weights. It is NOT a probability, is not fitted to historical data, and never changes evaluation outcomes, plan lines, money or plan hashes. external_signals.json is deliberately excluded from input_snapshot_id.",
+  "$defs": {
+    "SignalId": {"type": "string", "pattern": "^SIG-[0-9]{4}$"},
+    "AreaId": {"type": "string", "pattern": "^AREA-[A-Z0-9-]+$"},
+    "SourceKind": {"type": "string", "enum": ["official", "operator", "news", "social"]},
+    "Severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+    "Level": {"type": "string", "enum": ["none", "watch", "warning"]},
+    "ExternalSignal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal_id", "observed_at", "category", "severity", "area_ids", "title", "text", "source", "classification_method"],
+      "properties": {
+        "signal_id": {"$ref": "#/$defs/SignalId"},
+        "observed_at": {"$ref": "common.schema.json#/$defs/DateTime", "description": "When the signal became known. Signals observed after the query as_of are never used (no look-ahead)."},
+        "category": {"type": "string", "enum": ["power_grid", "weather", "port_congestion", "facility_news", "geopolitical", "labour"]},
+        "severity": {"$ref": "#/$defs/Severity"},
+        "area_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "Areas the signal concerns. An id not present in areas[] makes the signal unmapped; it is reported, never silently dropped."},
+        "title": {"type": "string", "minLength": 1},
+        "text": {"type": "string", "minLength": 1},
+        "source": {
+          "type": "object", "additionalProperties": false, "required": ["source_id", "title", "kind", "uri", "synthetic"],
+          "properties": {
+            "source_id": {"$ref": "common.schema.json#/$defs/SourceId"},
+            "title": {"type": "string"},
+            "kind": {"$ref": "#/$defs/SourceKind"},
+            "uri": {"type": ["string", "null"]},
+            "synthetic": {"type": "boolean"}
+          }
+        },
+        "classification_method": {"type": "string", "enum": ["manual_gold", "llm_verified", "llm_unverified"], "description": "How category and severity were assigned. Demo uses manual_gold; LLM classification is a stretch and must be validated against the schema."}
+      }
+    },
+    "Area": {
+      "type": "object", "additionalProperties": false, "required": ["area_id", "name", "country", "node_ids", "location_ids"],
+      "description": "Synthetic grouping that maps signals to graph facilities and to ports/locations. Lives in the signals file so existing fixtures (and plan hashes) stay unchanged.",
+      "properties": {
+        "area_id": {"$ref": "#/$defs/AreaId"},
+        "name": {"type": "string"},
+        "country": {"$ref": "common.schema.json#/$defs/CountryCode"},
+        "node_ids": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/NodeId"}},
+        "location_ids": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/LocationId"}}
+      }
+    },
+    "ScoringPolicy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["window_hours", "severity_points", "source_confidence_pct", "levels", "max_score", "max_downstream_depth", "score_kind", "score_note"],
+      "description": "contribution = round_half_up(severity_points x source_confidence_pct / 100); raw_points = sum over distinct included signals of a subject; score = min(max_score, raw_points); level = highest level whose min_score <= score, else none. A signal is included when observed_at <= as_of and as_of - observed_at <= window_hours.",
+      "properties": {
+        "window_hours": {"type": "integer", "minimum": 1, "maximum": 720},
+        "severity_points": {"type": "object", "additionalProperties": false, "required": ["low", "medium", "high", "critical"],
+          "properties": {"low": {"type": "integer", "minimum": 0}, "medium": {"type": "integer", "minimum": 0}, "high": {"type": "integer", "minimum": 0}, "critical": {"type": "integer", "minimum": 0}}},
+        "source_confidence_pct": {"type": "object", "additionalProperties": false, "required": ["official", "operator", "news", "social"],
+          "properties": {"official": {"type": "integer", "minimum": 0, "maximum": 100}, "operator": {"type": "integer", "minimum": 0, "maximum": 100}, "news": {"type": "integer", "minimum": 0, "maximum": 100}, "social": {"type": "integer", "minimum": 0, "maximum": 100}}},
+        "levels": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["level", "min_score"],
+          "properties": {"level": {"type": "string", "enum": ["watch", "warning"]}, "min_score": {"type": "integer", "minimum": 1, "maximum": 100}}}},
+        "max_score": {"const": 100},
+        "max_downstream_depth": {"type": "integer", "minimum": 1, "maximum": 6},
+        "score_kind": {"const": "heuristic_index"},
+        "score_note": {"type": "string", "minLength": 20}
+      }
+    },
+    "SignalsFile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "dataset_id", "synthetic", "notice", "scoring_policy", "areas", "signals"],
+      "properties": {
+        "schema_version": {"$ref": "common.schema.json#/$defs/SchemaVersion"},
+        "dataset_id": {"type": "string", "pattern": "^SCN-[A-Z0-9-]+$"},
+        "synthetic": {"const": true},
+        "notice": {"type": "string", "minLength": 20},
+        "scoring_policy": {"$ref": "#/$defs/ScoringPolicy"},
+        "areas": {"type": "array", "items": {"$ref": "#/$defs/Area"}},
+        "signals": {"type": "array", "items": {"$ref": "#/$defs/ExternalSignal"}}
+      }
+    },
+    "Contribution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["signal_id", "category", "source_kind", "severity", "observed_at", "severity_points", "confidence_pct", "contribution"],
+      "properties": {
+        "signal_id": {"$ref": "#/$defs/SignalId"},
+        "category": {"type": "string"},
+        "source_kind": {"$ref": "#/$defs/SourceKind"},
+        "severity": {"$ref": "#/$defs/Severity"},
+        "observed_at": {"$ref": "common.schema.json#/$defs/DateTime"},
+        "severity_points": {"type": "integer", "minimum": 0},
+        "confidence_pct": {"type": "integer", "minimum": 0, "maximum": 100},
+        "contribution": {"type": "integer", "minimum": 0}
+      }
+    },
+    "Exposure": {
+      "type": "object", "additionalProperties": false,
+      "required": ["downstream_node_ids", "po_ids", "order_ids", "shipment_ids", "route_option_ids", "affected_candidate_supplier_ids"],
+      "description": "What the subject feeds. Nodes: downstream over SUPPLIES edges (provider -> consumer) up to max_downstream_depth, cycle-safe. Locations: shipments and route options that load, discharge or tranship there. No money is computed here.",
+      "properties": {
+        "downstream_node_ids": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/NodeId"}},
+        "po_ids": {"type": "array", "items": {"type": "string", "pattern": "^PO-[0-9]{4}$"}},
+        "order_ids": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/OrderId"}},
+        "shipment_ids": {"type": "array", "items": {"type": "string", "pattern": "^SHP-[A-Z0-9-]+$"}},
+        "route_option_ids": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/RouteOptionId"}},
+        "affected_candidate_supplier_ids": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/SupplierId"}, "description": "Alternate or candidate suppliers fed by (or located at) the subject. An early hint that switching to them may not help."}
+      }
+    },
+    "EarlyWarning": {
+      "type": "object", "additionalProperties": false,
+      "required": ["warning_id", "subject", "label", "area_ids", "raw_points", "score", "level", "contributing", "exposure", "evidence_ids", "summary"],
+      "properties": {
+        "warning_id": {"type": "string", "pattern": "^EWS-[A-Z0-9-]+$"},
+        "subject": {"type": "object", "additionalProperties": false, "required": ["type", "id"],
+          "properties": {"type": {"type": "string", "enum": ["node", "location"]}, "id": {"type": "string"}}},
+        "label": {"type": "string"},
+        "area_ids": {"type": "array", "items": {"$ref": "#/$defs/AreaId"}},
+        "raw_points": {"type": "integer", "minimum": 0},
+        "score": {"type": "integer", "minimum": 0, "maximum": 100},
+        "level": {"$ref": "#/$defs/Level"},
+        "contributing": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Contribution"}},
+        "exposure": {"$ref": "#/$defs/Exposure"},
+        "evidence_ids": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/EvidenceId"}},
+        "summary": {"type": "string", "description": "Deterministic template sentence. Compared exactly in golden tests."}
+      }
+    },
+    "EarlyWarningResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "query", "score_kind", "score_note", "warnings", "excluded_signals", "evidence"],
+      "description": "GET /api/v1/early-warnings?as_of=... Warnings are sorted by score descending, then subject type, then subject id. Subjects with raw_points 0 are omitted.",
+      "properties": {
+        "schema_version": {"$ref": "common.schema.json#/$defs/SchemaVersion"},
+        "query": {"type": "object", "additionalProperties": false, "required": ["as_of", "window_hours"],
+          "properties": {"as_of": {"$ref": "common.schema.json#/$defs/DateTime"}, "window_hours": {"type": "integer", "minimum": 1}}},
+        "score_kind": {"const": "heuristic_index"},
+        "score_note": {"type": "string"},
+        "warnings": {"type": "array", "items": {"$ref": "#/$defs/EarlyWarning"}},
+        "excluded_signals": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["signal_id", "reason"],
+          "properties": {"signal_id": {"$ref": "#/$defs/SignalId"}, "reason": {"type": "string", "enum": ["not_yet_observed", "outside_window", "unmapped_area"]}}}},
+        "evidence": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/Evidence"}}
+      }
+    }
+  }
+}

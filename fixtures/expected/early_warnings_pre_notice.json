@@ -1,0 +1,303 @@
+{
+  "schema_version": "1.1.0",
+  "query": {
+    "as_of": "2026-10-23T21:00:00+05:30",
+    "window_hours": 72
+  },
+  "score_kind": "heuristic_index",
+  "score_note": "Heuristic early-warning index from synthetic team-chosen weights. Not a probability and not fitted to historical outage data.",
+  "warnings": [
+    {
+      "warning_id": "EWS-FAC-FABZ",
+      "subject": {
+        "type": "node",
+        "id": "FAC-FABZ"
+      },
+      "label": "Zenith Kulim wafer fab",
+      "area_ids": [
+        "AREA-MY-KULIM"
+      ],
+      "raw_points": 97,
+      "score": 97,
+      "level": "warning",
+      "contributing": [
+        {
+          "signal_id": "SIG-0001",
+          "category": "power_grid",
+          "source_kind": "official",
+          "severity": "high",
+          "observed_at": "2026-10-22T16:00:00+05:30",
+          "severity_points": 45,
+          "confidence_pct": 100,
+          "contribution": 45
+        },
+        {
+          "signal_id": "SIG-0002",
+          "category": "weather",
+          "source_kind": "official",
+          "severity": "medium",
+          "observed_at": "2026-10-23T10:30:00+05:30",
+          "severity_points": 25,
+          "confidence_pct": 100,
+          "contribution": 25
+        },
+        {
+          "signal_id": "SIG-0003",
+          "category": "facility_news",
+          "source_kind": "news",
+          "severity": "high",
+          "observed_at": "2026-10-23T19:45:00+05:30",
+          "severity_points": 45,
+          "confidence_pct": 60,
+          "contribution": 27
+        }
+      ],
+      "exposure": {
+        "downstream_node_ids": [
+          "FAC-A-PEN",
+          "FAC-B-CHB",
+          "FAC-KAV-BLR",
+          "FAC-Q-KDH"
+        ],
+        "po_ids": [
+          "PO-7001"
+        ],
+        "order_ids": [
+          "SO-1001",
+          "SO-1002",
+          "SO-1003"
+        ],
+        "shipment_ids": [
+          "SHP-A-0901"
+        ],
+        "route_option_ids": [],
+        "affected_candidate_supplier_ids": [
+          "SUP-B"
+        ]
+      },
+      "evidence_ids": [
+        "EVD-SIG-0001",
+        "EVD-SIG-0002",
+        "EVD-SIG-0003"
+      ],
+      "summary": "Zenith Kulim wafer fab: WARNING (index 97/100) from 3 signal(s): power_grid (official), weather (official), facility_news (news). Linked to 1 purchase order(s) and 3 customer order(s). Also affects candidate supplier(s) SUP-B."
+    },
+    {
+      "warning_id": "EWS-FAC-A-PEN",
+      "subject": {
+        "type": "node",
+        "id": "FAC-A-PEN"
+      },
+      "label": "Penang module assembly",
+      "area_ids": [
+        "AREA-MY-PENANG"
+      ],
+      "raw_points": 25,
+      "score": 25,
+      "level": "none",
+      "contributing": [
+        {
+          "signal_id": "SIG-0002",
+          "category": "weather",
+          "source_kind": "official",
+          "severity": "medium",
+          "observed_at": "2026-10-23T10:30:00+05:30",
+          "severity_points": 25,
+          "confidence_pct": 100,
+          "contribution": 25
+        }
+      ],
+      "exposure": {
+        "downstream_node_ids": [
+          "FAC-KAV-BLR"
+        ],
+        "po_ids": [
+          "PO-7001"
+        ],
+        "order_ids": [
+          "SO-1001",
+          "SO-1002",
+          "SO-1003"
+        ],
+        "shipment_ids": [
+          "SHP-A-0901"
+        ],
+        "route_option_ids": [],
+        "affected_candidate_supplier_ids": []
+      },
+      "evidence_ids": [
+        "EVD-SIG-0002"
+      ],
+      "summary": "Penang module assembly: no alert (index 25/100) from 1 signal(s): weather (official). Linked to 1 purchase order(s) and 3 customer order(s)."
+    },
+    {
+      "warning_id": "EWS-MYPKG",
+      "subject": {
+        "type": "location",
+        "id": "MYPKG"
+      },
+      "label": "Port Klang",
+      "area_ids": [
+        "AREA-MY-KLANG"
+      ],
+      "raw_points": 8,
+      "score": 8,
+      "level": "none",
+      "contributing": [
+        {
+          "signal_id": "SIG-0004",
+          "category": "port_congestion",
+          "source_kind": "operator",
+          "severity": "low",
+          "observed_at": "2026-10-23T08:00:00+05:30",
+          "severity_points": 10,
+          "confidence_pct": 80,
+          "contribution": 8
+        }
+      ],
+      "exposure": {
+        "downstream_node_ids": [],
+        "po_ids": [
+          "PO-7001"
+        ],
+        "order_ids": [
+          "SO-1001",
+          "SO-1002",
+          "SO-1003"
+        ],
+        "shipment_ids": [
+          "SHP-A-0901"
+        ],
+        "route_option_ids": [],
+        "affected_candidate_supplier_ids": []
+      },
+      "evidence_ids": [
+        "EVD-SIG-0004"
+      ],
+      "summary": "Port Klang: no alert (index 8/100) from 1 signal(s): port_congestion (operator). Linked to 1 purchase order(s) and 3 customer order(s)."
+    },
+    {
+      "warning_id": "EWS-FAC-C-BDG",
+      "subject": {
+        "type": "node",
+        "id": "FAC-C-BDG"
+      },
+      "label": "Binh Duong module assembly",
+      "area_ids": [
+        "AREA-VN-BINHDUONG"
+      ],
+      "raw_points": 8,
+      "score": 8,
+      "level": "none",
+      "contributing": [
+        {
+          "signal_id": "SIG-0005",
+          "category": "power_grid",
+          "source_kind": "social",
+          "severity": "medium",
+          "observed_at": "2026-10-23T12:00:00+05:30",
+          "severity_points": 25,
+          "confidence_pct": 30,
+          "contribution": 8
+        }
+      ],
+      "exposure": {
+        "downstream_node_ids": [],
+        "po_ids": [],
+        "order_ids": [],
+        "shipment_ids": [],
+        "route_option_ids": [],
+        "affected_candidate_supplier_ids": [
+          "SUP-C"
+        ]
+      },
+      "evidence_ids": [
+        "EVD-SIG-0005"
+      ],
+      "summary": "Binh Duong module assembly: no alert (index 8/100) from 1 signal(s): power_grid (social). Also affects candidate supplier(s) SUP-C."
+    }
+  ],
+  "excluded_signals": [
+    {
+      "signal_id": "SIG-0006",
+      "reason": "not_yet_observed"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EVD-SIG-0001",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-SIG-0001"
+      ],
+      "title": "Feeder instability on the Kulim industrial grid (synthetic)",
+      "authority": "official_circular",
+      "synthetic": true,
+      "locator": {
+        "signal_id": "SIG-0001",
+        "observed_at": "2026-10-22T16:00:00+05:30"
+      },
+      "excerpt": "Synthetic grid-operator bulletin: two unplanned trips on the feeder serving the Kulim industrial area in the last 24 hours; further interruptions are possible over the next 48 hours."
+    },
+    {
+      "evidence_id": "EVD-SIG-0002",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-SIG-0002"
+      ],
+      "title": "Thunderstorm warning for Kedah and Penang (synthetic)",
+      "authority": "official_circular",
+      "synthetic": true,
+      "locator": {
+        "signal_id": "SIG-0002",
+        "observed_at": "2026-10-23T10:30:00+05:30"
+      },
+      "excerpt": "Synthetic weather-service warning: thunderstorms with heavy rain expected over Kedah and Penang for the next 36 hours."
+    },
+    {
+      "evidence_id": "EVD-SIG-0003",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-SIG-0003"
+      ],
+      "title": "Report of voltage dips halting tools at a Kulim wafer fab (synthetic)",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "signal_id": "SIG-0003",
+        "observed_at": "2026-10-23T19:45:00+05:30"
+      },
+      "excerpt": "Synthetic regional news report: voltage dips this afternoon halted several tool sets at a wafer fab in the Kulim industrial area; the operator has not commented."
+    },
+    {
+      "evidence_id": "EVD-SIG-0004",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-SIG-0004"
+      ],
+      "title": "Berth waiting time at Port Klang about 1.5 days (synthetic)",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "signal_id": "SIG-0004",
+        "observed_at": "2026-10-23T08:00:00+05:30"
+      },
+      "excerpt": "Synthetic port-operator dashboard: average berth waiting time 1.5 days, within the normal range for the season."
+    },
+    {
+      "evidence_id": "EVD-SIG-0005",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-SIG-0005"
+      ],
+      "title": "Unconfirmed social post about power cuts in Binh Duong (synthetic)",
+      "authority": "secondary",
+      "synthetic": true,
+      "locator": {
+        "signal_id": "SIG-0005",
+        "observed_at": "2026-10-23T12:00:00+05:30"
+      },
+      "excerpt": "Synthetic social-media post claims short power cuts in the Binh Duong industrial zone; no official confirmation."
+    }
+  ]
+}

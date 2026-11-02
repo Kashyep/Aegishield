@@ -175,7 +175,7 @@ python ops/smoke.py https://<APP-ROUTE> --reset-token "$RESET_TOKEN"
 
 Expected output:
 ```
-PASS health (llm_mode=off, demo_mode=True, contract_version=1.0.0)
+PASS health (llm_mode=off, demo_mode=True, contract_version=1.1.1)
 PASS scenario
 PASS reset
 PASS evaluation

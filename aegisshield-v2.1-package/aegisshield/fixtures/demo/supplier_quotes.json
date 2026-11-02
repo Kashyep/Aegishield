@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "baseline_unit_price": {"part_id": "PRT-PM750", "unit_price_inr": 6000, "basis": "PO-7001 unit price"},
+  "quotes": [
+    {
+      "quote_id": "QT-B-01",
+      "supplier_id": "SUP-B",
+      "part_id": "PRT-PM750",
+      "unit_price_inr": 6300,
+      "capacity_units": 400,
+      "ready_date": "2026-10-27",
+      "origin_port_id": "THLCH",
+      "valid_until": "2026-10-28",
+      "payment_mechanism": "advance_tt",
+      "lc_id": null,
+      "certificate_of_origin": {"agreement_id": "AIFTA", "status": "available"},
+      "source_ref": "SRC-QT-B-01"
+    },
+    {
+      "quote_id": "QT-C-01",
+      "supplier_id": "SUP-C",
+      "part_id": "PRT-PM750",
+      "unit_price_inr": 6600,
+      "capacity_units": 600,
+      "ready_date": "2026-10-28",
+      "origin_port_id": "VNSGN",
+      "valid_until": "2026-10-29",
+      "payment_mechanism": "documentary_credit",
+      "lc_id": "LC-SYN-0117",
+      "certificate_of_origin": {"agreement_id": "AIFTA", "status": "available"},
+      "source_ref": "SRC-QT-C-01"
+    }
+  ]
+}

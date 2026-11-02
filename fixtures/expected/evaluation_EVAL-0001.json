@@ -12,7 +12,7 @@
     {
       "seq": 1,
       "step": "disruption_sensing",
-      "owner": "member_4",
+      "owner": "member_1",
       "status": "succeeded",
       "attempts": 1,
       "timeout_ms": 10000,
@@ -38,7 +38,7 @@
     {
       "seq": 3,
       "step": "routing",
-      "owner": "member_4",
+      "owner": "member_1",
       "status": "succeeded",
       "attempts": 1,
       "timeout_ms": 5000,
@@ -51,7 +51,7 @@
     {
       "seq": 4,
       "step": "inventory_rebalancing",
-      "owner": "member_3",
+      "owner": "member_1",
       "status": "succeeded",
       "attempts": 1,
       "timeout_ms": 5000,
@@ -64,7 +64,7 @@
     {
       "seq": 5,
       "step": "trade_compliance",
-      "owner": "member_3",
+      "owner": "member_4",
       "status": "succeeded",
       "attempts": 1,
       "timeout_ms": 5000,
@@ -77,7 +77,7 @@
     {
       "seq": 6,
       "step": "plan_assembly",
-      "owner": "member_3",
+      "owner": "member_4",
       "status": "succeeded",
       "attempts": 1,
       "timeout_ms": 5000,
@@ -90,7 +90,7 @@
     {
       "seq": 7,
       "step": "explanation",
-      "owner": "member_5",
+      "owner": "member_3",
       "status": "succeeded",
       "attempts": 1,
       "timeout_ms": 10000,

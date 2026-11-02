@@ -5,7 +5,7 @@ import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
 import { NeuChip } from '../ui/NeuChip';
 import { type Screen } from '../../app/navigation';
-import type { Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
+import type { EarlyWarning, Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
 
 interface CommandCenterProps {
   evaluation: Evaluation | null;
@@ -22,11 +22,12 @@ interface CommandCenterProps {
   money: (amount: number) => string;
   formatPlanId: (id: string) => string;
   getWorstCaseExposure: (plan: PlanComparisonItem, fullPlan?: Plan) => number;
-  openApproval: (planId: string) => void;
+  openApproval: (planId: string, triggerElement?: HTMLElement | null) => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
   startPlanExecution: (plan: Plan) => void;
   executionSubmitting: boolean;
+  planWarnings?: Record<string, EarlyWarning[]>;
 }
 
 export function CommandCenter({
@@ -49,6 +50,7 @@ export function CommandCenter({
   actorCanAmend,
   startPlanExecution,
   executionSubmitting,
+  planWarnings,
 }: CommandCenterProps) {
   const plans = evaluation?.comparison?.plans ?? [];
   const recommendedPlanId = evaluation?.comparison?.recommended_plan_id;
@@ -79,46 +81,87 @@ export function CommandCenter({
       </PageHeader>
 
       <PageBody>
-        {/* Disruption Card */}
-        {!evaluation?.assessment ? (
-          <NeuCard variant="subtle" className="disruption-card-neutral" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: 'var(--space-5)' }}>
-            <div className="disruption-icon" style={{ background: 'var(--color-bg-subtle)', color: 'var(--color-text-muted)' }} aria-hidden="true">ℹ</div>
-            <div className="disruption-copy" style={{ flex: 1 }}>
-              <span className="eyebrow">COMMAND CENTER</span>
-              <h2>Run the evaluation</h2>
-              <p>Assess disruption, compare recovery plans, and review evidence before approval.</p>
-            </div>
-          </NeuCard>
-        ) : (
-          <NeuCard variant="raised" className="disruption-card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: 'var(--space-5)' }}>
-            <div className="disruption-icon" aria-hidden="true"><AlertTriangle size={22} strokeWidth={2} /></div>
-            <div className="disruption-copy" style={{ flex: 1 }}>
-              <span className="eyebrow" style={{ color: 'var(--color-error)' }}>ACTIVE DISRUPTION · {evaluation.assessment.disruption_id}</span>
-              <h2>{evaluation.assessment.event_type.replace(/_/g, ' ')} detected</h2>
-              <div className="disruption-facility-row">
-                <span>Disrupted facility: <strong>{evaluation.assessment.disrupted_node_ids.join(', ') || 'Unknown'}</strong></span>
-                <span>Affected supplier: <strong>{evaluation.assessment.affected_supplier_ids.join(', ')}</strong></span>
-                {evaluation.assessment.evidence?.[0] && <span>Source: <strong>{evaluation.assessment.evidence[0].title}</strong></span>}
-              </div>
-              {evaluation.assessment.evidence?.[0]?.excerpt && (
-                <blockquote style={{ margin: 'var(--space-3) 0 0', padding: 'var(--space-3)', borderLeft: '3px solid var(--color-error)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)', fontStyle: 'italic' }}>
-                  {evaluation.assessment.evidence[0].excerpt}
-                </blockquote>
-              )}
-              <div className="affected-orders-block">
-                <strong>Affected orders:</strong>
-                <ul className="affected-orders-list" style={{ listStyle: 'none', padding: 0, margin: 'var(--space-1) 0 0', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1) var(--space-3)' }}>
-                  {evaluation.assessment.affected_orders.map((order) => (
-                    <li key={order.order_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', background: 'var(--color-error-bg)', border: '1px solid var(--color-error-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)' }}>
-                      <strong style={{ fontFamily: 'var(--font-heading)' }}>{order.order_id}</strong>: {order.days_late} days late
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <NeuChip variant="error" className="severity-badge">{evaluation.assessment.severity} severity</NeuChip>
-          </NeuCard>
+        
+{/* Disruption Card */}
+{!evaluation?.assessment ? (
+  <ui5-card
+    className="disruption-card-neutral"
+    style={{ width: '100%' }}
+  >
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      padding: '20px',
+    }}>
+      <div className="disruption-icon" aria-hidden="true">ℹ</div>
+      <div className="disruption-copy" style={{ flex: 1 }}>
+        <span className="eyebrow">COMMAND CENTER</span>
+        <h2>Run the evaluation</h2>
+        <p>Assess disruption, compare recovery plans, and review evidence before approval.</p>
+      </div>
+    </div>
+  </ui5-card>
+) : (
+  <ui5-card
+    className="disruption-card"
+    style={{ width: '100%' }}
+  >
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '16px',
+      padding: '20px',
+    }}>
+      <div className="disruption-icon" aria-hidden="true">
+        <AlertTriangle size={22} strokeWidth={2} />
+      </div>
+
+      <div className="disruption-copy" style={{ flex: 1 }}>
+        <span className="eyebrow" style={{ color: 'var(--sapNegativeColor)' }}>
+          ACTIVE DISRUPTION · {evaluation.assessment.disruption_id}
+        </span>
+
+        <h2>{evaluation.assessment.event_type.replace(/_/g, ' ')} detected</h2>
+
+        <div className="disruption-facility-row">
+          <span>Disrupted facility: <strong>{evaluation.assessment.disrupted_node_ids.join(', ') || 'Unknown'}</strong></span>
+          <span>Affected supplier: <strong>{evaluation.assessment.affected_supplier_ids.join(', ')}</strong></span>
+          {evaluation.assessment.evidence?.[0] && (
+            <span>Source: <strong>{evaluation.assessment.evidence[0].title}</strong></span>
+          )}
+        </div>
+
+        {evaluation.assessment.evidence?.[0]?.excerpt && (
+          <blockquote style={{
+            margin: '12px 0 0',
+            padding: '12px',
+            borderLeft: '3px solid var(--sapNegativeColor)',
+            fontSize: 'var(--text-sm)',
+            lineHeight: 'var(--leading-relaxed)',
+          }}>
+            {evaluation.assessment.evidence[0].excerpt}
+          </blockquote>
         )}
+
+        <div className="affected-orders-block">
+          <strong>Affected orders:</strong>
+          <ul className="affected-orders-list">
+            {evaluation.assessment.affected_orders.map((order) => (
+              <li key={order.order_id}>
+                <strong>{order.order_id}</strong>: {order.days_late} days late
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <NeuChip variant="error" className="severity-badge">
+        {evaluation.assessment.severity} severity
+      </NeuChip>
+    </div>
+  </ui5-card>
+)}
 
         {/* What happens next */}
         <NeuCard variant="subtle" style={{ marginTop: 'var(--space-section)', padding: 'var(--space-4)' }}>
@@ -182,13 +225,29 @@ export function CommandCenter({
           {plans.map((plan) => {
             const fullPlan = evaluation?.plans?.find((candidate) => candidate.plan_id === plan.plan_id);
             const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked';
+            console.log("LC BUTTON DEBUG", {
+  planId: plan.plan_id,
+  fullPlanId: fullPlan?.plan_id,
+  fullPlanStatus: fullPlan?.status,
+  findingIds: fullPlan?.finding_ids,
+  blockedLcFindings: evaluation?.findings?.filter(
+    (finding) =>
+      fullPlan?.finding_ids?.includes(finding.finding_id) &&
+      finding.outcome === "blocked" &&
+      finding.check_code.startsWith("LC.")
+  ),
+});
             const planStatus = fullPlan?.status ?? plan.outcome;
             const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-');
             const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
             const planExposures = fullPlan?.financials?.exposures?.filter((e) => e.amount_inr !== null) ?? [];
 
             return (
-              <NeuCard as="article" key={plan.plan_id} variant="raised" className="plan-card interactive" style={{ padding: 'var(--space-5)' }}>
+             <ui5-card
+  key={plan.plan_id}
+  className="plan-card interactive"
+  style={{ width: '100%' }}
+>
                 <div className="plan-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--color-info)', background: 'var(--color-info-bg)', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
                     {formatPlanId(plan.plan_id)}
@@ -290,7 +349,7 @@ export function CommandCenter({
                       {fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}
                     </NeuButton>
                   ) : (
-                    <NeuButton variant="primary" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={() => openApproval(plan.plan_id)} style={{ flex: 1 }}>
+                    <NeuButton variant="primary" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
                       Approve
                     </NeuButton>
                   )}
@@ -306,7 +365,13 @@ export function CommandCenter({
                     Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. {formatPlanId(plan.plan_id)} remains blocked.
                   </p>
                 )}
-              </NeuCard>
+                {(planWarnings?.[plan.plan_id] ?? []).map((w) => (
+                  <p key={w.warning_id} className="plan-warning" role="note" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-start', margin: 'var(--space-3) 0 0', fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>
+                    <AlertTriangle size={16} aria-hidden="true" style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
+                    <span>Early warning (advisory): {w.label} · {w.level.toUpperCase()} {w.score}/100 via {w.exposure.affected_candidate_supplier_ids.join(', ')}. Heuristic index, not a probability; plan unchanged.</span>
+                  </p>
+                ))}
+              </ui5-card>
             );
           })}
         </div>

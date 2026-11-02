@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "edge_direction": "provider_to_consumer",
+  "edge_direction_note": "Every SUPPLIES edge points in the direction goods flow: source = provider facility, target = consumer facility. Upstream dependency traversal therefore follows incoming edges (predecessors).",
+  "nodes": [
+    {"node_id": "FAC-KAV-BLR", "kind": "facility", "label": "Kaveri Bengaluru plant", "org_name": "Kaveri Motion Systems Pvt Ltd (synthetic)", "supplier_id": null, "country": "IN", "role": "buyer_plant", "origin_for_part_ids": [], "aliases": []},
+    {"node_id": "FAC-A-PEN", "kind": "facility", "label": "Penang module assembly", "org_name": "Penang PowerTech Sdn Bhd (synthetic)", "supplier_id": "SUP-A", "country": "MY", "role": "module_assembly", "origin_for_part_ids": [], "aliases": ["Penang PowerTech"]},
+    {"node_id": "FAC-B-CHB", "kind": "facility", "label": "Chonburi module assembly", "org_name": "Chao Phraya Power Devices Co (synthetic)", "supplier_id": "SUP-B", "country": "TH", "role": "module_assembly", "origin_for_part_ids": [], "aliases": ["Chao Phraya Power Devices"]},
+    {"node_id": "FAC-C-BDG", "kind": "facility", "label": "Binh Duong module assembly", "org_name": "Saigon Precision Electronics JSC (synthetic)", "supplier_id": "SUP-C", "country": "VN", "role": "module_assembly", "origin_for_part_ids": [], "aliases": ["Saigon Precision Electronics"]},
+    {"node_id": "FAC-Q-KDH", "kind": "facility", "label": "Kedah die sort and dicing", "org_name": "Kedah Die Services Sdn Bhd (synthetic)", "supplier_id": null, "country": "MY", "role": "die_processing", "origin_for_part_ids": [], "aliases": ["Kedah Die Services"]},
+    {"node_id": "FAC-VDIE", "kind": "facility", "label": "Hanoi die distribution", "org_name": "Vina Die Distribution Co (synthetic)", "supplier_id": null, "country": "VN", "role": "die_processing", "origin_for_part_ids": [], "aliases": ["Vina Die Distribution"]},
+    {"node_id": "FAC-FABZ", "kind": "facility", "label": "Zenith Kulim wafer fab", "org_name": "Zenith Wafer Fab Sdn Bhd (synthetic)", "supplier_id": null, "country": "MY", "role": "wafer_fab", "origin_for_part_ids": ["PRT-IGBT-DIE"], "aliases": ["Zenith Wafer Fab", "Zenith Kulim fab", "die supplier's Kulim fab"]},
+    {"node_id": "FAC-FABK", "kind": "facility", "label": "Kumgang Gumi wafer fab", "org_name": "Kumgang Semiconductor Co (synthetic)", "supplier_id": null, "country": "KR", "role": "wafer_fab", "origin_for_part_ids": ["PRT-IGBT-DIE"], "aliases": ["Kumgang Semiconductor"]},
+    {"node_id": "FAC-SUBS", "kind": "facility", "label": "Shah Alam ceramic substrates", "org_name": "Selangor Ceramic Substrates Sdn Bhd (synthetic)", "supplier_id": null, "country": "MY", "role": "material_supplier", "origin_for_part_ids": ["PRT-DBC-SUB"], "aliases": ["Selangor Ceramic Substrates"]},
+    {"node_id": "FAC-TSUB", "kind": "facility", "label": "Rayong substrate works", "org_name": "Rayong Substrate Works Co (synthetic)", "supplier_id": null, "country": "TH", "role": "material_supplier", "origin_for_part_ids": ["PRT-DBC-SUB"], "aliases": ["Rayong Substrate Works"]}
+  ],
+  "edges": [
+    {"edge_id": "E-001", "type": "SUPPLIES", "source": "FAC-A-PEN", "target": "FAC-KAV-BLR", "part_id": "PRT-PM750", "source_ref": "SRC-ERP-PO-7001", "confidence": "verified"},
+    {"edge_id": "E-002", "type": "SUPPLIES", "source": "FAC-FABZ", "target": "FAC-A-PEN", "part_id": "PRT-IGBT-DIE", "source_ref": "SRC-DECL-A-2026", "confidence": "verified"},
+    {"edge_id": "E-003", "type": "SUPPLIES", "source": "FAC-SUBS", "target": "FAC-A-PEN", "part_id": "PRT-DBC-SUB", "source_ref": "SRC-DECL-A-2026", "confidence": "verified"},
+    {"edge_id": "E-004", "type": "SUPPLIES", "source": "FAC-Q-KDH", "target": "FAC-B-CHB", "part_id": "PRT-IGBT-DIE", "source_ref": "SRC-AUD-B-2026Q2", "confidence": "verified"},
+    {"edge_id": "E-005", "type": "SUPPLIES", "source": "FAC-FABZ", "target": "FAC-Q-KDH", "part_id": "PRT-IGBT-DIE", "source_ref": "SRC-AUD-B-2026Q2", "confidence": "verified"},
+    {"edge_id": "E-006", "type": "SUPPLIES", "source": "FAC-TSUB", "target": "FAC-B-CHB", "part_id": "PRT-DBC-SUB", "source_ref": "SRC-AUD-B-2026Q2", "confidence": "verified"},
+    {"edge_id": "E-007", "type": "SUPPLIES", "source": "FAC-VDIE", "target": "FAC-C-BDG", "part_id": "PRT-IGBT-DIE", "source_ref": "SRC-DECL-C-2026", "confidence": "verified"},
+    {"edge_id": "E-008", "type": "SUPPLIES", "source": "FAC-FABK", "target": "FAC-VDIE", "part_id": "PRT-IGBT-DIE", "source_ref": "SRC-DECL-C-2026", "confidence": "verified"},
+    {"edge_id": "E-009", "type": "SUPPLIES", "source": "FAC-SUBS", "target": "FAC-C-BDG", "part_id": "PRT-DBC-SUB", "source_ref": "SRC-DECL-C-2026", "confidence": "verified"}
+  ],
+  "sources": [
+    {"source_id": "SRC-ERP-PO-7001", "title": "ERP purchase order PO-7001 (synthetic)", "kind": "erp_record", "as_of": "2026-09-15", "authority": "internal", "synthetic": true},
+    {"source_id": "SRC-DECL-A-2026", "title": "Penang PowerTech sub-supplier declaration 2026 (synthetic)", "kind": "supplier_declaration", "as_of": "2026-03-31", "authority": "contractual", "synthetic": true},
+    {"source_id": "SRC-AUD-B-2026Q2", "title": "Chao Phraya Power Devices sub-tier audit report Q2-2026 (synthetic)", "kind": "audit_report", "as_of": "2026-06-30", "authority": "internal", "synthetic": true},
+    {"source_id": "SRC-DECL-C-2026", "title": "Saigon Precision Electronics sub-supplier declaration 2026 (synthetic)", "kind": "supplier_declaration", "as_of": "2026-05-15", "authority": "contractual", "synthetic": true}
+  ]
+}

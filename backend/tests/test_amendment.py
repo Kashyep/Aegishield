@@ -8,6 +8,8 @@ from backend.app.main import app
 def test_f07_post_amendment_p2_financials(tmp_path, monkeypatch):
     """F-07: post-amendment P2 financials 446000/25000/689000."""
     monkeypatch.setenv("AEGIS_LLM_MODE", "off")
+    # LLM_MODE is bound at import time from .env (backend/app/config.py:10); patch it so a local live .env never makes network calls.
+    monkeypatch.setattr("backend.app.main.LLM_MODE", "off")
     # DB_PATH is bound at import time (backend/app/db/sqlite.py:4); patch the module attribute.
     monkeypatch.setattr("backend.app.db.sqlite.DB_PATH", tmp_path / "test_amend.sqlite3")
 

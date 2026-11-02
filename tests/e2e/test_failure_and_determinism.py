@@ -14,7 +14,9 @@ def client():
 
 
 def test_execution_failure_stops_later_steps_and_is_audited(client, monkeypatch):
-    monkeypatch.setenv("AEGIS_SIMULATE_FAIL_AT_STEP", "2")
+    # VC-EXE-01 injects the third step failure: earlier actions stay recorded,
+    # the first failure stops the run, and all later actions are skipped.
+    monkeypatch.setenv("AEGIS_SIMULATE_FAIL_AT_STEP", "3")
     client.post("/api/v1/demo/reset", headers={"X-Actor-Id": "USR-PRIYA"})
     evaluation = client.post(
         "/api/v1/evaluations",
@@ -37,11 +39,14 @@ def test_execution_failure_stops_later_steps_and_is_audited(client, monkeypatch)
     assert execution.status_code == 202
     details = client.get(f"/api/v1/executions/{execution.json()['execution_id']}").json()
     assert details["status"] == "failed"
-    assert [step["status"] for step in details["steps"]] == ["succeeded", "failed", "skipped", "skipped", "skipped", "skipped"]
+    assert [step["status"] for step in details["steps"]] == ["succeeded", "succeeded", "failed", "skipped", "skipped", "skipped"]
     assert client.get("/api/v1/audit-events/verify").json()["valid"] is True
 
 
-def test_llm_modes_leave_outcomes_financials_and_plan_hashes_unchanged():
+def test_llm_modes_leave_outcomes_financials_and_plan_hashes_unchanged(monkeypatch):
+    # Hermetic: the live leg must never reach a real provider with a local .env key; an unreachable endpoint exercises degradation.
+    monkeypatch.setenv("AEGIS_LLM_BASE_URL", "http://127.0.0.1:9/v1")
+    monkeypatch.setenv("AEGIS_LLM_TIMEOUT_S", "1")
     fx = load_fixtures(Path(__file__).resolve().parents[2] / "fixtures")
     started = "2026-10-26T09:00:00+05:30"
     completed = "2026-10-26T09:00:07+05:30"

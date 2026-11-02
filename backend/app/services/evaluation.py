@@ -591,13 +591,14 @@ def build_evaluation_payload(
     completed = dt.datetime.fromisoformat(completed_at)
     duration_ms = max(0, int((completed - started).total_seconds() * 1000))
     definitions = [
-        ("disruption_sensing", "member_4", 10000, "gold"),
+        # v2 ownership (docs/00 §7.3, contracts 1.1.0): sensing, routing, inventory = M1; dependency, compliance, plan assembly = M4; explanation = M3
+        ("disruption_sensing", "member_1", 10000, "gold"),
         ("supplier_dependency", "member_4", 5000, "deterministic"),
-        ("routing", "member_4", 5000, "deterministic"),
-        ("inventory_rebalancing", "member_3", 5000, "deterministic"),
-        ("trade_compliance", "member_3", 5000, "deterministic"),
-        ("plan_assembly", "member_3", 5000, "deterministic"),
-        ("explanation", "member_5", 10000, "template"),
+        ("routing", "member_1", 5000, "deterministic"),
+        ("inventory_rebalancing", "member_1", 5000, "deterministic"),
+        ("trade_compliance", "member_4", 5000, "deterministic"),
+        ("plan_assembly", "member_4", 5000, "deterministic"),
+        ("explanation", "member_3", 10000, "template"),
     ]
     steps = [
         {

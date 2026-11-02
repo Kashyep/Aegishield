@@ -62,9 +62,9 @@ cd ../backend && uvicorn app.main:app --host 0.0.0.0 --port 8000
 │         └────────────────┼────────────────┼────────────────┘           │
 │                          ▼                ▼                            │
 │                   ┌─────────────┐  ┌─────────────┐                    │
-│                   │ Flat Light  │  │ Evidence    │                    │
+│                   │ SAP Fiori   │  │ Evidence    │                    │
 │                   │ UI System   │  │ Drawer +    │                    │
-│                   │ (Custom CSS)│  │ Approval    │                    │
+│                   │ (@ui5/webc) │  │ Approval    │                    │
 │                   └─────────────┘  └─────────────┘                    │
 └──────────────────────────────┬────────────────────────────────────────┘
                                │ JSON over HTTP
@@ -143,7 +143,7 @@ cd ../backend && uvicorn app.main:app --host 0.0.0.0 --port 8000
 │   │   ├── hooks/              # useSidebar, useMediaQuery, useLocalStorage
 │   │   ├── styles/
 │   │   │   ├── tokens.css      # Design tokens (colors, spacing, radius, shadows)
-│   │   │   └── neomorphism.css # Component utilities (legacy name for flat UI)
+│   │   │   └── neomorphism.css # Component utilities (UI5 wrapper styling)
 │   │   ├── index.css           # Global styles, component implementations
 │   │   └── App.tsx             # Root component, state, modals, drawers
 │   ├── package.json
@@ -248,17 +248,16 @@ blocked → superseded (new evaluation)
 
 ---
 
-## Frontend — Flat Light Design System
+## Frontend — SAP Fiori / UI5 Design System
 
-The UI uses a flat light theme with design tokens in `frontend/src/styles/tokens.css`. Note that `neomorphism.css` and `Neu*` component names are legacy names for flat utilities.
+The UI uses SAP Fiori design with UI5 Web Components (`@ui5/webcomponents`, `@ui5/webcomponents-fiori`, `@ui5/webcomponents-icons`). Component wrappers (`NeuButton`, `NeuInput`, `NeuChip`, etc. in `frontend/src/components/ui/`) wrap official UI5 elements (`ui5-button`, `ui5-input`, `ui5-tag`) with accessible styling.
 
 ### Design Tokens (`src/styles/tokens.css`)
 - **Base background:** `#fdfefb` (subtle off-white)
 - **Elevated surface:** `#ffffff` (cards)
 - **Subtle surface:** `#f5f7f3` (panels)
 - **Primary:** `#a0c346` | **Secondary:** `#98ddc2` | **Accent:** `#79c5d2`
-- **Flat surface styling:** Subtle borders and minimal elevation tokens (`--shadow-neu-raised`, `--shadow-neu-subtle`; pressed shadows disabled)
-
+- **Fiori surface styling:** Clean surfaces with UI5 component integration
 ### Layout
 - **Sidebar:** Collapsible (260px ↔ 72px), off-canvas drawer on mobile (<768px), state persisted in localStorage
 - **Topbar:** Fixed 56px, hamburger menu, breadcrumb, actor selector, mode chip
@@ -268,9 +267,9 @@ The UI uses a flat light theme with design tokens in `frontend/src/styles/tokens
 | Component | Variants | Use |
 |-----------|----------|-----|
 | `NeuCard` | raised, raised-lg, pressed, subtle, inset, interactive | All surfaces |
-| `NeuButton` | primary, secondary, ghost, danger; sm/md/lg | All actions |
-| `NeuInput` / `NeuTextarea` / `NeuSelect` | inset style | All forms |
-| `NeuChip` / `NeuPill` / `NeuPills` | primary, success, warning, error, info, accent, neutral | Status, tabs |
+| `NeuButton` | primary, secondary, ghost, danger; sm/md/lg | All actions (renders `ui5-button`) |
+| `NeuInput` / `NeuTextarea` / `NeuSelect` | inset style | All forms (renders `ui5-input`) |
+| `NeuChip` / `NeuPill` / `NeuPills` | primary, success, warning, error, info, accent, neutral | Status, tabs (renders `ui5-tag`) |
 | `Modal` / `Drawer` / `ConfirmDialog` | Portal-rendered, focus-trapped | Dialogs, side panels |
 
 ### Screens
@@ -386,7 +385,7 @@ pytest tests/test_rules.py tests/test_dependency.py tests/test_schema_conformanc
 | **Backend entry point** | `backend/app/main.py` |
 | **Frontend entry point** | `frontend/src/App.tsx` |
 | **Design tokens** | `frontend/src/styles/tokens.css` |
-| **Flat UI utilities (legacy name)** | `frontend/src/styles/neomorphism.css` |
+| **UI utilities & wrappers** | `frontend/src/components/ui/` |
 
 ---
 
@@ -438,7 +437,7 @@ curl http://localhost:8000/api/v1/audit-events/verify
 | Evaluation stuck in `queued` | Check backend logs; LLM gateway may be timing out in `live` mode |
 | `PLAN_VERSION_STALE` on approval | Re-fetch plan with `GET /plans/{id}` for current version/hash |
 | Sidebar not collapsing | localStorage may have stale value; clear `aegisshield:sidebar-state` |
-| Styles or theme look incorrect | Ensure design tokens in `frontend/src/styles/tokens.css` are loaded |
+| Styles or theme look incorrect | Ensure UI5 web components are imported and initialized |
 
 ---
 
@@ -468,7 +467,7 @@ Internal demo package for SAP Hackfest Bengaluru 2026. Not for production use.
 2. **Contracts are truth** — `contracts/schemas/` and `contracts/openapi.yaml` define all data shapes
 3. **Fixtures are goldens** — `fixtures/expected/` contains the exact outputs your code must produce
 4. **Determinism is mandatory** — same inputs must produce same IDs, amounts, and plan hashes across `live`/`recorded`/`off` modes
-5. **Flat UI design** — flat light theme with design tokens in `frontend/src/styles/tokens.css`; `neomorphism.css` and `Neu*` component names (`NeuCard`, `NeuButton`, `NeuInput`, `NeuChip` from `components/ui/`) are legacy names for flat utilities
+5. **SAP Fiori UI** — use UI5 components and wrappers (`NeuCard`, `NeuButton`, `NeuInput`, `NeuChip` from `components/ui/`); accessible SAP Fiori components
 6. **Sidebar state** — use `useSidebar()` hook; it handles collapse/expand, mobile drawer, and localStorage persistence
 7. **Hash routing** — screens map to URL hashes (`#command`, `#evaluations`, etc.) via `src/app/navigation.ts`
 8. **Modals/Drawers** — use `Modal`, `Drawer`, `ConfirmDialog` from `components/ui/`; they handle focus trapping and portals

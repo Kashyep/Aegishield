@@ -16,10 +16,11 @@ from fastapi.responses import JSONResponse
 
 from . import config
 from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION, CORS_ORIGINS, FRONTEND_DIST
-from .services.fixtures import load_fixtures, snapshot_id, digest
+from .services.fixtures import load_fixtures, snapshot_id, digest, load_signals
 from .services.evaluation import build_evaluation_payload
 from .agents.dependency.graph import build_graph
 from .agents.dependency.view import GraphViewError, graph_view_for_evaluation
+from .agents.early_warning import compute_early_warnings
 from .db.sqlite import read_connection, transaction
 from .audit.chain import append_event, verify
 from .api.problems import problem_response
@@ -35,6 +36,7 @@ CONTRACTS = ROOT / "contracts"
 OPENAPI_PATH = CONTRACTS / "openapi.yaml"
 OPENAPI = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 fx = load_fixtures(FIXTURES)
+signals_fixture = load_signals(FIXTURES)
 SNAPSHOT = snapshot_id(fx)
 
 
@@ -197,7 +199,7 @@ def reset_demo(
     x_actor_id: str = Header(..., pattern=r"^USR-[A-Z]+$"),
     x_reset_token: Optional[str] = Header(None, alias="X-Reset-Token"),
 ):
-    global fx, SNAPSHOT
+    global fx, SNAPSHOT, signals_fixture
     if not DEMO_MODE:
         return problem_response(403, "DEMO_MODE_DISABLED", "Demo reset is only available when AEGIS_DEMO_MODE=1", instance="/api/v1/demo/reset")
     actor = get_actor_obj(x_actor_id)
@@ -211,6 +213,7 @@ def reset_demo(
             return problem_response(403, "RESET_TOKEN_INVALID", "Invalid or missing reset token", instance="/api/v1/demo/reset")
 
     fresh = load_fixtures(FIXTURES)
+    fresh_signals = load_signals(FIXTURES)
     fresh_snapshot = snapshot_id(fresh)
     with transaction() as con:
         for table in (
@@ -243,6 +246,7 @@ def reset_demo(
 
     fx = fresh
     SNAPSHOT = fresh_snapshot
+    signals_fixture = fresh_signals
     return {
         "scenario_id": "SCN-DEMO-001",
         "input_snapshot_id": fresh_snapshot,
@@ -705,6 +709,24 @@ def rules_applicability(body: RuleQueryRequest):
     if invalid:
         return invalid
     return query_rule_applicability(fx, body)
+
+
+@app.get("/api/v1/early-warnings")
+def early_warnings_route(as_of: str | None = None):
+    target_as_of = as_of if as_of is not None else fx["scenario"]["as_of"]
+    try:
+        parsed_dt = datetime.fromisoformat(target_as_of)
+        if parsed_dt.tzinfo is None:
+            raise ValueError("Offset is required")
+    except Exception:
+        return problem_response(
+            400,
+            "VALIDATION_ERROR",
+            f"Invalid as_of timestamp: {as_of}",
+            instance="/api/v1/early-warnings",
+        )
+    return compute_early_warnings(fx, signals_fixture, target_as_of)
+
 
 
 # Serve the built frontend (frontend/dist) from the same origin when present, so one deployment is the whole demo.

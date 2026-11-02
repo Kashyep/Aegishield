@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Source options, recovery plans, financials and evaluations",
-  "description": "Owner: Member 3. Reviewers: Member 5 (plans, comparison), Member 2 (evaluation payload). Contract version 1.0.0.",
+  "description": "Owner: Member 4. Reviewers: Member 3 (plans, comparison, explanations), Member 2 (evaluation payload). Contract version 1.1.0.",
   "$defs": {
     "PlanStatus": {
       "type": "string",

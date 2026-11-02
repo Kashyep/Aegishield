@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "positions": [
+    {
+      "inventory_source_id": "INV-BLR",
+      "location_id": "LOC-KAV-BLR",
+      "part_id": "PRT-PM750",
+      "on_hand": 250,
+      "reserved": 0,
+      "protected_floor": 100,
+      "transfer_days": 0,
+      "transfer_cost_inr_per_unit": 0,
+      "replenishment_note": "Units borrowed now are replenished from the delayed PO-7001 delivery."
+    },
+    {
+      "inventory_source_id": "INV-PNQ",
+      "location_id": "LOC-KAV-PNQ",
+      "part_id": "PRT-PM750",
+      "on_hand": 300,
+      "reserved": 100,
+      "protected_floor": 50,
+      "transfer_days": 3,
+      "transfer_cost_inr_per_unit": 40,
+      "replenishment_note": "Road transfer Pune DC to Bengaluru plant (synthetic lead time and cost)."
+    }
+  ]
+}

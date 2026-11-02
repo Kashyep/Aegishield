@@ -1,0 +1,598 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Temporal trade rules and applicability results",
+  "description": "Owner: Member 3. Reviewer: Member 4. Contract version 1.1.0. Applicability is decided by deterministic metadata filtering (jurisdiction, scope, publication, status, effective interval, explicit supersession, authority). Semantic similarity is never used to decide applicability.",
+  "$defs": {
+    "RuleType": {
+      "type": "string",
+      "enum": [
+        "tariff_mfn",
+        "tariff_preferential",
+        "origin_consignment",
+        "documentary_requirement"
+      ]
+    },
+    "AuthorityLevel": {
+      "type": "string",
+      "enum": [
+        "official_gazette",
+        "official_circular",
+        "internal_policy",
+        "secondary"
+      ],
+      "description": "Precedence order, highest first."
+    },
+    "TradeRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "family_id",
+        "title",
+        "rule_type",
+        "jurisdiction",
+        "agreement_id",
+        "hs_scope",
+        "origin_scope",
+        "published_date",
+        "effective_from",
+        "effective_to",
+        "status",
+        "supersedes",
+        "authority",
+        "source",
+        "modeled_on",
+        "text",
+        "structured",
+        "extraction"
+      ],
+      "properties": {
+        "rule_id": {
+          "$ref": "common.schema.json#/$defs/RuleId"
+        },
+        "family_id": {
+          "type": "string",
+          "pattern": "^FAM-[A-Z0-9-]+$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "rule_type": {
+          "$ref": "#/$defs/RuleType"
+        },
+        "jurisdiction": {
+          "$ref": "common.schema.json#/$defs/CountryCode",
+          "description": "Importing jurisdiction whose law the rule belongs to."
+        },
+        "agreement_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hs_scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "HS labels or '*' for all."
+        },
+        "origin_scope": {
+          "type": "string",
+          "enum": [
+            "any",
+            "agreement_parties"
+          ]
+        },
+        "published_date": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "effective_from": {
+          "$ref": "common.schema.json#/$defs/Date"
+        },
+        "effective_to": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Inclusive last day; null = open-ended."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "in_force",
+            "draft",
+            "withdrawn"
+          ]
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/RuleId"
+          }
+        },
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level",
+            "issuer"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/$defs/AuthorityLevel"
+            },
+            "issuer": {
+              "type": "string"
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_id",
+            "title",
+            "uri",
+            "synthetic"
+          ],
+          "properties": {
+            "source_id": {
+              "$ref": "common.schema.json#/$defs/SourceId"
+            },
+            "title": {
+              "type": "string"
+            },
+            "uri": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "synthetic": {
+              "type": "boolean"
+            }
+          }
+        },
+        "modeled_on": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "uri",
+                "verification_status"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "uri": {
+                  "type": "string"
+                },
+                "verification_status": {
+                  "type": "string",
+                  "enum": [
+                    "verified_primary",
+                    "secondary_source_only",
+                    "unverified"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "description": "Short paraphrase used as the retrievable passage."
+        },
+        "structured": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "rate_bps"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "ad_valorem_rate"
+                },
+                "rate_bps": {
+                  "$ref": "common.schema.json#/$defs/Bps"
+                },
+                "conditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "certificate_of_origin",
+                      "direct_consignment"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "party_transit",
+                "non_party_transit",
+                "non_party_conditions",
+                "evidence_required"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "direct_consignment"
+                },
+                "party_transit": {
+                  "enum": [
+                    "allowed"
+                  ]
+                },
+                "non_party_transit": {
+                  "enum": [
+                    "conditional",
+                    "prohibited"
+                  ]
+                },
+                "non_party_conditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "evidence_required": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "extraction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "verified"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "manual_gold",
+                "llm"
+              ]
+            },
+            "verified": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "TradeRulesFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "dataset_id",
+        "synthetic",
+        "notice",
+        "authority_precedence",
+        "rules"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "dataset_id": {
+          "type": "string"
+        },
+        "synthetic": {
+          "const": true
+        },
+        "notice": {
+          "type": "string"
+        },
+        "authority_precedence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuthorityLevel"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TradeRule"
+          }
+        }
+      }
+    },
+    "RuleQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query_id",
+        "jurisdiction",
+        "rule_types",
+        "hs_code",
+        "origin_country",
+        "transit_countries",
+        "agreement_id",
+        "applicable_on",
+        "known_as_of"
+      ],
+      "properties": {
+        "query_id": {
+          "type": "string",
+          "pattern": "^RQ-[A-Z0-9-]+$"
+        },
+        "jurisdiction": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        },
+        "rule_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/RuleType"
+          }
+        },
+        "hs_code": {
+          "type": "string"
+        },
+        "origin_country": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        },
+        "transit_countries": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/CountryCode"
+          }
+        },
+        "agreement_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "applicable_on": {
+          "$ref": "common.schema.json#/$defs/Date",
+          "description": "Legal applicability date. MVP assumption: expected arrival date at the Indian port (eta_port)."
+        },
+        "known_as_of": {
+          "$ref": "common.schema.json#/$defs/Date",
+          "description": "Knowledge cutoff: rules published after this date are excluded (not_yet_published)."
+        }
+      }
+    },
+    "RuleApplicabilityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "query",
+        "outcome",
+        "applicable",
+        "excluded",
+        "conflicts",
+        "missing_rule_types",
+        "retrieval_trace"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "query": {
+          "$ref": "#/$defs/RuleQuery"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "resolved",
+            "needs_review"
+          ]
+        },
+        "applicable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_id",
+              "rule_type",
+              "family_id",
+              "effective_from",
+              "effective_to",
+              "authority_level",
+              "structured",
+              "citation"
+            ],
+            "properties": {
+              "rule_id": {
+                "$ref": "common.schema.json#/$defs/RuleId"
+              },
+              "rule_type": {
+                "$ref": "#/$defs/RuleType"
+              },
+              "family_id": {
+                "type": "string"
+              },
+              "effective_from": {
+                "$ref": "common.schema.json#/$defs/Date"
+              },
+              "effective_to": {
+                "oneOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/Date"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "authority_level": {
+                "$ref": "#/$defs/AuthorityLevel"
+              },
+              "structured": {
+                "type": "object"
+              },
+              "citation": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source_id",
+                  "title",
+                  "synthetic"
+                ],
+                "properties": {
+                  "source_id": {
+                    "$ref": "common.schema.json#/$defs/SourceId"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "synthetic": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_id",
+              "reason"
+            ],
+            "properties": {
+              "rule_id": {
+                "$ref": "common.schema.json#/$defs/RuleId"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "jurisdiction_mismatch",
+                  "hs_scope_mismatch",
+                  "origin_scope_mismatch",
+                  "not_yet_published",
+                  "draft",
+                  "withdrawn",
+                  "not_yet_effective",
+                  "superseded",
+                  "expired",
+                  "lower_authority",
+                  "duplicate_same_authority"
+                ]
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_type",
+              "rule_ids",
+              "field",
+              "values",
+              "resolution"
+            ],
+            "properties": {
+              "rule_type": {
+                "$ref": "#/$defs/RuleType"
+              },
+              "rule_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/RuleId"
+                }
+              },
+              "field": {
+                "type": "string"
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                }
+              },
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "authority_precedence",
+                  "unresolved"
+                ]
+              }
+            }
+          }
+        },
+        "missing_rule_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuleType"
+          }
+        },
+        "retrieval_trace": {
+          "type": "object",
+          "required": [
+            "selection",
+            "ranker_used_for_selection"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "selection": {
+              "const": "deterministic_metadata_filter"
+            },
+            "ranker_used_for_selection": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "RuleApplicabilityResultsFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "results"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuleApplicabilityResult"
+          }
+        }
+      }
+    }
+  }
+}

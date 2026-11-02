@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AegisShield common definitions",
-  "description": "Shared primitives. Owner: Member 3. Reviewer: Member 5. Contract version 1.0.0.",
+  "description": "Shared primitives. Owner: Member 3. Reviewer: Member 4. Contract version 1.1.0.",
   "$defs": {
     "SchemaVersion": {
       "type": "string",

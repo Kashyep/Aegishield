@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "dependency_policy": {
+    "max_depth": 3,
+    "block_requires_all_path_edges_verified": true,
+    "missing_critical_input_outcome": "needs_review",
+    "truncated_traversal_outcome": "needs_review"
+  },
+  "severity_policy": {
+    "critical_if_baseline_loss_inr_gte": 5000000,
+    "high_if_baseline_loss_inr_gte": 500000,
+    "high_if_any_order_days_late_gte": 3,
+    "medium_if_baseline_loss_inr_gte": 100000
+  },
+  "plan_policy": {
+    "strategies": ["cost_time_only", "constraint_verified"],
+    "verified_strategy_allowed_option_outcomes": ["passed"],
+    "late_option_must_beat_baseline_arrival": true
+  },
+  "cost_policy": {
+    "lc_amendment_fee_inr": 8000,
+    "duty_basis": "unit_price_plus_freight",
+    "duty_scope_note": "Basic customs duty only. Surcharges and IGST are excluded from the synthetic model.",
+    "rounding": "half_up_to_whole_rupee_per_line"
+  },
+  "approval_policy": {
+    "all_plans_require_human_approval": true,
+    "approver_roles": ["supply_planner", "trade_compliance_officer"],
+    "acknowledgement_roles": {
+      "supplier_dependency": ["supply_planner"],
+      "routing": ["supply_planner"],
+      "inventory_rebalancing": ["supply_planner"],
+      "trade_compliance": ["trade_compliance_officer"],
+      "disruption_sensing": ["supply_planner"]
+    },
+    "amendment_request_roles": ["trade_compliance_officer"],
+    "reject_roles": ["supply_planner", "trade_compliance_officer"],
+    "blocked_plans_approvable": false
+  },
+  "demo_actors": [
+    {"actor_id": "USR-PRIYA", "display_name": "Priya R. (Supply Planner, synthetic)", "role": "supply_planner"},
+    {"actor_id": "USR-ARJUN", "display_name": "Arjun M. (Trade Compliance Officer, synthetic)", "role": "trade_compliance_officer"},
+    {"actor_id": "USR-VIEW", "display_name": "Guest viewer", "role": "viewer"}
+  ]
+}

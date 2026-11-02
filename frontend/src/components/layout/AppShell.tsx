@@ -77,7 +77,7 @@ export function AppShell({
         {/* Topbar */}
         <Topbar
           onMenuClick={toggle}
-          screenLabel={['command', 'evaluations', 'execution', 'supply-graph', 'audit-trail', 'evaluation-progress'].includes(activeScreen) ? activeScreen : 'Command Center'}
+          screenLabel={['command', 'evaluations', 'execution', 'supply-graph', 'audit-trail', 'evaluation-progress', 'early-warnings'].includes(activeScreen) ? activeScreen : 'Command Center'}
           actorId={actorId}
           onActorChange={setActorId}
           policies={policies}

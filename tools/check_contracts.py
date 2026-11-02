@@ -3,7 +3,7 @@
 
 Run from the repository root:
     python3 tools/check_contracts.py                 # verify everything (CI and pre-merge)
-    python3 tools/check_contracts.py --write-golden  # regenerate fixtures/expected/*.json (owner: Member 3, review: Member 5)
+    python3 tools/check_contracts.py --write-golden  # regenerate fixtures/expected/*.json (owner: Member 3, review: Member 4)
 
 Checks, in order:
   1. Every fixture, golden file and validation-case file validates against contracts/schemas.
@@ -12,6 +12,8 @@ Checks, in order:
   4. Hand-calculated demo figures (documented in docs/00-source-of-truth.md) equal the oracle's figures.
   5. Every oracle=true validation case in fixtures/validation/cases.json produces its expected values.
   6. contracts/openapi.yaml is a valid OpenAPI 3.1 document and every inline example validates against its schema.
+  Since 1.1.0 it also checks the early-warning contract (external_signals.json, signals.schema.json, EWS goldens and cases)
+  and that external signals cannot change plans or the input snapshot.
 
 Exit status 0 only when every check passes. Requires: jsonschema>=4.18, pyyaml, openapi-spec-validator.
 """
@@ -47,6 +49,13 @@ HAND = {
 }
 HAND["P1"]["net_avoided_loss_inr"] = HAND["baseline_loss_inr"] - HAND["P1"]["recovery_cost_inr"] - HAND["P1"]["residual_loss_inr"]
 HAND["P2"]["net_avoided_loss_inr"] = HAND["baseline_loss_inr"] - HAND["P2"]["recovery_cost_inr"] - HAND["P2"]["residual_loss_inr"]
+# Early-warning index hand calculations (docs/00 §10.9) and pitch canon (docs/00 Appendix E)
+HAND["ews_fabz_pre_notice"] = 45 * 100 // 100 + 25 * 100 // 100 + (45 * 60 + 50) // 100      # SIG-0001 + SIG-0002 + SIG-0003 = 97
+HAND["ews_fabz_scenario_raw"] = 25 + 27 + 70 * 100 // 100                                    # SIG-0002 + SIG-0003 + SIG-0006 = 122 (score capped at 100)
+HAND["ews_cbdg"] = (25 * 30 + 50) // 100                                                     # 7.5 rounds half up to 8
+HAND["order_value_total_inr"] = 8_400_000 + 6_300_000 + 4_200_000                            # 1,89,00,000
+HAND["warning_lead_minutes"] = (2 * 24 + 11) * 60 + 40                                       # 23 Oct 21:00 -> 26 Oct 08:40 = 59 h 40 min
+EWS_PRE_NOTICE_AS_OF = "2026-10-23T21:00:00+05:30"
 
 FIXTURE_SCHEMA = {
     "scenario": "fixtures.schema.json#/$defs/ScenarioFile",
@@ -69,6 +78,8 @@ EXPECTED_SCHEMA = {
     "rule_applicability": "trade-rules.schema.json#/$defs/RuleApplicabilityResultsFile",
     "evaluation_EVAL-0001": "plan.schema.json#/$defs/Evaluation",
     "approval_flow": "decision.schema.json#/$defs/ApprovalFlowScript",
+    "early_warnings_pre_notice": "signals.schema.json#/$defs/EarlyWarningResult",
+    "early_warnings_scenario_time": "signals.schema.json#/$defs/EarlyWarningResult",
 }
 
 failures: list[str] = []
@@ -111,7 +122,7 @@ def validate(instance, ref, reg, label):
 
 
 # --------------------------------------------------------------------------- golden builders
-def build_goldens(fx: dict) -> dict:
+def build_goldens(fx: dict, signals: dict) -> dict:
     r = O.evaluate(fx)
     deps = [r["dependency"][k] for k in sorted(r["dependency"])]
     plans = r["plans"]
@@ -146,7 +157,8 @@ def build_goldens(fx: dict) -> dict:
                              "validation": {"passed": True, "errors": []}, "generated_at": "2026-10-26T09:00:04+05:30"})
     steps = []
     names = ["disruption_sensing", "supplier_dependency", "routing", "inventory_rebalancing", "trade_compliance", "plan_assembly", "explanation"]
-    owners = ["member_4", "member_4", "member_4", "member_3", "member_3", "member_3", "member_5"]
+    # v2 ownership (docs/00 §7.3): sensing, routing, inventory = M1; dependency, compliance, plan assembly = M4; explanation = M3
+    owners = ["member_1", "member_4", "member_1", "member_1", "member_4", "member_4", "member_3"]
     for i, (n, o) in enumerate(zip(names, owners), start=1):
         steps.append({"seq": i, "step": n, "owner": o, "status": "succeeded", "attempts": 1, "timeout_ms": 10000 if n in ("disruption_sensing", "explanation") else 5000,
                       "started_at": f"2026-10-26T09:00:0{i - 1}+05:30", "finished_at": f"2026-10-26T09:00:0{i}+05:30",
@@ -180,6 +192,8 @@ def build_goldens(fx: dict) -> dict:
         "graph_view_SUP-B": O.graph_view(fx, deps, "SUP-B"),
         "rule_applicability": {"schema_version": "1.0.0", "results": [r["rule_results"][k] for k in sorted(r["rule_results"])]},
         "evaluation_EVAL-0001": evaluation,
+        "early_warnings_pre_notice": O.early_warnings(fx, signals, EWS_PRE_NOTICE_AS_OF),
+        "early_warnings_scenario_time": O.early_warnings(fx, signals, fx["scenario"]["as_of"]),
     }
 
 
@@ -268,6 +282,34 @@ def check_integrity(fx: dict):
         ok("referential integrity across fixtures")
 
 
+def check_signals_integrity(fx: dict, signals: dict, ews_goldens: list):
+    nodes = {n["node_id"] for n in fx["supply_graph"]["nodes"]}
+    locs = {l["location_id"] for l in fx["master_data"]["locations"]}
+    areas = {a["area_id"] for a in signals["areas"]}
+    probs = []
+    for a in signals["areas"]:
+        probs += [f"area {a['area_id']} unknown node {n}" for n in a["node_ids"] if n not in nodes]
+        probs += [f"area {a['area_id']} unknown location {l}" for l in a["location_ids"] if l not in locs]
+    ids = [s["signal_id"] for s in signals["signals"]]
+    if len(ids) != len(set(ids)):
+        probs.append("duplicate signal ids")
+    probs += [f"base fixture signal {s['signal_id']} has unmapped area" for s in signals["signals"] if any(x not in areas for x in s["area_ids"])]
+    src = {s["source"]["source_id"] for s in signals["signals"]}
+    for g in ews_goldens:
+        ev = {e["evidence_id"] for e in g["evidence"]}
+        for w in g["warnings"]:
+            probs += [f"{w['warning_id']} evidence {e} missing" for e in w["evidence_ids"] if e not in ev]
+        for e in g["evidence"]:
+            probs += [f"{e['evidence_id']} cites undeclared source {x}" for x in e["source_ids"] if x not in src]
+    # Isolation invariant: signals are not part of the plan input snapshot
+    if O.input_snapshot_id(fx) != O.input_snapshot_id({k: v for k, v in fx.items() if k != O.SIGNALS_FILE}):
+        probs.append("external_signals leaked into input_snapshot_id")
+    for p in probs:
+        fail(f"signals integrity: {p}")
+    if not probs:
+        ok("early-warning areas, signals, evidence and isolation from plans")
+
+
 def declared_sources(fx: dict) -> set:
     return ({s["source_id"] for s in fx["sources"]["sources"]} | {s["source_id"] for s in fx["supply_graph"]["sources"]}
             | {r["source"]["source_id"] for r in fx["trade_rules"]["rules"]})
@@ -291,12 +333,32 @@ def check_evidence_links(evaluation: dict, fx: dict):
 
 
 # --------------------------------------------------------------------------- validation cases
+def _ews_view(result: dict) -> dict:
+    return {
+        "warnings": {w["subject"]["id"]: {"score": w["score"], "raw_points": w["raw_points"], "level": w["level"],
+                                          "contributing_signal_ids": [c["signal_id"] for c in w["contributing"]],
+                                          "order_ids": w["exposure"]["order_ids"],
+                                          "affected_candidate_supplier_ids": w["exposure"]["affected_candidate_supplier_ids"]}
+                     for w in result["warnings"]},
+        "excluded": {x["signal_id"]: x["reason"] for x in result["excluded_signals"]},
+    }
+
+
 def run_case(case: dict, base_fx: dict):
     fx = O.apply_patches(base_fx, case["patches"])
+    signals = fx.pop(O.SIGNALS_FILE)          # never part of the plan inputs
     inp, exp = case["input"], case["expected"]
     kind = inp["kind"]
     got = {}
-    if kind == "dependency":
+    if kind == "early_warning":
+        got.update(_ews_view(O.early_warnings(fx, signals, inp["as_of"])))
+    elif kind == "early_warning_isolation":
+        got.update(_ews_view(O.early_warnings(fx, signals, inp["as_of"])))
+        golden = json.loads((EXPECTED / "evaluation_EVAL-0001.json").read_text())
+        r = O.evaluate(fx)
+        got["plan_hashes_equal_golden"] = [p["plan_hash"] for p in r["plans"]] == [p["plan_hash"] for p in golden["plans"]]
+        got["input_snapshot_equal_golden"] = O.input_snapshot_id(fx) == golden["input_snapshot_id"]
+    elif kind == "dependency":
         assess = O.assess_disruption(fx, "DIS-2026-0042")
         dep = O.dependency_check(fx, inp["supplier_id"], inp["part_id"], assess["disrupted_node_ids"], inp.get("max_depth"))
         got["outcome"], got["reason_code"] = dep["outcome"], dep["reason_code"]
@@ -455,9 +517,10 @@ def main():
     ap.add_argument("--write-golden", action="store_true")
     args = ap.parse_args()
     fx = O.load_fixtures(FIXTURES)
+    signals = O.load_signals(FIXTURES)
 
     print("1. Hand-calculated figures vs oracle")
-    goldens = build_goldens(fx)
+    goldens = build_goldens(fx, signals)
     ev = goldens["evaluation_EVAL-0001"]
     plans = {p["plan_id"]: p for p in ev["plans"]}
     checks = [("baseline_loss_inr", ev["assessment"]["baseline_loss_inr"], HAND["baseline_loss_inr"])]
@@ -466,6 +529,15 @@ def main():
             checks.append((f"{key}.{k}", plans[pid]["financials"][k], HAND[key][k]))
     duty = sum(e["amount_inr"] for e in plans["PLN-0001"]["financials"]["exposures"] if e["kind"] == "duty_if_preference_denied")
     checks.append(("duty_at_risk_P1_inr", duty, HAND["duty_at_risk_P1_inr"]))
+    pre = {w["subject"]["id"]: w for w in goldens["early_warnings_pre_notice"]["warnings"]}
+    now = {w["subject"]["id"]: w for w in goldens["early_warnings_scenario_time"]["warnings"]}
+    checks.append(("ews FAC-FABZ score pre-notice", pre["FAC-FABZ"]["score"], HAND["ews_fabz_pre_notice"]))
+    checks.append(("ews FAC-FABZ raw points at scenario time", now["FAC-FABZ"]["raw_points"], HAND["ews_fabz_scenario_raw"]))
+    checks.append(("ews FAC-C-BDG score", pre["FAC-C-BDG"]["score"], HAND["ews_cbdg"]))
+    checks.append(("order value total", sum(o["order_value_inr"] for o in fx["orders"]["customer_orders"]), HAND["order_value_total_inr"]))
+    notice_at = O.parse_dt(fx["disruptions"]["events"][0]["received_at"])
+    lead = int((notice_at - O.parse_dt(EWS_PRE_NOTICE_AS_OF)).total_seconds() // 60)
+    checks.append(("warning lead time before notice (minutes)", lead, HAND["warning_lead_minutes"]))
     for name, got, want in checks:
         (ok if got == want else fail)(f"{name}: oracle {got} vs hand {want}")
 
@@ -477,6 +549,7 @@ def main():
     print("2. Referential integrity")
     check_integrity(fx)
     check_evidence_links(ev, fx)
+    check_signals_integrity(fx, signals, [goldens["early_warnings_pre_notice"], goldens["early_warnings_scenario_time"]])
 
     print("3. Golden files equal oracle output (volatile fields ignored)")
     for name, data in goldens.items():
@@ -492,6 +565,8 @@ def main():
     for name, ref in FIXTURE_SCHEMA.items():
         if validate(fx[name], ref, reg, f"fixture {name}"):
             ok(f"fixtures/demo/{name}.json")
+    if validate(signals, "signals.schema.json#/$defs/SignalsFile", reg, "fixture external_signals"):
+        ok("fixtures/demo/external_signals.json")
     for name, ref in EXPECTED_SCHEMA.items():
         path = EXPECTED / f"{name}.json"
         if path.exists() and validate(json.loads(path.read_text()), ref, reg, f"golden {name}"):
@@ -506,7 +581,7 @@ def main():
         if not case["oracle"]:
             continue
         try:
-            got = run_case(case, fx)
+            got = run_case(case, {**fx, O.SIGNALS_FILE: signals})
             probs = subset_match(case["expected"], got)
         except Exception as e:  # noqa: BLE001
             probs = [f"exception {type(e).__name__}: {e}"]

@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "field_tag_reference": "Field tags follow the SWIFT MT700 layout (43P partial shipments, 43T transhipment, 44E port of loading, 44F port of discharge, 44C latest date of shipment, 31D expiry, 32B amount, 47A additional conditions, 48 presentation period). Verify against the current SWIFT standards release before quoting tags in the pitch.",
+  "letters_of_credit": [
+    {
+      "lc_id": "LC-SYN-0117",
+      "version": 1,
+      "synthetic": true,
+      "applicable_rules": "UCP LATEST VERSION",
+      "applicant": "Kaveri Motion Systems Pvt Ltd (synthetic)",
+      "beneficiary_supplier_id": "SUP-C",
+      "issuing_bank": "Synthetic Bank of Bengaluru",
+      "raw_text": ":20:SYN0117LC26\n:31C:261005\n:40E:UCP LATEST VERSION\n:31D:261126VIETNAM\n:32B:INR6000000,\n:43P:ALLOWED\n:43T:NOT ALLOWED\n:44E:ANY PORT IN VIETNAM\n:44F:CHENNAI, INDIA\n:44C:261105\n:45A:PM-750 IGBT POWER MODULES\n:47A:UCP 600 SUB-ARTICLE 20(C) IS EXCLUDED.\n:48:21/DAYS AFTER DATE OF SHIPMENT",
+      "structured": {
+        "partial_shipments": {"tag": "43P", "value": "allowed"},
+        "transhipment": {"tag": "43T", "value": "not_allowed"},
+        "ucp_20c_excluded": {"tag": "47A", "value": true},
+        "port_of_loading": {"tag": "44E", "any_port_in_country": "VN", "port_ids": []},
+        "port_of_discharge": {"tag": "44F", "port_id": "INMAA"},
+        "latest_shipment_date": {"tag": "44C", "value": "2026-11-05"},
+        "expiry": {"tag": "31D", "date": "2026-11-26", "place": "VIETNAM"},
+        "presentation_period_days": {"tag": "48", "value": 21},
+        "amount": {"tag": "32B", "currency": "INR", "value": 6000000},
+        "transport_document_required": "bill_of_lading"
+      },
+      "available_balance_inr": 4500000,
+      "available_balance_source_ref": "SRC-LC-0117-LEDGER",
+      "extraction": {"method": "manual_gold", "verified_by_role": "member_5", "note": "Gold structured fields used by tests. LLM extraction output must match these or the LC check returns needs_review."}
+    }
+  ]
+}

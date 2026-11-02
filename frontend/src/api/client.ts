@@ -15,6 +15,7 @@ import type {
   Policies,
   Plan,
   SupplyGraph,
+  EarlyWarningResult,
 } from './types'
 
 export type ApiMode = 'stub' | 'live'
@@ -213,4 +214,15 @@ export async function getAuditEvents(subjectId?: string): Promise<AuditEventPage
 
 export async function verifyAuditChain(): Promise<AuditVerifyResult> {
   return (await request<AuditVerifyResult>('/api/v1/audit-events/verify')).data
+}
+
+export async function getEarlyWarnings(asOf?: string): Promise<EarlyWarningResult> {
+  if (apiMode === 'stub') {
+    const stubFile = asOf && asOf.includes('2026-10-23')
+      ? '/stubs/early_warnings_pre_notice.json'
+      : '/stubs/early_warnings_scenario_time.json'
+    return getStub<EarlyWarningResult>(stubFile)
+  }
+  const query = asOf ? '?as_of=' + encodeURIComponent(asOf) : ''
+  return (await request<EarlyWarningResult>('/api/v1/early-warnings' + query)).data
 }

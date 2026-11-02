@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.1.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "notice": "SYNTHETIC external signals for the AegisShield demo. Agencies, bulletins, reports and posts are fictional. Area groupings are illustrative labels, not geographic claims. This file is not part of input_snapshot_id and never changes recovery plans.",
+  "scoring_policy": {
+    "window_hours": 72,
+    "severity_points": {"low": 10, "medium": 25, "high": 45, "critical": 70},
+    "source_confidence_pct": {"official": 100, "operator": 80, "news": 60, "social": 30},
+    "levels": [
+      {"level": "watch", "min_score": 30},
+      {"level": "warning", "min_score": 60}
+    ],
+    "max_score": 100,
+    "max_downstream_depth": 4,
+    "score_kind": "heuristic_index",
+    "score_note": "Heuristic early-warning index from synthetic team-chosen weights. Not a probability and not fitted to historical outage data."
+  },
+  "areas": [
+    {"area_id": "AREA-MY-KULIM", "name": "Kulim industrial area, Kedah (synthetic grouping)", "country": "MY", "node_ids": ["FAC-FABZ"], "location_ids": []},
+    {"area_id": "AREA-MY-PENANG", "name": "Penang industrial area (synthetic grouping)", "country": "MY", "node_ids": ["FAC-A-PEN"], "location_ids": []},
+    {"area_id": "AREA-MY-KLANG", "name": "Port Klang (synthetic grouping)", "country": "MY", "node_ids": [], "location_ids": ["MYPKG"]},
+    {"area_id": "AREA-VN-BINHDUONG", "name": "Binh Duong industrial zone (synthetic grouping)", "country": "VN", "node_ids": ["FAC-C-BDG"], "location_ids": []}
+  ],
+  "signals": [
+    {
+      "signal_id": "SIG-0001",
+      "observed_at": "2026-10-22T16:00:00+05:30",
+      "category": "power_grid",
+      "severity": "high",
+      "area_ids": ["AREA-MY-KULIM"],
+      "title": "Feeder instability on the Kulim industrial grid (synthetic)",
+      "text": "Synthetic grid-operator bulletin: two unplanned trips on the feeder serving the Kulim industrial area in the last 24 hours; further interruptions are possible over the next 48 hours.",
+      "source": {"source_id": "SRC-SIG-0001", "title": "Synthetic grid-operator bulletin, 22 Oct 2026", "kind": "official", "uri": null, "synthetic": true},
+      "classification_method": "manual_gold"
+    },
+    {
+      "signal_id": "SIG-0002",
+      "observed_at": "2026-10-23T10:30:00+05:30",
+      "category": "weather",
+      "severity": "medium",
+      "area_ids": ["AREA-MY-KULIM", "AREA-MY-PENANG"],
+      "title": "Thunderstorm warning for Kedah and Penang (synthetic)",
+      "text": "Synthetic weather-service warning: thunderstorms with heavy rain expected over Kedah and Penang for the next 36 hours.",
+      "source": {"source_id": "SRC-SIG-0002", "title": "Synthetic weather-service warning, 23 Oct 2026", "kind": "official", "uri": null, "synthetic": true},
+      "classification_method": "manual_gold"
+    },
+    {
+      "signal_id": "SIG-0003",
+      "observed_at": "2026-10-23T19:45:00+05:30",
+      "category": "facility_news",
+      "severity": "high",
+      "area_ids": ["AREA-MY-KULIM"],
+      "title": "Report of voltage dips halting tools at a Kulim wafer fab (synthetic)",
+      "text": "Synthetic regional news report: voltage dips this afternoon halted several tool sets at a wafer fab in the Kulim industrial area; the operator has not commented.",
+      "source": {"source_id": "SRC-SIG-0003", "title": "Synthetic regional business daily, 23 Oct 2026", "kind": "news", "uri": null, "synthetic": true},
+      "classification_method": "manual_gold"
+    },
+    {
+      "signal_id": "SIG-0004",
+      "observed_at": "2026-10-23T08:00:00+05:30",
+      "category": "port_congestion",
+      "severity": "low",
+      "area_ids": ["AREA-MY-KLANG"],
+      "title": "Berth waiting time at Port Klang about 1.5 days (synthetic)",
+      "text": "Synthetic port-operator dashboard: average berth waiting time 1.5 days, within the normal range for the season.",
+      "source": {"source_id": "SRC-SIG-0004", "title": "Synthetic port-operator dashboard, 23 Oct 2026", "kind": "operator", "uri": null, "synthetic": true},
+      "classification_method": "manual_gold"
+    },
+    {
+      "signal_id": "SIG-0005",
+      "observed_at": "2026-10-23T12:00:00+05:30",
+      "category": "power_grid",
+      "severity": "medium",
+      "area_ids": ["AREA-VN-BINHDUONG"],
+      "title": "Unconfirmed social post about power cuts in Binh Duong (synthetic)",
+      "text": "Synthetic social-media post claims short power cuts in the Binh Duong industrial zone; no official confirmation.",
+      "source": {"source_id": "SRC-SIG-0005", "title": "Synthetic social-media post, 23 Oct 2026", "kind": "social", "uri": null, "synthetic": true},
+      "classification_method": "manual_gold"
+    },
+    {
+      "signal_id": "SIG-0006",
+      "observed_at": "2026-10-25T10:00:00+05:30",
+      "category": "power_grid",
+      "severity": "critical",
+      "area_ids": ["AREA-MY-KULIM"],
+      "title": "Grid operator confirms curtailment for Kulim industrial customers (synthetic)",
+      "text": "Synthetic grid-operator notice: supply to industrial customers in the Kulim area is curtailed from 24 to 27 Oct 2026 while the feeder is repaired.",
+      "source": {"source_id": "SRC-SIG-0006", "title": "Synthetic grid-operator notice, 25 Oct 2026", "kind": "official", "uri": null, "synthetic": true},
+      "classification_method": "manual_gold"
+    }
+  ]
+}

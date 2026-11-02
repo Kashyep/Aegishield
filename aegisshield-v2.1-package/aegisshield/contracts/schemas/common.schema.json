@@ -1,0 +1,511 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AegisShield common definitions",
+  "description": "Shared primitives. Owner: Member 3. Reviewer: Member 4. Contract version 1.1.0.",
+  "$defs": {
+    "SchemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+      "description": "Contract version of the payload. Major version 1."
+    },
+    "Date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Calendar date in Asia/Kolkata business terms (YYYY-MM-DD)."
+    },
+    "DateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp with explicit offset, for example 2026-10-26T09:00:00+05:30."
+    },
+    "MoneyInr": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Amount in whole Indian rupees. Rounding: half up to the rupee at line level, then summed."
+    },
+    "SignedMoneyInr": {
+      "type": "integer",
+      "description": "Amount in whole Indian rupees that may be negative (for example net avoided loss)."
+    },
+    "Bps": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000,
+      "description": "Rate in basis points. 1500 = 15%."
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Synthetic": {
+      "type": "boolean",
+      "description": "True when the record is fictional demo data."
+    },
+    "Outcome": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "needs_review",
+        "blocked"
+      ]
+    },
+    "CheckOutcome": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "needs_review",
+        "blocked",
+        "not_applicable"
+      ]
+    },
+    "Agent": {
+      "type": "string",
+      "enum": [
+        "disruption_sensing",
+        "supplier_dependency",
+        "routing",
+        "inventory_rebalancing",
+        "trade_compliance"
+      ]
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "supply_planner",
+        "trade_compliance_officer",
+        "viewer",
+        "system"
+      ]
+    },
+    "Owner": {
+      "type": "string",
+      "enum": [
+        "member_1",
+        "member_2",
+        "member_3",
+        "member_4",
+        "member_5"
+      ]
+    },
+    "EvidenceAuthority": {
+      "type": "string",
+      "enum": [
+        "official_gazette",
+        "official_circular",
+        "internal_policy",
+        "secondary",
+        "contractual",
+        "internal"
+      ]
+    },
+    "EvaluationId": {
+      "type": "string",
+      "pattern": "^EVAL-[0-9]{4}$"
+    },
+    "PlanId": {
+      "type": "string",
+      "pattern": "^PLN-[0-9]{4}$"
+    },
+    "DecisionId": {
+      "type": "string",
+      "pattern": "^DEC-[0-9]{4}$"
+    },
+    "ExecutionId": {
+      "type": "string",
+      "pattern": "^EXE-[0-9]{4}$"
+    },
+    "AmendmentRequestId": {
+      "type": "string",
+      "pattern": "^AMD-[0-9]{4}$"
+    },
+    "AuditEventId": {
+      "type": "string",
+      "pattern": "^AUD-[0-9]{6}$"
+    },
+    "FindingId": {
+      "type": "string",
+      "pattern": "^FND-[A-Z0-9_-]+$"
+    },
+    "EvidenceId": {
+      "type": "string",
+      "pattern": "^EVD-[A-Za-z0-9_-]+$"
+    },
+    "SourceId": {
+      "type": "string",
+      "pattern": "^SRC-[A-Za-z0-9_-]+$"
+    },
+    "SupplierId": {
+      "type": "string",
+      "pattern": "^SUP-[A-Z0-9]+$"
+    },
+    "OrderId": {
+      "type": "string",
+      "pattern": "^SO-[0-9]{4}$"
+    },
+    "PartId": {
+      "type": "string",
+      "pattern": "^PRT-[A-Z0-9-]+$"
+    },
+    "NodeId": {
+      "type": "string",
+      "pattern": "^FAC-[A-Z0-9-]+$"
+    },
+    "EdgeId": {
+      "type": "string",
+      "pattern": "^E-[0-9]{3}$"
+    },
+    "RouteOptionId": {
+      "type": "string",
+      "pattern": "^RT-[A-Z0-9-]+$"
+    },
+    "OptionId": {
+      "type": "string",
+      "pattern": "^(OPT-[A-Z0-9-]+|BASELINE-PO)$"
+    },
+    "RuleId": {
+      "type": "string",
+      "pattern": "^TR-[0-9]{4}$"
+    },
+    "LocationId": {
+      "type": "string",
+      "pattern": "^([A-Z]{5}|LOC-[A-Z0-9-]+)$",
+      "description": "UN/LOCODE-style port code (labels only) or internal location id."
+    },
+    "CountryCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "Actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_id",
+        "role",
+        "kind"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "pattern": "^(USR-[A-Z]+|SYSTEM|AGENT-[A-Z_]+)$"
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "system",
+            "agent"
+          ]
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "disruption",
+            "supplier",
+            "route_option",
+            "inventory_source",
+            "plan",
+            "option",
+            "evaluation",
+            "execution",
+            "decision",
+            "lc",
+            "scenario"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "kind",
+        "source_ids",
+        "title",
+        "authority",
+        "synthetic",
+        "locator",
+        "excerpt"
+      ],
+      "description": "A pointer to the record that supports a finding. Excerpts are short (max 400 chars) and never replace the source.",
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/EvidenceId"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "graph_path",
+            "rule_passage",
+            "lc_field",
+            "fixture_record",
+            "source_document",
+            "calculation"
+          ]
+        },
+        "source_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/SourceId"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority": {
+          "$ref": "#/$defs/EvidenceAuthority"
+        },
+        "synthetic": {
+          "$ref": "#/$defs/Synthetic"
+        },
+        "locator": {
+          "type": "object",
+          "description": "Where in the source: path_id/node_ids/edge_ids, rule_id/effective dates, lc_id/lc_version/field_tag, or record_id.",
+          "additionalProperties": true
+        },
+        "excerpt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1200
+        }
+      }
+    },
+    "Remedy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "text"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "request_lc_amendment",
+            "choose_other_supplier",
+            "choose_other_route",
+            "provide_evidence",
+            "acknowledge"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "check_code",
+        "agent",
+        "outcome",
+        "subject",
+        "title",
+        "evidence_ids",
+        "remedies",
+        "details"
+      ],
+      "description": "Result of one deterministic check. Passed checks are findings too, so the UI can show what was verified.",
+      "properties": {
+        "finding_id": {
+          "$ref": "#/$defs/FindingId"
+        },
+        "check_code": {
+          "type": "string",
+          "enum": [
+            "SENSE.EVENT_RESOLUTION",
+            "DEP.SHARED_DISRUPTED_DEPENDENCY",
+            "INV.AVAILABLE_TO_PROMISE",
+            "INV.ALLOCATION_FEASIBLE",
+            "FTA.RULE_APPLICABILITY",
+            "FTA.DIRECT_CONSIGNMENT",
+            "FTA.CERTIFICATE_OF_ORIGIN",
+            "LC.EXTRACTION_CONSISTENCY",
+            "LC.TRANSHIPMENT",
+            "LC.LATEST_SHIPMENT_DATE",
+            "LC.PORT_OF_LOADING",
+            "LC.PORT_OF_DISCHARGE",
+            "LC.PRESENTATION_PERIOD",
+            "LC.AMOUNT",
+            "LC.PARTIAL_SHIPMENTS"
+          ]
+        },
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "outcome": {
+          "$ref": "#/$defs/CheckOutcome"
+        },
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/EvidenceId"
+          }
+        },
+        "remedies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Remedy"
+          }
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "VALIDATION_ERROR",
+        "NOT_FOUND",
+        "ACTOR_REQUIRED",
+        "ROLE_FORBIDDEN",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_KEY_REUSED",
+        "PLAN_VERSION_STALE",
+        "PLAN_SUPERSEDED",
+        "PLAN_BLOCKED",
+        "ACKNOWLEDGEMENT_REQUIRED",
+        "NO_AMENDABLE_FINDING",
+        "DECISION_EXISTS",
+        "NOT_APPROVED",
+        "ALREADY_EXECUTED",
+        "EVALUATION_NOT_COMPLETE",
+        "EVALUATION_IN_PROGRESS",
+        "DEMO_MODE_DISABLED",
+        "UPSTREAM_UNAVAILABLE",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "Problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "title",
+        "status",
+        "code",
+        "detail"
+      ],
+      "description": "RFC 9457 problem details, media type application/problem+json, extended with a stable machine-readable code.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "URI reference, for example https://aegisshield.local/problems/plan-blocked"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 400,
+          "maximum": 599
+        },
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "instance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "message"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "current": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "For 409 conflicts: the current plan_version, plan_hash and status so the client can refresh.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "StepError": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

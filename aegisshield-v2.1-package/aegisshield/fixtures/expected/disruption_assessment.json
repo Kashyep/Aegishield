@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "assessment_id": "DA-DIS-2026-0042",
+  "disruption_id": "DIS-2026-0042",
+  "outcome": "passed",
+  "issues": [],
+  "extraction_mode": "gold",
+  "event_type": "supplier_delay",
+  "severity": "high",
+  "severity_basis": "baseline_loss_inr=1160000; max_days_late=6",
+  "disrupted_node_ids": [
+    "FAC-FABZ"
+  ],
+  "affected_supplier_ids": [
+    "SUP-A"
+  ],
+  "affected_shipments": [
+    {
+      "shipment_id": "SHP-A-0901",
+      "po_id": "PO-7001",
+      "planned_etd": "2026-10-26",
+      "revised_etd": "2026-11-02",
+      "planned_eta_plant": "2026-11-02",
+      "revised_eta_plant": "2026-11-09",
+      "delay_days": 7
+    }
+  ],
+  "affected_orders": [
+    {
+      "order_id": "SO-1001",
+      "customer_id": "CUS-NRC",
+      "qty_affected": 400,
+      "order_value_inr": 8400000,
+      "need_by": "2026-11-03",
+      "revised_arrival": "2026-11-09",
+      "days_late": 6,
+      "baseline_penalty_inr": 600000
+    },
+    {
+      "order_id": "SO-1002",
+      "customer_id": "CUS-DWU",
+      "qty_affected": 300,
+      "order_value_inr": 6300000,
+      "need_by": "2026-11-05",
+      "revised_arrival": "2026-11-09",
+      "days_late": 4,
+      "baseline_penalty_inr": 360000
+    },
+    {
+      "order_id": "SO-1003",
+      "customer_id": "CUS-KCL",
+      "qty_affected": 200,
+      "order_value_inr": 4200000,
+      "need_by": "2026-11-07",
+      "revised_arrival": "2026-11-09",
+      "days_late": 2,
+      "baseline_penalty_inr": 200000
+    }
+  ],
+  "baseline_loss_inr": 1160000,
+  "evidence": [
+    {
+      "evidence_id": "EVD-NOTICE-DIS-2026-0042",
+      "kind": "source_document",
+      "source_ids": [
+        "SRC-NOTICE-0042"
+      ],
+      "title": "Delay notice from Penang PowerTech logistics desk (synthetic)",
+      "authority": "contractual",
+      "synthetic": true,
+      "locator": {
+        "record_id": "DIS-2026-0042"
+      },
+      "excerpt": "Shipment SHP-A-0901 will depart Port Klang on 02 Nov 2026 instead of 26 Oct 2026."
+    }
+  ]
+}

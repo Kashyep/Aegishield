@@ -1,70 +1,113 @@
-import { useState, useRef, useEffect } from 'react';
+
 import type { Policies } from '../../api/types';
 
 interface TopbarProps {
-  onMenuClick: () => void;
   screenLabel: string;
   actorId: string;
-  onActorChange: (id: string) => void;
-  policies?: Policies | null;
-  apiMode: 'stub' | 'live';
+  onActorChange: (actorId: string) => void;
+  policies: Policies | null;
+  apiMode: string;
+  onMenuClick: () => void;
 }
 
 export function Topbar({
-  onMenuClick,
   screenLabel,
   actorId,
   onActorChange,
   policies,
   apiMode,
+  onMenuClick,
 }: TopbarProps) {
-  const [showActorMenu, setShowActorMenu] = useState(false);
-  const actorMenuRef = useRef<HTMLDivElement>(null);
-
   const actors = policies?.demo_actors ?? [];
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (actorMenuRef.current && !actorMenuRef.current.contains(event.target as Node)) {
-        setShowActorMenu(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   return (
-    <header className="topbar neu-card raised">
-      <div className="topbar-left">
-        <button
-          className="neu-btn-icon neu-btn-secondary"
-          onClick={onMenuClick}
-          aria-label="Toggle navigation"
-          aria-expanded="false"
+    <header
+      className="topbar"
+      style={{
+        minHeight: '78px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 26px',
+        background: '#ffffff',
+        border: '1px solid #dce3d8',
+        borderRadius: '14px',
+        boxShadow: '0 2px 8px rgba(30, 50, 30, 0.08)',
+        gap: '20px',
+      }}
+    >
+      <div
+        className="topbar-left"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          minWidth: 0,
+        }}
+      >
+       <ui5-button
+  design="Default"
+  icon="menu"
+  onClick={onMenuClick}
+  accessibleName="Toggle navigation"
+/>
+
+        <div
+          className="topbar-breadcrumb"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            whiteSpace: 'nowrap',
+          }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-        <div className="topbar-breadcrumb">
           <span className="eyebrow">Recovery workspace</span>
           <span className="divider" aria-hidden="true">/</span>
           <span>{screenLabel}</span>
         </div>
       </div>
 
-      <div className="topbar-tools" ref={actorMenuRef}>
-        <div className="actor-selector" style={{ position: 'relative' }}>
-          <label htmlFor="actor-select" className="eyebrow">Simulated identity</label>
+      <div
+        className="topbar-tools"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexShrink: 0,
+        }}
+      >
+        <div
+          className="actor-selector"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            gap: '3px',
+            width: '345px',
+            flexShrink: 0,
+          }}
+        >
+          <label htmlFor="actor-select" className="eyebrow">
+            Simulated identity
+          </label>
+
           <select
             id="actor-select"
-            className="neu-input neu-select"
             value={actorId}
-            onChange={(e) => onActorChange(e.target.value)}
-            onFocus={() => setShowActorMenu(true)}
-            aria-expanded={showActorMenu}
+            onChange={(event) => onActorChange(event.target.value)}
+            style={{
+              width: '100%',
+              height: '40px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              border: '1px solid #e1e7dc',
+              borderRadius: '9px',
+              background: '#f5f7f2',
+              color: '#263328',
+              fontSize: '14px',
+              cursor: 'pointer',
+            }}
           >
             {actors.map((actor) => (
               <option key={actor.actor_id} value={actor.actor_id}>
@@ -74,8 +117,16 @@ export function Topbar({
           </select>
         </div>
 
-        <span className="neu-chip neu-chip-neutral user-chip" role="status" aria-live="polite">
-          {apiMode === 'stub' ? 'Stub mode · Fixtures' : 'Live API'}
+        <span
+          className="neu-chip neu-chip-neutral user-chip"
+          role="status"
+          aria-live="polite"
+          style={{
+            whiteSpace: 'nowrap',
+            borderRadius: '20px',
+          }}
+        >
+          {apiMode === 'stub' ? 'STUB MODE · FIXTURES' : 'LIVE API'}
         </span>
       </div>
     </header>

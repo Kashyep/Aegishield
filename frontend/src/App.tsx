@@ -6,17 +6,19 @@ import { EvaluationProgressScreen } from './components/screens/EvaluationProgres
 import { ExecutionScreen } from './components/screens/ExecutionScreen'
 import { SupplyGraphScreen } from './components/screens/SupplyGraphScreen'
 import { AuditTrailScreen } from './components/screens/AuditTrailScreen'
+import { EarlyWarningsScreen } from './components/screens/EarlyWarningsScreen'
+import { AlertTriangle } from 'lucide-react'
 import { Modal, ConfirmDialog, NeuButton, NeuCard, Drawer, NeuChip } from './components/ui'
 import { DependencyGraph } from './components/DependencyGraph'
 import {
   ApiError, createEvaluation, getApiMode, getAuditEvents, getEvaluation, getEvaluationById,
   getExecution, getGraphView, getHealth, getPlan, getPolicies, listDisruptions,
-  resetDemo, startExecution, submitDecision, verifyAuditChain
+  getEarlyWarnings, resetDemo, startExecution, submitDecision, verifyAuditChain
 } from './api/client'
 import type {
   Acknowledgement, AuditEvent, AuditVerifyResult, Decision, DecisionRequest,
   DemoActor, Evaluation, Execution, Finding, GraphView, GraphViewNode,
-  Health, Plan, PlanComparisonItem, Policies
+  EarlyWarning, EarlyWarningResult, Health, Plan, PlanComparisonItem, Policies
 } from './api/types'
 import { readScreenFromHash, writeScreenToHash, type Screen } from './app/navigation'
 import './index.css'
@@ -98,6 +100,38 @@ function App() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null)
   const [selectedGraphNode, setSelectedGraphNode] = useState<GraphViewNode | null>(null)
   const [approvalPlan, setApprovalPlan] = useState<Plan | null>(null)
+  const approvalFocusTargetRef = useRef<HTMLElement | null>(null)
+  const [earlyWarnings, setEarlyWarnings] = useState<EarlyWarningResult | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getEarlyWarnings()
+      .then((data) => {
+        if (active) setEarlyWarnings(data)
+      })
+      .catch(() => {
+        if (active) setEarlyWarnings(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Advisory only (D-023): warnings never change plans; shown on plan cards and in the approval modal (DA-17).
+  const planWarnings = useMemo(() => {
+    const out: Record<string, EarlyWarning[]> = {}
+    if (!evaluation || !earlyWarnings) return out
+    for (const plan of evaluation.plans) {
+      const optionIds = new Set(plan.lines.map((l) => l.option_id))
+      const supplierIds = new Set((evaluation.options ?? []).filter((o) => optionIds.has(o.option_id) && o.supplier_id).map((o) => o.supplier_id as string))
+      out[plan.plan_id] = earlyWarnings.warnings
+        .filter((w) => (w.level === 'watch' || w.level === 'warning') && w.exposure.affected_candidate_supplier_ids.some((s) => supplierIds.has(s)))
+        .map((w) => ({ ...w, exposure: { ...w.exposure, affected_candidate_supplier_ids: w.exposure.affected_candidate_supplier_ids.filter((s) => supplierIds.has(s)) } }))
+    }
+    return out
+  }, [evaluation, earlyWarnings])
+  const activePlanWarnings = approvalPlan ? planWarnings[approvalPlan.plan_id] ?? [] : []
+
   const [approvedDecision, setApprovedDecision] = useState<Decision | null>(null)
   const [execution, setExecution] = useState<Execution | null>(null)
   const [executionError, setExecutionError] = useState('')
@@ -339,17 +373,32 @@ function App() {
     return targetPlan.financials.exposures.filter((exp) => exp.finding_id === selectedFinding.finding_id && exp.kind === 'duty_if_preference_denied' && typeof exp.amount_inr === 'number').reduce((sum, exp) => sum + (exp.amount_inr ?? 0), 0)
   }, [selectedFinding, evaluation])
 
-  const openApproval = (planId: string) => {
-    const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
-    if (!plan) return
-    setApprovalPlan(plan)
-    setAcknowledgements({})
-    setDecisionError(null)
-    setDecisionJustification('')
-    setAmendmentResult(null)
-    pendingDecisionRef.current = null
-  }
+  // ⚡ Bolt Optimization: Memoize props passed to DependencyGraph to prevent re-rendering it
+  const graphCandidates = useMemo(() => (evaluation?.dependency_results ?? []).map((result) => ({
+    supplierId: result.supplier_id,
+    label: graphView?.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
+  })), [evaluation?.dependency_results, graphView?.nodes])
 
+  const handleFocusSupplier = useCallback((supplierId: string) => {
+    setSelectedGraphNode(null)
+    setFocusSupplierId(supplierId)
+  }, [])
+
+  const openApproval = (planId: string, triggerElement?: HTMLElement | null) => {
+  const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
+  if (!plan) return
+
+  approvalFocusTargetRef.current = triggerElement ?? null
+  setApprovalPlan(plan)
+  setAcknowledgements({})
+  setDecisionError(null)
+  setDecisionJustification('')
+  setAmendmentResult(null)
+  pendingDecisionRef.current = null
+}
+const closeApproval = useCallback(() => {
+  setApprovalPlan(null)
+}, [])
   const submitApproval = async () => {
     if (!approvalPlan || approvalDisabledReason) return
     const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: reviewFindings.map((finding): Acknowledgement => ({ finding_id: finding.finding_id, actor_id: actorId, note: acknowledgements[finding.finding_id]?.note.trim() ?? '' })) }
@@ -454,6 +503,7 @@ function App() {
             actorCanAmend={actorCanAmend}
             startPlanExecution={startPlanExecution}
             executionSubmitting={executionSubmitting}
+            planWarnings={planWarnings}
           />
         )
       case 'evaluations':
@@ -503,6 +553,8 @@ function App() {
             evaluation={evaluation}
           />
         )
+      case 'early-warnings':
+        return <EarlyWarningsScreen />
       case 'audit-trail':
         return (
           <AuditTrailScreen
@@ -546,9 +598,10 @@ function App() {
       {approvalPlan && (
         <Modal
           isOpen={!!approvalPlan}
-          onClose={() => setApprovalPlan(null)}
+          onClose={closeApproval}
           title={`Review ${approvalPlan.label}`}
           maxWidth="680px"
+          restoreFocusTo={approvalFocusTargetRef.current}
         >
           <dl className="finding-details" style={{ margin: 0 }}>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>
@@ -589,6 +642,44 @@ function App() {
             {approvalPlan.status === 'blocked' ? 'Cannot approve: this plan is blocked by its fixture checks.' : `Outcome: ${approvalPlan.outcome}. Confirm the current plan version and evidence before approval.`}
           </p>
 
+          {activePlanWarnings.length > 0 && (
+            <section
+              className="active-warnings-advisory"
+              aria-label="Active early warnings"
+              style={{
+                margin: 'var(--space-3) 0',
+                padding: 'var(--space-3)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--color-bg-subtle)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                <AlertTriangle size={18} style={{ color: 'var(--color-warning)' }} aria-hidden="true" />
+                <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                  Active early warnings (advisory)
+                </h3>
+              </div>
+              <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                Heuristic index, not a probability. Advisory only — never changes plans.
+              </p>
+              {activePlanWarnings.map((warning) => (
+                <div key={warning.warning_id} style={{ marginBottom: 'var(--space-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: 'var(--text-sm)' }}>{warning.label}</strong>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>({warning.warning_id})</span>
+                    <NeuChip variant={warning.level === 'warning' ? 'error' : 'warning'} size="sm">
+                      {warning.level.toUpperCase()}
+                    </NeuChip>
+                    <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)' }}>{warning.score}/100</span>
+                  </div>
+                  <p style={{ margin: 'var(--space-1) 0 0', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', lineHeight: 'var(--leading-relaxed)' }}>
+                    {warning.summary}
+                  </p>
+                </div>
+              ))}
+            </section>
+          )}
           {approvalDisabledReason && <p className="blocked-reason" style={{ marginBottom: 'var(--space-3)', color: 'var(--color-error-text)' }}>{approvalDisabledReason}</p>}
 
           <label className="neu-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>(optional for approval)</span></label>
@@ -765,11 +856,8 @@ function App() {
               <DependencyGraph
                 view={graphView}
                 result={evaluation?.dependency_results?.find((result) => result.supplier_id === graphView.focus_supplier_id)}
-                candidates={(evaluation?.dependency_results ?? []).map((result) => ({
-                  supplierId: result.supplier_id,
-                  label: graphView.nodes.find((node) => node.id === result.start_node_id)?.org_name.replace(' (synthetic)', '') ?? result.supplier_id,
-                }))}
-                onFocusSupplier={(supplierId) => { setSelectedGraphNode(null); setFocusSupplierId(supplierId) }}
+                candidates={graphCandidates}
+                onFocusSupplier={handleFocusSupplier}
                 selectedNodeId={selectedGraphNode?.id ?? null}
                 onSelectNode={setSelectedGraphNode}
               />

@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "customer_orders": [
+    {
+      "order_id": "SO-1001",
+      "customer_id": "CUS-NRC",
+      "product": "KMD-75 industrial motor drive",
+      "component_part_id": "PRT-PM750",
+      "qty": 400,
+      "order_value_inr": 8400000,
+      "component_need_by": "2026-11-03",
+      "penalty": {"rate_inr_per_unit_per_day": 250, "cap_days": 10, "basis": "synthetic liquidated-damages clause"}
+    },
+    {
+      "order_id": "SO-1002",
+      "customer_id": "CUS-DWU",
+      "product": "KMD-75 industrial motor drive",
+      "component_part_id": "PRT-PM750",
+      "qty": 300,
+      "order_value_inr": 6300000,
+      "component_need_by": "2026-11-05",
+      "penalty": {"rate_inr_per_unit_per_day": 300, "cap_days": 10, "basis": "synthetic liquidated-damages clause"}
+    },
+    {
+      "order_id": "SO-1003",
+      "customer_id": "CUS-KCL",
+      "product": "KMD-75 industrial motor drive",
+      "component_part_id": "PRT-PM750",
+      "qty": 200,
+      "order_value_inr": 4200000,
+      "component_need_by": "2026-11-07",
+      "penalty": {"rate_inr_per_unit_per_day": 500, "cap_days": 10, "basis": "synthetic liquidated-damages clause"}
+    }
+  ],
+  "purchase_orders": [
+    {
+      "po_id": "PO-7001",
+      "supplier_id": "SUP-A",
+      "part_id": "PRT-PM750",
+      "qty": 900,
+      "unit_price_inr": 6000,
+      "payment_mechanism": "open_account",
+      "lc_id": null,
+      "force_majeure_qty_reduction_allowed": true,
+      "shipment_id": "SHP-A-0901",
+      "pegging": [
+        {"order_id": "SO-1001", "qty": 400},
+        {"order_id": "SO-1002", "qty": 300},
+        {"order_id": "SO-1003", "qty": 200}
+      ]
+    }
+  ],
+  "shipments": [
+    {
+      "shipment_id": "SHP-A-0901",
+      "po_id": "PO-7001",
+      "origin_port_id": "MYPKG",
+      "destination_port_id": "INMAA",
+      "transshipment_port_ids": [],
+      "planned_etd": "2026-10-26",
+      "planned_eta_port": "2026-10-31",
+      "planned_eta_plant": "2026-11-02"
+    }
+  ]
+}

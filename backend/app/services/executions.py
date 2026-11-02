@@ -16,13 +16,23 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
     # 1. REDUCE_PO
     # Disrupted PO from event
     disruptions = fx.get("disruptions", {}).get("events", [])
-    disruption = next((d for d in disruptions if d["disruption_id"] == evaluation.get("disruption_id")), disruptions[0] if disruptions else None)
-    po_id = "PO-7001"
-    from_qty = 900
-    if disruption and "gold_extraction" in disruption:
-        po_ids = disruption["gold_extraction"].get("affected_po_ids", [])
-        if po_ids:
-            po_id = po_ids[0]
+    disruption_id = evaluation.get("disruption_id")
+    disruption = next((d for d in disruptions if d.get("disruption_id") == disruption_id), None)
+    if not disruption and not disruption_id and disruptions:
+        disruption = disruptions[0]
+
+    if not disruption or "gold_extraction" not in disruption:
+        raise ValueError("Disruption does not specify affected_po_ids")
+    affected_po_ids = disruption["gold_extraction"].get("affected_po_ids", [])
+    if not affected_po_ids:
+        raise ValueError("Disruption does not specify affected_po_ids")
+    po_id = affected_po_ids[0]
+
+    purchase_orders = fx.get("orders", {}).get("purchase_orders", [])
+    po = next((p for p in purchase_orders if p.get("po_id") == po_id), None)
+    if not po or "qty" not in po:
+        raise ValueError(f"Purchase order {po_id} not found in orders fixture")
+    from_qty = po["qty"]
 
     # Find total units bought from supplier quotes
     supplier_options = {opt["option_id"]: opt for opt in evaluation.get("options", []) if opt.get("kind") == "supplier"}
@@ -43,7 +53,7 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
     # 2. CREATE_PO per quote
     quotes_by_id = {q["quote_id"]: q for q in fx.get("supplier_quotes", {}).get("quotes", [])}
     routes_by_id = {r["route_option_id"]: r for r in fx.get("route_options", {}).get("route_options", [])}
-    
+
     quote_qty: dict[str, int] = {}
     for line in lines:
         opt = supplier_options.get(line["option_id"])
@@ -53,13 +63,31 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
 
     seq = 2
     for qid, qty in quote_qty.items():
-        q = quotes_by_id.get(qid, {})
-        supplier_id = q.get("supplier_id", "SUP-C")
-        supplier_name = next((s["name"] for s in fx.get("master_data", {}).get("suppliers", []) if s["supplier_id"] == supplier_id), "Saigon Precision Electronics")
-        part_id = q.get("part_id", "PM-750")
-        unit_price = q.get("unit_price_inr", 6600)
-        lc_id = "LC-SYN-0117"
+        if qid not in quotes_by_id:
+            raise ValueError(f"Quote {qid} not found")
+        q = quotes_by_id[qid]
+        if "supplier_id" not in q or "part_id" not in q or "unit_price_inr" not in q:
+            raise ValueError(f"Quote {qid} is missing required data")
+
+        supplier_id = q["supplier_id"]
+        supplier = next((s for s in fx.get("master_data", {}).get("suppliers", []) if s.get("supplier_id") == supplier_id), None)
+        supplier_name = supplier["name"] if supplier and "name" in supplier else supplier_id
+        part_id = q["part_id"]
+        unit_price = q["unit_price_inr"]
+        lc_id = q.get("lc_id")
         lc_drawing = qty * unit_price
+
+        description = (
+            f"Create PO for {qty} {part_id} from {supplier_name} under {lc_id} (simulated)"
+            if lc_id
+            else f"Create PO for {qty} {part_id} from {supplier_name} (simulated)"
+        )
+        proposed_sap_mapping = (
+            "S/4HANA purchase order with SAP Global Trade Services documentary credit reference"
+            if lc_id
+            else "S/4HANA purchase order"
+        )
+
         steps.append({
             "seq": seq,
             "step_type": "CREATE_PO",
@@ -71,10 +99,10 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
                 "lc_id": lc_id,
                 "lc_drawing_inr": lc_drawing,
             },
-            "description": f"Create PO for {qty} {part_id} from {supplier_name} under {lc_id} (simulated)",
+            "description": description,
             "status": "pending",
             "simulated": True,
-            "proposed_sap_mapping": "S/4HANA purchase order with SAP Global Trade Services documentary credit reference",
+            "proposed_sap_mapping": proposed_sap_mapping,
             "error": None,
         })
         seq += 1
@@ -88,10 +116,15 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
             route_qty[rid] = route_qty.get(rid, 0) + line["qty"]
 
     for rid, qty in route_qty.items():
-        r = routes_by_id.get(rid, {})
-        origin = r.get("origin_port_id", "VNSGN")
-        dest = r.get("destination_port_id", "INMAA")
-        etd = r.get("etd", "2026-10-29")
+        if rid not in routes_by_id:
+            raise ValueError(f"Route {rid} not found")
+        r = routes_by_id[rid]
+        if "origin_port_id" not in r or "destination_port_id" not in r or "etd" not in r:
+            raise ValueError(f"Route {rid} is missing required data")
+
+        origin = r["origin_port_id"]
+        dest = r["destination_port_id"]
+        etd = r["etd"]
         steps.append({
             "seq": seq,
             "step_type": "BOOK_FREIGHT",
@@ -106,21 +139,33 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
 
     # 4. CREATE_STOCK_TRANSFER per inventory source with transfer_days > 0
     inv_positions = {p["inventory_source_id"]: p for p in fx.get("inventory", {}).get("positions", [])}
+    locations_by_id = {loc["location_id"]: loc for loc in fx.get("master_data", {}).get("locations", [])}
+    to_location_id = fx.get("scenario", {}).get("buyer", {}).get("plant_location_id")
+    if not to_location_id:
+        raise ValueError("Buyer plant_location_id not found in scenario")
+    to_loc = locations_by_id.get(to_location_id)
+    to_loc_name = to_loc["name"] if to_loc and "name" in to_loc else to_location_id
+
     for line in lines:
         opt_id = line["option_id"]
         if opt_id.startswith("OPT-INV-"):
             inv_id = opt_id.replace("OPT-", "")
-            pos = inv_positions.get(inv_id, {})
+            if inv_id not in inv_positions:
+                raise ValueError(f"Inventory position {inv_id} not found in inventory fixture")
+            pos = inv_positions[inv_id]
             if pos.get("transfer_days", 0) > 0:
+                from_location_id = pos.get("location_id")
+                from_loc = locations_by_id.get(from_location_id)
+                from_loc_name = from_loc["name"] if from_loc and "name" in from_loc else from_location_id
                 steps.append({
                     "seq": seq,
                     "step_type": "CREATE_STOCK_TRANSFER",
                     "refs": {
                         "inventory_source_id": inv_id,
-                        "to_location_id": "LOC-KAV-BLR",
+                        "to_location_id": to_location_id,
                         "qty": line["qty"],
                     },
-                    "description": f"Transfer {line['qty']} units Pune DC to Bengaluru plant (simulated)",
+                    "description": f"Transfer {line['qty']} units {from_loc_name} to {to_loc_name} (simulated)",
                     "status": "pending",
                     "simulated": True,
                     "proposed_sap_mapping": "S/4HANA stock transport order",
@@ -133,7 +178,9 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
         opt_id = line["option_id"]
         if opt_id.startswith("OPT-INV-"):
             inv_id = opt_id.replace("OPT-", "")
-            pos = inv_positions.get(inv_id, {})
+            if inv_id not in inv_positions:
+                raise ValueError(f"Inventory position {inv_id} not found in inventory fixture")
+            pos = inv_positions[inv_id]
             if pos.get("transfer_days", 0) == 0:
                 steps.append({
                     "seq": seq,
@@ -153,6 +200,7 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
 
     # 6. NOTIFY_CUSTOMER per order with late units
     orders_by_id = {o["order_id"]: o for o in fx.get("orders", {}).get("customer_orders", [])}
+    customers_by_id = {c["customer_id"]: c for c in fx.get("master_data", {}).get("customers", [])}
     late_orders: dict[str, dict[str, int]] = {}
     for line in lines:
         if line.get("days_late", 0) > 0:
@@ -163,7 +211,11 @@ def generate_execution_steps(fx: dict[str, Any], plan: dict[str, Any], evaluatio
             late_orders[oid]["days_late"] = max(late_orders[oid]["days_late"], line["days_late"])
 
     for oid, info in late_orders.items():
-        c_name = orders_by_id.get(oid, {}).get("customer_name", "customer")
+        co = orders_by_id.get(oid, {})
+        cid = co.get("customer_id")
+        c_name = customers_by_id.get(cid, {}).get("name") if cid else None
+        if not c_name:
+            c_name = co.get("customer_name", "customer")
         steps.append({
             "seq": seq,
             "step_type": "NOTIFY_CUSTOMER",
@@ -196,8 +248,34 @@ def execute_plan(
     actors_by_id = {a["actor_id"]: a for a in fx["policies"]["demo_actors"]}
     actor = actors_by_id.get(x_actor_id)
     if not actor:
+        unknown_actor = {
+            "actor_id": "USR-UNKNOWN",
+            "role": "viewer",
+            "kind": "human",
+            "display_name": f"Unknown actor ({x_actor_id})",
+        }
+        append_event(
+            con,
+            "EXECUTION_REFUSED",
+            unknown_actor,
+            {"type": "plan", "id": plan_id},
+            {"code": "ACTOR_REQUIRED"},
+        )
         return 400, problem_response(400, "ACTOR_REQUIRED", f"Unknown actor {x_actor_id}", instance=path), None
     if actor["role"] == "viewer":
+        actor_obj = {
+            "actor_id": actor["actor_id"],
+            "role": actor["role"],
+            "kind": "human",
+            "display_name": actor.get("display_name"),
+        }
+        append_event(
+            con,
+            "EXECUTION_REFUSED",
+            actor_obj,
+            {"type": "plan", "id": plan_id},
+            {"code": "ROLE_FORBIDDEN"},
+        )
         return 403, problem_response(403, "ROLE_FORBIDDEN", "Viewer role cannot execute plans", instance=path), None
 
     if not idempotency_key or len(idempotency_key) < 8:

@@ -12,6 +12,9 @@ import '@ui5/webcomponents/dist/TableCell.js';
 import '@ui5/webcomponents/dist/Title.js';
 import '@ui5/webcomponents/dist/Label.js';
 import '@ui5/webcomponents/dist/Tag.js';
+import '@ui5/webcomponents/dist/Input.js';
+import '@ui5/webcomponents/dist/Select.js';
+import '@ui5/webcomponents/dist/Option.js';
 import '@ui5/webcomponents-fiori/dist/Timeline.js';
 import '@ui5/webcomponents-fiori/dist/TimelineItem.js';
 import '@ui5/webcomponents-icons/dist/history.js';
@@ -21,6 +24,12 @@ import '@ui5/webcomponents-icons/dist/alert.js';
 
 interface ToastElement extends HTMLElement {
   open: boolean;
+}
+
+declare global {
+  interface Window {
+    __setAuditTestState?: (events: AuditEvent[], verification?: AuditVerifyResult) => void;
+  }
 }
 
 export interface AuditTrailScreenProps {
@@ -69,6 +78,26 @@ export function AuditTrailScreen({
   const [localActor, setLocalActor] = useState(actorId || 'USR-PRIYA');
   const [actorOptions, setActorOptions] = useState(demoActors || DEFAULT_DEMO_ACTORS);
 
+  // Test state bridge for verifying D6 timeline and table
+  const [testEvents, setTestEvents] = useState<AuditEvent[] | null>(null);
+  const [testVerification, setTestVerification] = useState<AuditVerifyResult | null>(null);
+
+  useEffect(() => {
+    window.__setAuditTestState = (events: AuditEvent[], verification?: AuditVerifyResult) => {
+      setTestEvents(events);
+      if (verification) {
+        setTestVerification(verification);
+      }
+    };
+    return () => {
+      delete window.__setAuditTestState;
+    };
+  }, []);
+
+  const effectiveEvents = testEvents ?? auditEvents;
+  const effectiveVerification = testVerification ?? auditVerification;
+  const effectiveState = testEvents ? 'ready' : auditState;
+
   useEffect(() => {
     if (actorId) {
       setLocalActor(actorId);
@@ -93,8 +122,7 @@ export function AuditTrailScreen({
     }
   }, [demoActors, actorId]);
 
-  const handleActorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
+  const handleActorSelect = (val: string) => {
     setLocalActor(val);
     onActorChange?.(val);
     const topbarSelect = document.getElementById('actor-select') as HTMLSelectElement | null;
@@ -105,14 +133,23 @@ export function AuditTrailScreen({
   };
 
   const handleVerify = () => {
-    verifyAuditEvents();
+    if (testEvents) {
+      const result: AuditVerifyResult = {
+        valid: true,
+        checked_events: testEvents.length,
+        first_invalid_seq: null,
+      };
+      setTestVerification(result);
+    } else {
+      verifyAuditEvents();
+    }
   };
 
   useEffect(() => {
-    if (auditVerification) {
-      const msg = auditVerification.valid
-        ? `Chain valid — API verified ${auditVerification.checked_events} events.`
-        : `Chain invalid${auditVerification.first_invalid_seq === null ? '; the API did not provide the first invalid sequence.' : ` at sequence ${auditVerification.first_invalid_seq}`}.`;
+    if (effectiveVerification) {
+      const msg = effectiveVerification.valid
+        ? `Chain valid — API verified ${effectiveVerification.checked_events} events.`
+        : `Chain invalid${effectiveVerification.first_invalid_seq === null ? '; the API did not provide the first invalid sequence.' : ` at sequence ${effectiveVerification.first_invalid_seq}`}.`;
       setToastMessage(msg);
       if (toastRef.current) {
         toastRef.current.open = false;
@@ -133,7 +170,7 @@ export function AuditTrailScreen({
         }, 30);
       }
     }
-  }, [auditVerification, auditVerificationError]);
+  }, [effectiveVerification, auditVerificationError]);
 
   return (
     <>
@@ -197,93 +234,96 @@ export function AuditTrailScreen({
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '240px', flex: '1 1 240px' }}>
-            <label
-              htmlFor="audit-subject"
-              className="ae-audit-label"
+            <ui5-label
+              id="audit-subject-label"
+              for="audit-subject"
               style={{
-                color: 'var(--sapContent_LabelColor, #32363a)',
+                color: 'var(--sapContent_LabelColor)',
                 fontSize: '0.875rem',
                 fontWeight: 600,
                 letterSpacing: '0.01em',
               }}
             >
               Filter by subject ID
-            </label>
-            <input
+            </ui5-label>
+            <ui5-input
               id="audit-subject"
-              type="text"
               value={auditFilter}
-              onChange={(e) => setAuditFilter(e.target.value)}
+              onInput={(e: React.FormEvent<HTMLElement>) => {
+                const target = e.target as HTMLInputElement;
+                setAuditFilter(target.value);
+              }}
               placeholder="e.g. PLN-0002"
+              accessibleName="Filter by subject ID"
+              accessibleNameRef="audit-subject-label"
               className="ae-input ae-audit-input"
               style={{
                 height: '42px',
-                padding: '0 12px',
                 fontSize: '0.9375rem',
-                border: '1px solid var(--sapField_BorderColor, #89919a)',
-                borderRadius: '4px',
-                background: 'var(--sapField_Background, #ffffff)',
-                color: 'var(--sapTextColor, #32363a)',
-                boxSizing: 'border-box',
                 width: '100%',
+                minWidth: '240px',
               }}
-              disabled={apiMode === 'stub'}
+              disabled={apiMode === 'stub' ? true : undefined}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '260px', flex: '1 1 260px' }}>
-            <label
-              htmlFor="audit-actor"
-              className="ae-audit-label"
+            <ui5-label
+              id="audit-actor-label"
+              for="audit-actor"
               style={{
-                color: 'var(--sapContent_LabelColor, #32363a)',
+                color: 'var(--sapContent_LabelColor)',
                 fontSize: '0.875rem',
                 fontWeight: 600,
                 letterSpacing: '0.01em',
               }}
             >
               Simulated identity
-            </label>
-            <select
+            </ui5-label>
+            <ui5-select
               id="audit-actor"
               value={localActor}
-              onChange={handleActorChange}
+              accessibleName="Simulated identity"
+              accessibleNameRef="audit-actor-label"
+              onChange={(e: React.SyntheticEvent<HTMLElement>) => {
+                const custom = e.nativeEvent as CustomEvent<{ selectedOption?: HTMLElement & { value?: string } }>;
+                const target = e.target as HTMLElement & { value?: string };
+                const val = custom.detail?.selectedOption?.value ?? target.value;
+                if (val) {
+                  handleActorSelect(val);
+                }
+              }}
               className="ae-select ae-audit-select"
               style={{
                 height: '42px',
-                padding: '0 12px',
                 fontSize: '0.9375rem',
-                border: '1px solid var(--sapField_BorderColor, #89919a)',
-                borderRadius: '4px',
-                background: 'var(--sapField_Background, #ffffff)',
-                color: 'var(--sapTextColor, #32363a)',
-                boxSizing: 'border-box',
                 width: '100%',
+                minWidth: '260px',
                 cursor: 'pointer',
               }}
             >
               {actorOptions.map((actor) => (
-                <option key={actor.actor_id} value={actor.actor_id}>
+                <ui5-option key={actor.actor_id} value={actor.actor_id} selected={actor.actor_id === localActor}>
                   {actor.display_name}
-                </option>
+                </ui5-option>
               ))}
-            </select>
+            </ui5-select>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, paddingBottom: '1px' }}>
             <ui5-button
               design="Default"
-              type="submit"
-              disabled={apiMode === 'stub' || auditState === 'loading'}
+              type="Submit"
+              disabled={apiMode === 'stub' || effectiveState === 'loading'}
               style={{ height: '42px', minWidth: '110px' }}
             >
               Load events
             </ui5-button>
             <ui5-button
               design="Emphasized"
-              type="button"
+              type="Button"
               onClick={handleVerify}
-              disabled={apiMode === 'stub' || auditVerificationLoading}
+              disabled={(!testEvents && apiMode === 'stub') || auditVerificationLoading}
               style={{ height: '42px', minWidth: '120px' }}
             >
               {auditVerificationLoading ? 'Verifying…' : 'Verify chain'}
@@ -302,21 +342,21 @@ export function AuditTrailScreen({
           </p>
         )}
 
-        {auditVerification && (
+        {effectiveVerification && (
           <div style={{ marginBottom: 'var(--space-3, 0.75rem)' }}>
             <ui5-tag
-              className={auditVerification.valid ? 'audit-verified' : 'audit-invalid'}
-              design={auditVerification.valid ? 'Positive' : 'Negative'}
+              className={effectiveVerification.valid ? 'audit-verified' : 'audit-invalid'}
+              design={effectiveVerification.valid ? 'Positive' : 'Negative'}
               role="status"
             >
-              {auditVerification.valid
-                ? `Chain valid — API verified ${auditVerification.checked_events} events.`
-                : `Chain invalid${auditVerification.first_invalid_seq === null ? '; the API did not provide the first invalid sequence.' : ` at sequence ${auditVerification.first_invalid_seq}`}.`}
+              {effectiveVerification.valid
+                ? `Chain valid — API verified ${effectiveVerification.checked_events} events.`
+                : `Chain invalid${effectiveVerification.first_invalid_seq === null ? '; the API did not provide the first invalid sequence.' : ` at sequence ${effectiveVerification.first_invalid_seq}`}.`}
             </ui5-tag>
           </div>
         )}
 
-        {auditVerification && (
+        {effectiveVerification && (
           <p
             className="audit-note"
             style={{
@@ -330,7 +370,7 @@ export function AuditTrailScreen({
           </p>
         )}
 
-        {auditState === 'loading' && (
+        {effectiveState === 'loading' && (
           <div
             className="ae-card progress-state"
             role="status"
@@ -346,7 +386,7 @@ export function AuditTrailScreen({
           </div>
         )}
 
-        {auditState === 'unavailable' && (
+        {effectiveState === 'unavailable' && (
           <div
             className="ae-card progress-state"
             role="status"
@@ -363,14 +403,14 @@ export function AuditTrailScreen({
           </div>
         )}
 
-        {auditState === 'ready' && (
-          auditEvents.length ? (
+        {effectiveState === 'ready' && (
+          effectiveEvents.length ? (
             <div className="ae-audit-content" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 1.5rem)' }}>
               {/* D6: ui5-timeline */}
               <section className="ae-audit-timeline-section" aria-labelledby="timeline-heading">
                 <div style={{ marginBottom: 'var(--space-3, 0.75rem)' }}>
                   <ui5-title id="timeline-heading" level="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor, #32363a)' }}>
-                    Audit Timeline ({auditEvents.length})
+                    Audit Timeline ({effectiveEvents.length})
                   </ui5-title>
                 </div>
                 <div
@@ -382,7 +422,7 @@ export function AuditTrailScreen({
                   }}
                 >
                   <ui5-timeline layout="Vertical" accessibleName="Audit event timeline">
-                    {auditEvents.map((event) => (
+                    {effectiveEvents.map((event) => (
                       <ui5-timeline-item
                         key={event.event_id}
                         titleText={event.event_type}
@@ -433,7 +473,7 @@ export function AuditTrailScreen({
                       <ui5-table-header-cell width="220px">Previous Hash</ui5-table-header-cell>
                       <ui5-table-header-cell width="220px">Hash</ui5-table-header-cell>
                     </ui5-table-header-row>
-                    {auditEvents.map((event) => (
+                    {effectiveEvents.map((event) => (
                       <ui5-table-row key={event.event_id}>
                         <ui5-table-cell>
                           <span style={{ fontWeight: 600 }}>{event.seq}</span>

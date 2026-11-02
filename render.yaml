@@ -9,6 +9,6 @@ services:
       - key: AEGIS_DEMO_MODE
         value: "1"
       - key: AEGIS_LLM_MODE
-        value: off
+        value: "off"
       - key: AEGIS_DB_PATH
         value: /tmp/aegis-demo.sqlite3

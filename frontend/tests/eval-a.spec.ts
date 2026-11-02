@@ -78,4 +78,48 @@ test.describe('FB-01, FB-03, FB-04: Command Center & Recovery Plan Comparison', 
     // Baseline loss is surfaced in metrics and card comparisons
     await expect(page.getByText('₹11,60,000').first()).toBeVisible();
   });
+
+  test('FB-05: Request LC amendment on blocked plan submits request and records amendment', async ({ page }) => {
+    const p1 = page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' });
+    await expect(p1).toBeVisible();
+
+    // Open approval dialog for blocked plan
+    const attemptBtn = p1.getByRole('button', { name: 'Attempt approval' });
+    await expect(attemptBtn).toBeEnabled();
+    await attemptBtn.click();
+
+    const dialog = page.locator('ui5-dialog').filter({ hasText: 'Review P1 Fastest-cheapest' });
+    await expect(dialog).toBeVisible();
+
+    // LC amendment section is rendered
+    const amendmentSection = dialog.locator('.amendment-section');
+    await expect(amendmentSection).toBeVisible();
+    await expect(amendmentSection.getByRole('heading', { name: 'Request LC amendment' })).toBeVisible();
+
+    // 44C shipment date date picker is present
+    const datePicker = dialog.locator('#lc-44c-shipment-date');
+    await expect(datePicker).toBeVisible();
+
+    // If actor is Priya (supply_planner), switch to Arjun (trade_compliance_officer)
+    const switchBtn = amendmentSection.getByRole('button', { name: 'Switch to Arjun M. (Trade Compliance Officer)' });
+    if (await switchBtn.isVisible()) {
+      await switchBtn.click();
+    }
+
+    // Fill justification if needed
+    const justificationTextarea = dialog.locator('#approval-justification');
+    const currentJustification = await justificationTextarea.inputValue();
+    if (currentJustification.trim().length < 10) {
+      await justificationTextarea.fill('Request MT707 LC amendment: allow transhipment on 43T and extend 44C.');
+    }
+
+    // Submit amendment button is enabled and clickable
+    const amendSubmitBtn = amendmentSection.getByRole('button', { name: 'Request LC amendment' });
+    await expect(amendSubmitBtn).toBeEnabled();
+    await amendSubmitBtn.click();
+
+    // Feedback confirms amendment request is recorded
+    await expect(amendmentSection.locator('.approval-note')).toContainText('Amendment request AMD-0001 recorded');
+    await expect(amendmentSection.locator('.approval-note')).toContainText('stays blocked');
+  });
 });

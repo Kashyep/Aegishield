@@ -65,7 +65,6 @@ interface PopupProps extends AccessibleProps, PopupEvents {
   preventInitialFocus?: boolean;
   accessibleRole?: 'None' | 'Dialog' | 'AlertDialog';
 }
-
 declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {

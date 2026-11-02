@@ -54,7 +54,7 @@ interface CommandCenterProps {
   money: (amount: number) => string;
   formatPlanId: (id: string) => string;
   getWorstCaseExposure: (plan: PlanComparisonItem, fullPlan?: Plan) => number;
-  openApproval: (planId: string, triggerElement?: HTMLElement | null) => void;
+  openApproval: (planId: string, triggerElement?: HTMLElement | null, mode?: 'approve' | 'amend') => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
   startPlanExecution: (plan: Plan) => void;
@@ -427,7 +427,7 @@ export function CommandCenter({
                 </div>
 
                 <div className="plan-actions" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                  <NeuButton variant="secondary" onClick={() => { if (fullPlan) setSelectedPlan(fullPlan); onInspectPlan?.(plan.plan_id); }} style={{ flex: 1 }}>
+                  <NeuButton design="Default" variant="secondary" onClick={() => { if (fullPlan) setSelectedPlan(fullPlan); onInspectPlan?.(plan.plan_id); }} style={{ flex: 1 }}>
                     Review evidence
                   </NeuButton>
                   {!isVerdictVisible ? (
@@ -440,20 +440,41 @@ export function CommandCenter({
                     </NeuButton>
                   ) : isBlocked ? (
                     <>
-                      <NeuButton variant="secondary" disabled={true} aria-describedby={`blocked-reason-${plan.plan_id}`} style={{ flex: 1 }}>
+                      <NeuButton
+                        design="Positive"
+                        disabled={true}
+                        aria-describedby={`blocked-reason-${plan.plan_id}`}
+                        style={{ flex: 1 }}
+                      >
                         Approve
                       </NeuButton>
-                      <NeuButton variant="secondary" disabled={!fullPlan || !actorCanApprove} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
+                      <NeuButton
+                        design="Default"
+                        disabled={!fullPlan || !actorCanApprove}
+                        onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
+                        style={{ flex: 1 }}
+                      >
                         Attempt approval
                       </NeuButton>
                     </>
                   ) : (
-                    <NeuButton variant="primary" disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
+                    <NeuButton
+                      design="Positive"
+                      disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'}
+                      onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
+                      style={{ flex: 1 }}
+                    >
                       Approve
                     </NeuButton>
                   )}
                   {isVerdictVisible && isBlocked && fullPlan && evaluation?.findings.some((finding) => fullPlan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked' && finding.check_code.startsWith('LC.')) && (
-                    <NeuButton variant="secondary" disabled={!actorCanAmend} title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'} onClick={() => openApproval(plan.plan_id)} style={{ flex: 1 }}>
+                    <NeuButton
+                      design="Default"
+                      disabled={!actorCanAmend}
+                      title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'}
+                      onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement, 'amend')}
+                      style={{ flex: 1 }}
+                    >
                       Request LC amendment
                     </NeuButton>
                   )}

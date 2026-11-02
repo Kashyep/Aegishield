@@ -2,6 +2,12 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import '@ui5/webcomponents/dist/Dialog.js';
 import '@ui5/webcomponents/dist/Button.js';
 import '@ui5/webcomponents/dist/Tag.js';
+import '@ui5/webcomponents/dist/Table.js';
+import '@ui5/webcomponents/dist/TableHeaderRow.js';
+import '@ui5/webcomponents/dist/TableHeaderCell.js';
+import '@ui5/webcomponents/dist/TableRow.js';
+import '@ui5/webcomponents/dist/TableCell.js';
+import '@ui5/webcomponents/dist/Title.js';
 import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
@@ -45,7 +51,7 @@ function rankFindings(findings: Finding[], evaluation?: Evaluation | null): Find
 }
 function getValidationStatusDesign(status: string): 'Positive' | 'Negative' | 'Critical' | 'Information' {
   const s = status.toLowerCase();
-  if (s === 'passed' || s === 'approved' || s === 'completed' || s === 'positive') {
+  if (s === 'passed' || s === 'approved' || s === 'completed' || s === 'positive' || s === 'pending_approval') {
     return 'Positive';
   }
   if (s === 'blocked' || s === 'rejected' || s === 'failed' || s === 'negative') {
@@ -107,8 +113,56 @@ export function EvaluationsScreen({
 }: EvaluationsScreenProps) {
   const [showAllFindings, setShowAllFindings] = useState(false);
   const [selectedEvidencePlan, setSelectedEvidencePlan] = useState<Plan | null>(null);
+  const [viewedSections, setViewedSections] = useState<Set<string>>(() => new Set());
   const dialogRef = useRef<UI5DialogElement | null>(null);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const sectionId = entry.target.getAttribute('data-eval-section');
+            if (sectionId) {
+              setViewedSections((prev) => {
+                if (prev.has(sectionId)) return prev;
+                const next = new Set(prev);
+                next.add(sectionId);
+                return next;
+              });
+            }
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '0px 0px -5% 0px',
+        threshold: 0.05,
+      }
+    );
+
+    const sectionElements = document.querySelectorAll('[data-eval-section]');
+    sectionElements.forEach((el) => {
+      observer.observe(el);
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        const sectionId = el.getAttribute('data-eval-section');
+        if (sectionId) {
+          setViewedSections((prev) => {
+            if (prev.has(sectionId)) return prev;
+            const next = new Set(prev);
+            next.add(sectionId);
+            return next;
+          });
+        }
+      }
+    });
+
+    return () => observer.disconnect();
+  }, [evaluation]);
   useEffect(() => {
     const el = dialogRef.current;
     if (!el) return;
@@ -131,6 +185,9 @@ export function EvaluationsScreen({
     ? rankedFindings
     : rankedFindings.slice(0, DEFAULT_VISIBLE_FINDINGS);
   const remainingCount = Math.max(0, rankedFindings.length - DEFAULT_VISIBLE_FINDINGS);
+  const totalEvaluationSections = 3;
+  const viewedSectionCount = ['overview', 'plans', 'findings'].filter((id) => viewedSections.has(id)).length;
+  const reviewProgressPercent = Math.round((viewedSectionCount / totalEvaluationSections) * 100);
   if (evaluationState === 'loading') {
     return (
       <PageBody>
@@ -162,27 +219,230 @@ export function EvaluationsScreen({
 
         {evaluation && (
           <>
-            <NeuCard variant="raised" style={{ marginBottom: 'var(--space-section)', padding: 'var(--space-5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-                <div>
-                  <h2 style={{ marginBottom: 'var(--space-1)', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <span>{evaluation.evaluation_id}</span>
-                    <ui5-tag design={getValidationStatusDesign(evaluation.status)}>{evaluation.status}</ui5-tag>
-                  </h2>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                    Baseline loss: {money(evaluation.comparison.baseline_loss_inr)} · Recommended plan: {evaluation.comparison.recommended_plan_id ? formatPlanId(evaluation.comparison.recommended_plan_id) : '—'}
+            {/* FB-10: Section view progress tracking via IntersectionObserver */}
+            <div
+              className="evaluation-review-progress ae-review-progress"
+              role="region"
+              aria-label="Evaluation review progress"
+              style={{
+                marginBottom: 'var(--space-4)',
+                padding: 'var(--space-3) var(--space-4)',
+                background: 'var(--sapTile_Background, var(--color-bg-elevated))',
+                border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--sapTextColor, var(--color-text))' }}>
+                    Evaluation review progress:
+                  </strong>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
+                    {viewedSectionCount} of {totalEvaluationSections} sections viewed ({reviewProgressPercent}%)
+                  </span>
+                </div>
+                <ui5-tag design={reviewProgressPercent === 100 ? 'Positive' : 'Information'}>
+                  {reviewProgressPercent === 100 ? 'All sections viewed' : 'In review'}
+                </ui5-tag>
+              </div>
+              <div
+                role="progressbar"
+                aria-valuenow={reviewProgressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Evaluation review progress: ${reviewProgressPercent}%`}
+                style={{
+                  height: 6,
+                  background: 'var(--sapNeutralBorderColor, var(--color-border-light))',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  marginTop: 'var(--space-2)',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${reviewProgressPercent}%`,
+                    height: '100%',
+                    background: reviewProgressPercent === 100 ? 'var(--sapPositiveColor)' : 'var(--sapInformativeColor)',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* FB-10 Section 1: Overview */}
+            <section id="section-overview" data-eval-section="overview" className="eval-view-section">
+              <NeuCard variant="raised" style={{ marginBottom: 'var(--space-section)', padding: 'var(--space-5)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                      <span
+                        className={`eval-section-tick ${viewedSections.has('overview') ? 'viewed' : 'unviewed'}`}
+                        data-section-tick="overview"
+                        data-status={viewedSections.has('overview') ? 'viewed' : 'unviewed'}
+                        aria-label={viewedSections.has('overview') ? 'Overview section viewed' : 'Overview section not yet viewed'}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          fontSize: 13,
+                          fontWeight: 'bold',
+                          border: viewedSections.has('overview') ? '2px solid var(--sapPositiveColor)' : '2px solid var(--sapNeutralBorderColor)',
+                          background: viewedSections.has('overview') ? 'var(--sapPositiveColor)' : 'transparent',
+                          color: viewedSections.has('overview') ? 'var(--sapContent_ContrastTextColor, var(--sapButton_Selected_TextColor))' : 'var(--sapContent_LabelColor)',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {viewedSections.has('overview') ? '✓' : '○'}
+                      </span>
+                      <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span>{evaluation.evaluation_id}</span>
+                        <ui5-tag design={getValidationStatusDesign(evaluation.status)}>{evaluation.status}</ui5-tag>
+                      </h2>
+                    </div>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginLeft: '32px' }}>
+                      Baseline loss: {money(evaluation.comparison.baseline_loss_inr)} · Recommended plan: {evaluation.comparison.recommended_plan_id ? formatPlanId(evaluation.comparison.recommended_plan_id) : '—'}
+                    </p>
+                  </div>
+                </div>
+              </NeuCard>
+            </section>
+
+            {/* FB-10 Section 2: Recovery plan comparison */}
+            <section id="section-plans" data-eval-section="plans" className="eval-view-section">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span
+                  className={`eval-section-tick ${viewedSections.has('plans') ? 'viewed' : 'unviewed'}`}
+                  data-section-tick="plans"
+                  data-status={viewedSections.has('plans') ? 'viewed' : 'unviewed'}
+                  aria-label={viewedSections.has('plans') ? 'Recovery plans section viewed' : 'Recovery plans section not yet viewed'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    fontSize: 13,
+                    fontWeight: 'bold',
+                    border: viewedSections.has('plans') ? '2px solid var(--sapPositiveColor)' : '2px solid var(--sapNeutralBorderColor)',
+                    background: viewedSections.has('plans') ? 'var(--sapPositiveColor)' : 'transparent',
+                    color: viewedSections.has('plans') ? 'var(--sapContent_ContrastTextColor, var(--sapButton_Selected_TextColor))' : 'var(--sapContent_LabelColor)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {viewedSections.has('plans') ? '✓' : '○'}
+                </span>
+                <PageHeader title="Recovery plan comparison" subtitle="Financial attractiveness alone does not establish executability." />
+              </div>
+
+              {/* D6: Candidate plan decision matrix ui5-table */}
+              <div
+                className="ae-decision-matrix"
+                role="region"
+                aria-label="Candidate plans decision matrix"
+                style={{
+                  marginTop: 'var(--space-4)',
+                  marginBottom: 'var(--space-4)',
+                  background: 'var(--sapTile_Background, var(--color-bg-elevated))',
+                  border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                  borderRadius: 'var(--radius-lg, 0.5rem)',
+                  boxShadow: 'var(--sapContent_Shadow0, 0 1px 3px rgba(0,0,0,0.1))',
+                  padding: 'var(--space-4)',
+                }}
+              >
+                <div style={{ marginBottom: 'var(--space-3)' }}>
+                  <ui5-title level="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor)' }}>
+                    Decision matrix
+                  </ui5-title>
+                  <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-sm)' }}>
+                    Multi-criteria evaluation matrix comparing candidate recovery plans across financial metrics, risk exposure, and operational executability.
                   </p>
                 </div>
+
+                <ui5-table
+                  accessibleName="Candidate plans decision matrix"
+                  className="ae-decision-matrix-table"
+                  overflowMode="Popin"
+                  tabIndex={0}
+                >
+                  <ui5-table-header-row slot="headerRow">
+                    <ui5-table-header-cell width="70px" importance={1}>Plan ID</ui5-table-header-cell>
+                    <ui5-table-header-cell minWidth="140px" importance={1}>Description</ui5-table-header-cell>
+                    <ui5-table-header-cell width="120px" importance={1}>Status/Outcome</ui5-table-header-cell>
+                    <ui5-table-header-cell horizontalAlign="Right" style={{ textAlign: 'right' }} width="130px" importance={1}>
+                      Recovery Cost (₹)
+                    </ui5-table-header-cell>
+                    <ui5-table-header-cell horizontalAlign="Right" style={{ textAlign: 'right' }} width="120px" importance={1}>
+                      Residual Loss (₹)
+                    </ui5-table-header-cell>
+                    <ui5-table-header-cell horizontalAlign="Right" style={{ textAlign: 'right' }} width="140px" importance={1}>
+                      Net Avoided Loss (₹)
+                    </ui5-table-header-cell>
+                    <ui5-table-header-cell width="110px" importance={1}>Executability</ui5-table-header-cell>
+                  </ui5-table-header-row>
+                  {evaluation.comparison.plans.map((plan) => {
+                    const fullPlan = evaluation.plans.find((candidate) => candidate.plan_id === plan.plan_id);
+                    const planStatus = fullPlan?.status ?? plan.outcome;
+                    const isExecutable = plan.executable ?? (planStatus !== 'blocked' && plan.outcome !== 'blocked');
+                    return (
+                      <ui5-table-row key={plan.plan_id}>
+                        <ui5-table-cell>
+                          <span
+                            className="mono"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              fontWeight: 700,
+                              color: 'var(--sapHighlightColor, var(--color-info))',
+                            }}
+                          >
+                            {formatPlanId(plan.plan_id)}
+                          </span>
+                        </ui5-table-cell>
+                        <ui5-table-cell>
+                          <span style={{ fontWeight: 600, color: 'var(--sapTextColor)' }}>
+                            {plan.label}
+                          </span>
+                        </ui5-table-cell>
+                        <ui5-table-cell>
+                          <ui5-tag design={getValidationStatusDesign(planStatus)}>
+                            {planStatus.replace(/_/g, ' ')}
+                          </ui5-tag>
+                        </ui5-table-cell>
+                        <ui5-table-cell horizontalAlign="Right" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                          <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--sapTextColor)' }}>
+                            {money(plan.recovery_cost_inr)}
+                          </span>
+                        </ui5-table-cell>
+                        <ui5-table-cell horizontalAlign="Right" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                          <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--sapTextColor)' }}>
+                            {money(plan.residual_loss_inr)}
+                          </span>
+                        </ui5-table-cell>
+                        <ui5-table-cell horizontalAlign="Right" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                          <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: plan.net_avoided_loss_inr > 0 ? 'var(--sapPositiveColor)' : 'var(--sapTextColor)' }}>
+                            {money(plan.net_avoided_loss_inr)}
+                          </span>
+                        </ui5-table-cell>
+                        <ui5-table-cell>
+                          <ui5-tag design={isExecutable ? 'Positive' : 'Negative'}>
+                            {isExecutable ? 'Executable' : 'Blocked'}
+                          </ui5-tag>
+                        </ui5-table-cell>
+                      </ui5-table-row>
+                    );
+                  })}
+                </ui5-table>
               </div>
-            </NeuCard>
 
-            <PageHeader title="Recovery plan comparison" subtitle="Financial attractiveness alone does not establish executability." />
-
-            <div className="plans-grid" style={{ marginTop: 'var(--space-4)' }}>
+              <div className="plans-grid" style={{ marginTop: 'var(--space-4)' }}>
               {evaluation.comparison.plans.map((plan) => {
                 const fullPlan = evaluation.plans.find((candidate) => candidate.plan_id === plan.plan_id);
                 const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked';
-                const planStatus = fullPlan?.status ?? plan.outcome;
+                const planStatus = plan.outcome ?? fullPlan?.status;
                 const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
 
                 return (
@@ -263,18 +523,45 @@ export function EvaluationsScreen({
                   </NeuCard>
                 );
               })}
-            </div>
+              </div>
+            </section>
 
-            <PageHeader
-              title="Findings"
-              subtitle={
-                hasFindings
-                  ? (showAllFindings
-                      ? `Showing all ${rankedFindings.length} findings, ranked by scenario relevance.`
-                      : `Showing top ${Math.min(DEFAULT_VISIBLE_FINDINGS, rankedFindings.length)} findings most relevant to the active scenario (${remainingCount} more hidden).`)
-                  : '0 findings from the evaluation fixture.'
-              }
-            />
+            {/* FB-10 Section 3: Findings */}
+            <section id="section-findings" data-eval-section="findings" className="eval-view-section">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-section)' }}>
+                <span
+                  className={`eval-section-tick ${viewedSections.has('findings') ? 'viewed' : 'unviewed'}`}
+                  data-section-tick="findings"
+                  data-status={viewedSections.has('findings') ? 'viewed' : 'unviewed'}
+                  aria-label={viewedSections.has('findings') ? 'Findings section viewed' : 'Findings section not yet viewed'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    fontSize: 13,
+                    fontWeight: 'bold',
+                    border: viewedSections.has('findings') ? '2px solid var(--sapPositiveColor)' : '2px solid var(--sapNeutralBorderColor)',
+                    background: viewedSections.has('findings') ? 'var(--sapPositiveColor)' : 'transparent',
+                    color: viewedSections.has('findings') ? 'var(--sapContent_ContrastTextColor, var(--sapButton_Selected_TextColor))' : 'var(--sapContent_LabelColor)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {viewedSections.has('findings') ? '✓' : '○'}
+                </span>
+                <PageHeader
+                  title="Findings"
+                  subtitle={
+                    hasFindings
+                      ? (showAllFindings
+                          ? `Showing all ${rankedFindings.length} findings, ranked by scenario relevance.`
+                          : `Showing top ${Math.min(DEFAULT_VISIBLE_FINDINGS, rankedFindings.length)} findings most relevant to the active scenario (${remainingCount} more hidden).`)
+                      : '0 findings from the evaluation fixture.'
+                  }
+                />
+              </div>
 
             {hasFindings ? (
               <div className="finding-list" style={{ display: 'grid', gap: 'var(--space-2)' }}>
@@ -330,6 +617,7 @@ export function EvaluationsScreen({
                 No findings were returned for this evaluation.
               </NeuCard>
             )}
+            </section>
             {selectedEvidencePlan && (
               <ui5-dialog
                 ref={dialogRef}

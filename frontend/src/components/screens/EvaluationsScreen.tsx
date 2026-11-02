@@ -1,4 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import '@ui5/webcomponents/dist/Dialog.js';
+import '@ui5/webcomponents/dist/Button.js';
+import '@ui5/webcomponents/dist/Tag.js';
 import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
@@ -42,6 +45,12 @@ function rankFindings(findings: Finding[], evaluation?: Evaluation | null): Find
   });
 }
 
+interface UI5DialogElement extends HTMLElement {
+  open?: boolean;
+  show?: () => void;
+  close?: () => void;
+}
+
 interface EvaluationsScreenProps {
   evaluation: Evaluation | null;
   evaluationState: string;
@@ -64,7 +73,22 @@ export function EvaluationsScreen({
   setSelectedFinding,
 }: EvaluationsScreenProps) {
   const [showAllFindings, setShowAllFindings] = useState(false);
+  const [selectedEvidencePlan, setSelectedEvidencePlan] = useState<Plan | null>(null);
+  const dialogRef = useRef<UI5DialogElement | null>(null);
 
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    if (selectedEvidencePlan) {
+      if (typeof el.show === 'function' && !el.open) {
+        el.show();
+      }
+    } else {
+      if (typeof el.close === 'function' && el.open) {
+        el.close();
+      }
+    }
+  }, [selectedEvidencePlan]);
   const rankedFindings = useMemo(
     () => rankFindings(evaluation?.findings ?? [], evaluation),
     [evaluation]
@@ -174,6 +198,20 @@ export function EvaluationsScreen({
                     <div className="checks-row" style={{ margin: 'var(--space-3) 0', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
                       {plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked
                     </div>
+
+                    <div style={{ marginTop: 'var(--space-3)' }}>
+                      <NeuButton
+                        variant="secondary"
+                        onClick={() => {
+                          const target = fullPlan ?? (plan as unknown as Plan);
+                          setSelectedEvidencePlan(target);
+                        }}
+                        style={{ width: '100%' }}
+                        aria-label={`Review evidence for ${plan.plan_id}`}
+                      >
+                        Review evidence
+                      </NeuButton>
+                    </div>
                   </NeuCard>
                 );
               })}
@@ -240,6 +278,104 @@ export function EvaluationsScreen({
               <NeuCard variant="subtle" className="progress-state" role="status" style={{ padding: 'var(--space-5)' }}>
                 No findings were returned for this evaluation.
               </NeuCard>
+            )}
+            {selectedEvidencePlan && (
+              <ui5-dialog
+                ref={dialogRef}
+                open={true}
+                headerText={`Evidence — ${selectedEvidencePlan.plan_id}`}
+                accessibleName={`Review evidence for ${selectedEvidencePlan.plan_id}`}
+                onclose={() => setSelectedEvidencePlan(null)}
+                style={{ maxWidth: '820px', width: '90vw' }}
+              >
+                <div style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 var(--space-1)', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>
+                      {selectedEvidencePlan.label}
+                    </h3>
+                    <p style={{ margin: 0, color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-sm)' }}>
+                      Plan ID: {selectedEvidencePlan.plan_id}
+                    </p>
+                  </div>
+
+                  <div className="evidence-plan-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--sapTile_Background, var(--color-bg-subtle))', borderRadius: 'var(--radius-md)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
+                    <div>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Validation status</span>
+                      <strong>{selectedEvidencePlan.status}</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Financial impact</span>
+                      <strong>{selectedEvidencePlan.financials ? money(selectedEvidencePlan.financials.net_avoided_loss_inr) : '—'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Check results</span>
+                      <strong>{selectedEvidencePlan.check_outcome_counts.passed} passed · {selectedEvidencePlan.check_outcome_counts.needs_review} need review · {selectedEvidencePlan.check_outcome_counts.blocked} blocked</strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 style={{ margin: 'var(--space-2) 0', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>
+                      Plan findings ({evaluation?.findings.filter((f) => selectedEvidencePlan.finding_ids?.includes(f.finding_id)).length ?? 0})
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      {evaluation?.findings
+                        .filter((f) => selectedEvidencePlan.finding_ids?.includes(f.finding_id))
+                        .map((finding) => {
+                          const linkedEvidence = evaluation?.evidence?.filter((e) => finding.evidence_ids?.includes(e.evidence_id)) ?? [];
+                          return (
+                            <div
+                              key={finding.finding_id}
+                              style={{
+                                padding: 'var(--space-3)',
+                                border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                                borderRadius: 'var(--radius-md)',
+                                background: 'var(--sapTile_Background, var(--color-bg-elevated))',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                                <strong>{finding.title}</strong>
+                                <span style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                                  {finding.outcome}
+                                </span>
+                              </div>
+                              <p style={{ margin: 'var(--space-1) 0', fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
+                                {finding.finding_id} · {finding.check_code} · Subject: {finding.subject.id} ({finding.subject.type})
+                              </p>
+                              {finding.remedies && finding.remedies.length > 0 && (
+                                <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-2)', background: 'var(--sapInformationBackground, var(--color-info-bg))', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)' }}>
+                                  <strong>Remedy: </strong>
+                                  {finding.remedies.map((r) => r.text).join('; ')}
+                                </div>
+                              )}
+                              {linkedEvidence.length > 0 && (
+                                <div style={{ marginTop: 'var(--space-2)', borderTop: '1px dashed var(--sapTile_BorderColor, var(--color-border))', paddingTop: 'var(--space-2)' }}>
+                                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', display: 'block', marginBottom: 'var(--space-1)' }}>
+                                    Linked evidence records ({linkedEvidence.length}):
+                                  </span>
+                                  {linkedEvidence.map((ev) => (
+                                    <div key={ev.evidence_id} style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', marginBottom: 'var(--space-1)' }}>
+                                      • <strong>{ev.evidence_id}</strong>: {ev.title} ({ev.kind}{ev.synthetic ? ' · synthetic' : ''})
+                                      {ev.excerpt && (
+                                        <pre style={{ margin: 'var(--space-1) 0 0', padding: 'var(--space-1) var(--space-2)', background: 'var(--sapNeutralBackground, var(--color-bg-subtle))', borderRadius: 'var(--radius-sm)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)' }}>
+                                          {ev.excerpt}
+                                        </pre>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </div>
+                <div slot="footer" style={{ display: 'flex', justifyContent: 'flex-end', padding: 'var(--space-2)', width: '100%' }}>
+                  <NeuButton variant="primary" onClick={() => setSelectedEvidencePlan(null)}>
+                    Close
+                  </NeuButton>
+                </div>
+              </ui5-dialog>
             )}
           </>
         )}

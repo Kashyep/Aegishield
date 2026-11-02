@@ -63,9 +63,9 @@ Key components:
 - React 19.1, Vite 6.4, TypeScript 5.8, Lucide icons; tests use Playwright + axe.
 - Hash routing (`src/app/navigation.ts`). Six screens in `src/components/screens/`: CommandCenter, EvaluationProgress, Evaluations, Execution, SupplyGraph, AuditTrail. State is local only.
 - The API client (`src/api/client.ts`) has two modes, set via `VITE_API_MODE` / `VITE_API_BASE_URL`: `stub` (default, reads `/stubs/*.json`) and `live`.
-- The theme has been a flat light theme since PR #13 (`src/styles/tokens.css:17`). The `neomorphism.css` file and `Neu*` component names are leftovers from before.
+- The frontend uses SAP Fiori design with UI5 Web Components (PR #22). The component wrappers in `frontend/src/components/ui/` (`NeuButton`, `NeuInput`, `NeuChip`, etc.) wrap official UI5 elements.
 
-**Contracts** (`contracts/`): OpenAPI 3.1 (`openapi.yaml`, 17 operations) plus 9 JSON Schemas, frozen at v1.0.0. `tools/check_contracts.py` and `tools/aegis_oracle.py` (an independent oracle) gate the fixtures and goldens.
+**Contracts** (`contracts/`): OpenAPI 3.1 (`openapi.yaml`, 17 operations) plus JSON Schemas at v1.1.1. `tools/check_contracts.py` and `tools/aegis_oracle.py` (an independent oracle) gate the fixtures and goldens.
 
 **Deploy targets**
 
@@ -161,18 +161,17 @@ Environment: Python 3.14.9 (venv `/tmp/aegis-venv` built from `backend/requireme
 
 Requirements for live Playwright are in `frontend/playwright.live.config.ts`.
 
-### Phase A re-verification (branch `fix/handoff-p1` @ `452b790`, 2026-11-02)
+### Phase A re-verification (branch `fix/handoff-p1` merged with `main@9927738`, 2026-11-02)
 
 | Check | Result |
 |---|---|
-| Backend `pytest -q` | **81 passed** (74 + 7 new reset-auth tests, including a non-ASCII-token regression that failed before the fix with `TypeError`) |
-| `tools/check_contracts.py` | **PASSED** (63 OpenAPI examples) |
-| Root `pytest -q tests` (conformance + e2e golden flow) | **7 passed**; golden plan hashes unchanged |
-| Frontend `tsc -b` / lint / `npm test` / `npm run test:live` | OK / OK / **10 passed** / **1 passed** |
+| Backend `pytest -q` | **107 passed** (including 7 reset-auth tests) |
+| `tools/check_contracts.py` | **PASSED** (66 OpenAPI examples, 45/45 oracle cases, 22 schemas, 7 goldens) |
+| Root `pytest -q tests` (conformance + e2e golden flow) | **10 passed**; golden plan hashes unchanged |
+| Frontend `tsc -b` / lint / `npm test` / `npm run test:live` | OK / OK / **12 passed** / **1 passed** |
 | `ops/smoke.py` vs local uvicorn, no token | 8/8 PASS, exit 0 |
 | `ops/smoke.py` vs uvicorn with `AEGIS_RESET_TOKEN` set | no token → `FAIL reset 403 RESET_TOKEN_INVALID`, exit 1; correct token → exit 0; non-ASCII header → 403 (not 500) |
 | Container (`podman build` of `Dockerfile`, run, health, `<div id="root">`, smoke) | health OK, `<div id="root">` OK, smoke 8/8 PASS exit 0 |
-
 ## 6. CI/CD and deploy-config consistency
 
 `.github/workflows/ci.yml` runs on pushes to `main` and on all PRs:
@@ -230,6 +229,8 @@ Severity follows the 2026-10-23 review where one exists. Its addendum lists F-06
 - Strix is dev-time only: manual dispatch, never against third-party hosts (`security/STRIX.md`).
 
 ## 8. Recent change log (newest first)
+
+main advanced to 9927738 (PRs #16–#22: Fiori migration, contracts 1.1.1, BTP redeploy D-045, early warnings, offline fonts); Phase A merged onto it on 2026-11-02.
 
 | Commit | Summary |
 |---|---|

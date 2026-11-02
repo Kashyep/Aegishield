@@ -5,7 +5,6 @@ import '@ui5/webcomponents/dist/Tag.js';
 import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
-import { NeuChip } from '../ui/NeuChip';
 import { type Screen } from '../../app/navigation';
 import type { Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
 
@@ -44,6 +43,20 @@ function rankFindings(findings: Finding[], evaluation?: Evaluation | null): Find
     return a.finding_id.localeCompare(b.finding_id);
   });
 }
+function getValidationStatusDesign(status: string): 'Positive' | 'Negative' | 'Critical' | 'Information' {
+  const s = status.toLowerCase();
+  if (s === 'passed' || s === 'approved' || s === 'completed' || s === 'positive') {
+    return 'Positive';
+  }
+  if (s === 'blocked' || s === 'rejected' || s === 'failed' || s === 'negative') {
+    return 'Negative';
+  }
+  if (s === 'needs_review' || s === 'warning' || s === 'critical') {
+    return 'Critical';
+  }
+  return 'Information';
+}
+
 
 interface UI5DialogElement extends HTMLElement {
   open?: boolean;
@@ -132,8 +145,9 @@ export function EvaluationsScreen({
             <NeuCard variant="raised" style={{ marginBottom: 'var(--space-section)', padding: 'var(--space-5)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
                 <div>
-                  <h2 style={{ marginBottom: 'var(--space-1)', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)' }}>
-                    {evaluation.evaluation_id} · {evaluation.status}
+                  <h2 style={{ marginBottom: 'var(--space-1)', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <span>{evaluation.evaluation_id}</span>
+                    <ui5-tag design={getValidationStatusDesign(evaluation.status)}>{evaluation.status}</ui5-tag>
                   </h2>
                   <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
                     Baseline loss: {money(evaluation.comparison.baseline_loss_inr)} · Recommended plan: {evaluation.comparison.recommended_plan_id ? formatPlanId(evaluation.comparison.recommended_plan_id) : '—'}
@@ -157,15 +171,9 @@ export function EvaluationsScreen({
                       <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--color-info)', background: 'var(--color-info-bg)', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
                         {formatPlanId(plan.plan_id)}
                       </div>
-                      <NeuChip
-                        variant={
-                          planStatus === 'passed' || planStatus === 'approved' || planStatus === 'completed' ? 'success' :
-                          planStatus === 'blocked' || planStatus === 'rejected' || planStatus === 'failed' ? 'error' :
-                          'warning'
-                        }
-                      >
+                      <ui5-tag design={getValidationStatusDesign(planStatus)}>
                         {planStatus.replace(/_/g, ' ')}
-                      </NeuChip>
+                      </ui5-tag>
                     </div>
                     <h3 style={{ margin: 'var(--space-4) 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>{plan.label}</h3>
                     <p className="plan-detail" style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>Net avoided loss: {money(plan.net_avoided_loss_inr)}</p>
@@ -190,7 +198,9 @@ export function EvaluationsScreen({
                         </div>
                         <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                           <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Outcome</span>
-                          <strong className={`outcome-val ${plan.outcome}`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)', color: plan.outcome === 'blocked' ? 'var(--color-error)' : plan.outcome === 'passed' ? 'var(--color-success)' : 'var(--color-text)' }}>{plan.outcome.toUpperCase()}</strong>
+                          <div>
+                            <ui5-tag design={getValidationStatusDesign(plan.outcome)}>{plan.outcome.toUpperCase()}</ui5-tag>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -256,9 +266,12 @@ export function EvaluationsScreen({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 'var(--space-2)' }}>
                       <strong>{finding.title}</strong>
-                      <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
-                        {finding.finding_id} · {finding.check_code} · {finding.outcome}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
+                          {finding.finding_id} · {finding.check_code}
+                        </span>
+                        <ui5-tag design={getValidationStatusDesign(finding.outcome)}>{finding.outcome}</ui5-tag>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -300,8 +313,8 @@ export function EvaluationsScreen({
 
                   <div className="evidence-plan-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--sapTile_Background, var(--color-bg-subtle))', borderRadius: 'var(--radius-md)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
                     <div>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Validation status</span>
-                      <strong>{selectedEvidencePlan.status}</strong>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block', marginBottom: 'var(--space-1)' }}>Validation status</span>
+                      <ui5-tag design={getValidationStatusDesign(selectedEvidencePlan.status)}>{selectedEvidencePlan.status}</ui5-tag>
                     </div>
                     <div>
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Financial impact</span>
@@ -334,9 +347,7 @@ export function EvaluationsScreen({
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
                                 <strong>{finding.title}</strong>
-                                <span style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', fontWeight: 'bold' }}>
-                                  {finding.outcome}
-                                </span>
+                                <ui5-tag design={getValidationStatusDesign(finding.outcome)}>{finding.outcome}</ui5-tag>
                               </div>
                               <p style={{ margin: 'var(--space-1) 0', fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
                                 {finding.finding_id} · {finding.check_code} · Subject: {finding.subject.id} ({finding.subject.type})

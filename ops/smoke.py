@@ -187,7 +187,7 @@ def step_comparison(eval_result: dict) -> tuple[dict, dict]:
     p1_outcome = p1.get("outcome")
     p2_outcome = p2.get("outcome")
 
-    comp_plans = eval_result.get("comparison", {}).get("plans", [])
+    comp_plans = (eval_result.get("comparison") or {}).get("plans") or []
     comp_p1 = next((cp for cp in comp_plans if cp.get("plan_id") == p1.get("plan_id")), None)
     comp_p2 = next((cp for cp in comp_plans if cp.get("plan_id") == p2.get("plan_id")), None)
 
@@ -211,6 +211,9 @@ def step_comparison(eval_result: dict) -> tuple[dict, dict]:
 
 def step_approve(base_url: str, p2: dict) -> str:
     p2_id = p2.get("plan_id", "PLN-0002")
+    if not p2.get("plan_hash"):
+        print("FAIL approve: P2 plan has no plan_hash")
+        sys.exit(1)
     url = f"{base_url}/api/v1/plans/{p2_id}/decisions"
     headers = {
         "X-Actor-Id": "USR-PRIYA",

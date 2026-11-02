@@ -239,13 +239,14 @@ cf rollback <APP>
 
 ### Option B: Redeploy Previous Known-Good Commit (`main@9778612`)
 
+`ops/smoke.py` does not exist at `9778612`, so verify with a plain health check instead. That commit also has no reset-token guard: `AEGIS_RESET_TOKEN` is ignored and any demo actor can reset.
+
 **PowerShell (Windows):**
 ```powershell
 git checkout 9778612
 cd frontend; npm ci; $env:VITE_API_MODE='live'; $env:VITE_API_BASE_URL='/'; npm run build; cd ..
 cf push -f ops/btp/manifest.yml
-cf restage <APP>
-python ops/smoke.py https://<APP-ROUTE>
+Invoke-RestMethod -Uri "https://<APP-ROUTE>/api/v1/health"
 ```
 
 **Bash (Linux / macOS):**
@@ -253,6 +254,5 @@ python ops/smoke.py https://<APP-ROUTE>
 git checkout 9778612
 cd frontend && npm ci && VITE_API_MODE='live' VITE_API_BASE_URL='/' npm run build && cd ..
 cf push -f ops/btp/manifest.yml
-cf restage <APP>
-python ops/smoke.py https://<APP-ROUTE>
+curl -fsS "https://<APP-ROUTE>/api/v1/health"
 ```

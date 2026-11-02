@@ -66,6 +66,18 @@ def test_token_set_wrong_header(monkeypatch):
     assert body["detail"] == "Invalid or missing reset token"
 
 
+def test_token_set_non_ascii_header_rejected_not_500(monkeypatch):
+    """A non-ASCII X-Reset-Token must be rejected with 403, not crash compare_digest (500)."""
+    monkeypatch.setattr(config, "RESET_TOKEN", "test-token-123")
+    c = TestClient(app)
+    res = c.post(
+        "/api/v1/demo/reset",
+        headers={"X-Actor-Id": "USR-PRIYA", "X-Reset-Token": "t\u00e9st".encode("latin-1")},
+    )
+    assert res.status_code == 403
+    assert res.json()["code"] == "RESET_TOKEN_INVALID"
+
+
 def test_token_set_correct_header(monkeypatch):
     """When RESET_TOKEN is configured and X-Reset-Token matches -> 200."""
     monkeypatch.setattr(config, "RESET_TOKEN", "super-secret-token")

@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import config
-from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION, CORS_ORIGINS, FRONTEND_DIST, RESET_TOKEN
+from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION, CORS_ORIGINS, FRONTEND_DIST
 from .services.fixtures import load_fixtures, snapshot_id, digest
 from .services.evaluation import build_evaluation_payload
 from .agents.dependency.graph import build_graph
@@ -207,7 +207,7 @@ def reset_demo(
         return problem_response(403, "ROLE_FORBIDDEN", "Viewer role cannot reset demo", instance="/api/v1/demo/reset")
     active_token = config.RESET_TOKEN
     if active_token:
-        if not x_reset_token or not hmac.compare_digest(x_reset_token, active_token):
+        if not x_reset_token or not hmac.compare_digest(x_reset_token.encode("utf-8"), active_token.encode("utf-8")):
             return problem_response(403, "RESET_TOKEN_INVALID", "Invalid or missing reset token", instance="/api/v1/demo/reset")
 
     fresh = load_fixtures(FIXTURES)

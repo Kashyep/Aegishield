@@ -225,18 +225,6 @@ export function CommandCenter({
           {plans.map((plan) => {
             const fullPlan = evaluation?.plans?.find((candidate) => candidate.plan_id === plan.plan_id);
             const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked';
-            console.log("LC BUTTON DEBUG", {
-  planId: plan.plan_id,
-  fullPlanId: fullPlan?.plan_id,
-  fullPlanStatus: fullPlan?.status,
-  findingIds: fullPlan?.finding_ids,
-  blockedLcFindings: evaluation?.findings?.filter(
-    (finding) =>
-      fullPlan?.finding_ids?.includes(finding.finding_id) &&
-      finding.outcome === "blocked" &&
-      finding.check_code.startsWith("LC.")
-  ),
-});
             const planStatus = fullPlan?.status ?? plan.outcome;
             const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-');
             const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
@@ -340,7 +328,7 @@ export function CommandCenter({
                   {plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked
                 </div>
 
-                <div className="plan-actions" style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <div className="plan-actions" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                   <NeuButton variant="secondary" onClick={() => fullPlan && setSelectedPlan(fullPlan)} style={{ flex: 1 }}>
                     Review evidence
                   </NeuButton>
@@ -348,8 +336,17 @@ export function CommandCenter({
                     <NeuButton variant="primary" disabled={executionSubmitting || apiMode === 'stub'} onClick={() => { if (fullPlan) void startPlanExecution(fullPlan) }} style={{ flex: 1 }}>
                       {fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}
                     </NeuButton>
+                  ) : isBlocked ? (
+                    <>
+                      <NeuButton variant="secondary" disabled={true} aria-describedby={`blocked-reason-${plan.plan_id}`} style={{ flex: 1 }}>
+                        Approve
+                      </NeuButton>
+                      <NeuButton variant="secondary" disabled={!fullPlan || !actorCanApprove} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
+                        Attempt approval
+                      </NeuButton>
+                    </>
                   ) : (
-                    <NeuButton variant="primary" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
+                    <NeuButton variant="primary" disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
                       Approve
                     </NeuButton>
                   )}

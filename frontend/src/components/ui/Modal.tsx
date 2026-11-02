@@ -9,15 +9,16 @@ interface ModalProps {
   actions?: React.ReactNode;
   maxWidth?: string;
   className?: string;
+  restoreFocusTo?: HTMLElement | null
 }
 
-export function Modal({ isOpen, onClose, title, children, actions, maxWidth, className = '' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, actions, maxWidth, restoreFocusTo, className = '' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    previouslyFocused.current = document.activeElement as HTMLElement;
+    previouslyFocused.current = restoreFocusTo ?? (document.activeElement as HTMLElement);
     dialogRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -53,9 +54,17 @@ export function Modal({ isOpen, onClose, title, children, actions, maxWidth, cla
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      previouslyFocused.current?.focus();
+      const trigger = restoreFocusTo ?? previouslyFocused.current;
+
+if (trigger?.isConnected) {
+  requestAnimationFrame(() => {
+    if (trigger.isConnected) {
+      trigger.focus();
+    }
+  });
+}
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, restoreFocusTo])
 
   if (!isOpen) return null;
 

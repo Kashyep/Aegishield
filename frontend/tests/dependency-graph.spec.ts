@@ -71,3 +71,55 @@ test('FB-14: proposed candidate dotted lines are isolated from disrupted view an
   // CAND-SUP-B is not drawn on P2 view
   await expect(page.locator('[data-edge-id="CAND-SUP-B"]')).toHaveCount(0)
 })
+
+test('FB-13, FB-15, FB-16: supply graph styling, swimlanes, callout pills, popovers, and filter toolbar', async ({ page }) => {
+  await page.goto('/#supply-graph')
+
+  // FB-13: "Workspace" bold ui5-title
+  const workspaceTitle = page.locator('ui5-title').filter({ hasText: 'Workspace' })
+  await expect(workspaceTitle).toBeVisible()
+
+  // FB-16: Filter toolbar (All / P1 / P2)
+  const filterToolbar = page.getByRole('toolbar', { name: 'Supply chain filter toolbar' })
+  await expect(filterToolbar).toBeVisible()
+  const allBtn = filterToolbar.getByRole('button', { name: 'All' })
+  const p1Btn = filterToolbar.getByRole('button', { name: /P1/ })
+  const p2Btn = filterToolbar.getByRole('button', { name: /P2/ })
+  await expect(allBtn).toBeVisible()
+  await expect(p1Btn).toBeVisible()
+  await expect(p2Btn).toBeVisible()
+
+  // FB-16: Tier swimlanes
+  await expect(page.locator('.tier-swimlanes')).toBeVisible()
+  await expect(page.getByText('TIER 2', { exact: true })).toBeVisible()
+  await expect(page.getByText('TIER 1.5', { exact: true })).toBeVisible()
+  await expect(page.getByText('TIER 1', { exact: true })).toBeVisible()
+  await expect(page.getByText('OEM BUYER', { exact: true })).toBeVisible()
+
+  // FB-16: Edge callout pills
+  await expect(page.locator('.edge-callout-pill').first()).toBeVisible()
+
+  // FB-16: Clicking a node opens a ui5-popover
+  const fabNode = page.locator('[data-node-id="FAC-FABZ"]')
+  await expect(fabNode).toBeVisible()
+  await fabNode.click()
+  const popover = page.locator('ui5-popover#graph-node-popover')
+  await expect(popover).toBeVisible()
+  await expect(popover).toContainText('FAC-FABZ')
+  await expect(popover).toContainText('Zenith Kulim wafer fab')
+
+  // FB-15: Facility records directly below the graph, then alternative supply links
+  const facilityRecordsTable = page.getByRole('table', { name: 'Facility records in this graph fixture' })
+  await expect(facilityRecordsTable).toBeVisible()
+  const expander = page.locator('details.graph-text-expander')
+  await expect(expander).toBeVisible()
+  await expect(expander).toContainText('Text version: all supply links')
+
+  // FB-16: Test P2 filter activates P2 candidate line
+  await p2Btn.click()
+  await expect(page.locator('[data-edge-id="CAND-SUP-C"]')).toBeVisible()
+
+  // Accessibility check on updated graph view
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
+  expect(results.violations.map((v) => v.id)).toEqual([])
+})

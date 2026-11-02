@@ -4,6 +4,7 @@ import { NeuCard } from '../ui/NeuCard';
 import { DependencyGraph } from '../../components/DependencyGraph';
 import "@ui5/webcomponents/dist/Button.js";
 import "@ui5/webcomponents/dist/Title.js";
+import "@ui5/webcomponents/dist/Popover.js";
 import type { Evaluation, GraphView, GraphViewNode } from '../../api/types';
 
 interface SupplyGraphScreenProps {

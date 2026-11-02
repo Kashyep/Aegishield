@@ -173,18 +173,70 @@ export const DependencyGraph = React.memo(function DependencyGraph({ view, resul
       </svg>
     </div>
     <p className="graph-note">Select a facility to see its details and direct links. Arrows show provider-to-consumer flow. All organisations are synthetic.</p>
-    <section className="graph-text-alternative" aria-labelledby="graph-text-heading">
-      <h2 id="graph-text-heading">Text alternative: supply links</h2>
+    <div className="table-scroll" role="region" aria-label="Scrollable facility records table" tabIndex={0} style={{ marginTop: 'var(--space-4)' }}>
+      <table className="audit-table">
+        <caption>Facility records in this graph fixture</caption>
+        <thead>
+          <tr>
+            <th scope="col">Facility</th>
+            <th scope="col">Organization</th>
+            <th scope="col">Country</th>
+            <th scope="col">Role</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {view.nodes.map((node) => (
+            <tr key={node.id}>
+              <td>
+                {node.label}
+                <small className="mono" style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>{node.id}</small>
+              </td>
+              <td>{node.org_name}</td>
+              <td>{node.country}</td>
+              <td>{node.role.replace(/_/g, ' ')}</td>
+              <td>{STATUS_TEXT[node.status] ?? node.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <section className="graph-text-alternative" aria-labelledby="graph-text-heading" style={{ marginTop: 'var(--space-4)' }}>
+      <h2 id="graph-text-heading">Alternative supply links</h2>
       <h3>Evidence paths for {view.focus_supplier_id}</h3>
-      <ol className="evidence-paths">{view.paths.map((path, index) => <li key={path.path_id}><strong>{path.path_id} · {PATH_KIND[path.kind] ?? path.kind.replace(/_/g, ' ')}</strong><code>{view.text_alternative[index]}</code></li>)}</ol>
-      <h3>All supply links</h3>
-      <p>Each entry is a link in its recorded direction: provider to consumer. Select one to focus its consumer in the graphic.</p>
-      <ol>{view.edges.map((edge) => {
-        const source = nodeById[edge.source]
-        const target = nodeById[edge.target]
-        return <li key={edge.id}><button className="graph-link-button" onClick={() => target && onSelectNode(target)}>{source?.label ?? edge.source} ({source?.country ?? 'country not recorded'}) {edge.candidate ? 'would supply' : 'supplies'} {target?.label ?? edge.target} ({target?.country ?? 'country not recorded'})</button><span>{edge.id} · {edge.candidate ? 'proposed candidate supply' : `${edge.part_id} · ${edge.confidence ?? 'confidence not recorded'} · source ${edge.source_ref ?? 'not recorded'}`}{edge.highlighted ? ' · on the evidence path to the disruption' : ''}</span></li>
-      })}</ol>
-      <div className="table-scroll" role="region" aria-label="Scrollable facility records table" tabIndex={0}><table className="audit-table"><caption>Facility records in this graph fixture</caption><thead><tr><th scope="col">Facility</th><th scope="col">Organization</th><th scope="col">Country</th><th scope="col">Role</th><th scope="col">Status</th></tr></thead><tbody>{view.nodes.map((node) => <tr key={node.id}><td>{node.label}<small>{node.id}</small></td><td>{node.org_name}</td><td>{node.country}</td><td>{node.role.replace(/_/g, ' ')}</td><td>{STATUS_TEXT[node.status] ?? node.status}</td></tr>)}</tbody></table></div>
+      <ol className="evidence-paths">
+        {view.paths.map((path, index) => (
+          <li key={path.path_id}>
+            <strong>{path.path_id} · {PATH_KIND[path.kind] ?? path.kind.replace(/_/g, ' ')}</strong>
+            <code>{view.text_alternative[index]}</code>
+          </li>
+        ))}
+      </ol>
+      <details className="graph-text-expander" style={{ marginTop: 'var(--space-3)' }}>
+        <summary style={{ cursor: 'pointer', padding: 'var(--space-2) 0', fontWeight: 600, color: 'var(--sapLinkColor, var(--color-primary-text))' }}>
+          Text version: all supply links ({view.edges.length} links recorded)
+        </summary>
+        <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
+          Each entry is a link in its recorded direction: provider to consumer. Select one to focus its consumer in the graphic.
+        </p>
+        <ol>
+          {view.edges.map((edge) => {
+            const source = nodeById[edge.source];
+            const target = nodeById[edge.target];
+            return (
+              <li key={edge.id}>
+                <button className="graph-link-button" onClick={() => target && onSelectNode(target)}>
+                  {source?.label ?? edge.source} ({source?.country ?? 'country not recorded'}) {edge.candidate ? 'would supply' : 'supplies'} {target?.label ?? edge.target} ({target?.country ?? 'country not recorded'})
+                </button>
+                <span>
+                  {edge.id} · {edge.candidate ? 'proposed candidate supply' : `${edge.part_id} · ${edge.confidence ?? 'confidence not recorded'} · source ${edge.source_ref ?? 'not recorded'}`}
+                  {edge.highlighted ? ' · on the evidence path to the disruption' : ''}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </details>
     </section>
     </section>
   )

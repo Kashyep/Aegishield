@@ -1,6 +1,6 @@
-
+import { useState } from 'react';
+import { setTheme, getTheme } from '@ui5/webcomponents-base/dist/config/Theme.js';
 import type { Policies } from '../../api/types';
-
 interface TopbarProps {
   screenLabel: string;
   actorId: string;
@@ -20,6 +20,18 @@ export function Topbar({
 }: TopbarProps) {
   const actors = policies?.demo_actors ?? [];
 
+  const [currentTheme, setCurrentTheme] = useState<string>(() => {
+    return (typeof window !== 'undefined' && localStorage.getItem('aegis.theme')) || getTheme() || 'sap_horizon';
+  });
+
+  const handleThemeToggle = () => {
+    const nextTheme = currentTheme === 'sap_horizon' ? 'sap_horizon_dark' : 'sap_horizon';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('aegis.theme', nextTheme);
+    }
+    setCurrentTheme(nextTheme);
+  };
   return (
     <header
       className="topbar"
@@ -128,6 +140,15 @@ export function Topbar({
         >
           {apiMode === 'stub' ? 'STUB MODE · FIXTURES' : 'LIVE API'}
         </span>
+        <ui5-button
+          design="Transparent"
+          icon={currentTheme === 'sap_horizon' ? 'palette' : 'light-mode'}
+          onClick={handleThemeToggle}
+          accessibleName="Toggle light/dark theme"
+          title={`Switch to ${currentTheme === 'sap_horizon' ? 'Dark' : 'Light'} theme`}
+        >
+          {currentTheme === 'sap_horizon' ? 'Dark' : 'Light'}
+        </ui5-button>
       </div>
     </header>
   );

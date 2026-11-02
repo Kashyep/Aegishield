@@ -7,9 +7,8 @@ import { setTheme } from "@ui5/webcomponents-base/dist/config/Theme.js";
 import './styles/tokens.css'
 import './index.css'
 import App from './App.tsx'
-
-setTheme("sap_horizon");
-
+const savedTheme = (typeof window !== 'undefined' && localStorage.getItem('aegis.theme')) || 'sap_horizon';
+setTheme(savedTheme);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

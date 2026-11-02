@@ -17,6 +17,7 @@ import type {
   ScenarioResponse,
   SupplyGraph,
   EarlyWarningResult,
+  SupplyNetwork,
 } from './types'
 
 export type ApiMode = 'stub' | 'live'
@@ -269,4 +270,11 @@ export async function getEarlyWarnings(asOf?: string): Promise<EarlyWarningResul
   }
   const query = asOf ? '?as_of=' + encodeURIComponent(asOf) : ''
   return (await request<EarlyWarningResult>('/api/v1/early-warnings' + query)).data
+}
+
+export async function getSupplyNetwork(): Promise<SupplyNetwork> {
+  if (apiMode === 'stub') {
+    return getStub<SupplyNetwork>('/stubs/supply_network.json')
+  }
+  return (await request<SupplyNetwork>('/api/v1/supply-network')).data
 }

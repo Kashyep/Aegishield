@@ -29,6 +29,7 @@ from .services.decisions import decide_plan
 from .services.executions import execute_plan
 from .services.rules import query_rule_applicability
 from .models import EvaluationCreateRequest, DecisionRequest, ExecutionRequest, RuleQueryRequest
+from .routers.supply_network import router as supply_network_router
 
 from contextlib import asynccontextmanager
 
@@ -783,6 +784,8 @@ def early_warnings_route(as_of: str | None = None):
             instance="/api/v1/early-warnings",
         )
     return compute_early_warnings(fx, signals_fixture, target_as_of)
+
+app.include_router(supply_network_router)
 
 
 

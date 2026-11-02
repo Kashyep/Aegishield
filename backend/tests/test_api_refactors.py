@@ -139,6 +139,7 @@ def test_f12_prior_plans_not_superseded_when_evaluation_fails(client, monkeypatc
     assert p2["status"] == "pending_approval"
 
     # 2. Second evaluation fails during compute
+    from backend.app.services.evaluation import build_evaluation_payload as real_build_eval
     def mock_failing_compute(*args, **kwargs):
         raise RuntimeError("Simulated compute pipeline failure")
 
@@ -163,10 +164,9 @@ def test_f12_prior_plans_not_superseded_when_evaluation_fails(client, monkeypatc
     assert not any(e["event_type"] == "PLAN_SUPERSEDED" for e in events)
 
     # 3. Third evaluation succeeds
-    monkeypatch.undo()
+    monkeypatch.setattr("backend.app.main.build_evaluation_payload", real_build_eval)
     monkeypatch.setenv("AEGIS_LLM_MODE", "off")
     monkeypatch.setattr(config, "RESET_TOKEN", None)
-
     r3 = client.post(
         "/api/v1/evaluations",
         headers={"X-Actor-Id": "USR-PRIYA", "Idempotency-Key": "eval-f12-success"},

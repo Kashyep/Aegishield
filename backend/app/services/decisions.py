@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 from fastapi.responses import JSONResponse
@@ -21,11 +22,12 @@ def decide_plan(
     actor = actors_by_id.get(x_actor_id)
     action = body.get("action")
     if not actor:
+        safe_actor_id = x_actor_id if (isinstance(x_actor_id, str) and re.match(r"^(USR-[A-Z]+|SYSTEM|AGENT-[A-Z_]+)$", x_actor_id)) else "USR-UNKNOWN"
         fallback_actor = {
-            "actor_id": x_actor_id if (x_actor_id and x_actor_id.startswith("USR-")) else "USR-UNKNOWN",
+            "actor_id": safe_actor_id,
             "role": "system",
             "kind": "system",
-            "display_name": None,
+            "display_name": x_actor_id if safe_actor_id == "USR-UNKNOWN" else None,
         }
         append_event(con, "DECISION_REFUSED", fallback_actor, {"type": "plan", "id": plan_id}, {"action": action, "code": "ACTOR_REQUIRED"})
         return 400, problem_response(400, "ACTOR_REQUIRED", f"Unknown actor {x_actor_id}", instance=path), None

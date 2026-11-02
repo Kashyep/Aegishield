@@ -1,5 +1,6 @@
 import json
 import hmac
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -50,11 +51,12 @@ def get_actor_obj(actor_id: str) -> dict[str, Any]:
             "kind": "human",
             "display_name": actor.get("display_name"),
         }
+    safe_actor_id = actor_id if (isinstance(actor_id, str) and re.match(r"^(USR-[A-Z]+|SYSTEM|AGENT-[A-Z_]+)$", actor_id)) else "USR-UNKNOWN"
     return {
-        "actor_id": actor_id,
+        "actor_id": safe_actor_id,
         "role": "system",
         "kind": "system",
-        "display_name": None,
+        "display_name": actor_id if safe_actor_id == "USR-UNKNOWN" else None,
     }
 
 

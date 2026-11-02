@@ -22,7 +22,7 @@ interface CommandCenterProps {
   money: (amount: number) => string;
   formatPlanId: (id: string) => string;
   getWorstCaseExposure: (plan: PlanComparisonItem, fullPlan?: Plan) => number;
-  openApproval: (planId: string) => void;
+  openApproval: (planId: string, triggerElement?: HTMLElement | null) => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
   startPlanExecution: (plan: Plan) => void;
@@ -349,7 +349,7 @@ export function CommandCenter({
                       {fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}
                     </NeuButton>
                   ) : (
-                    <NeuButton variant="primary" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={() => openApproval(plan.plan_id)} style={{ flex: 1 }}>
+                    <NeuButton variant="primary" disabled={!fullPlan || isBlocked || !actorCanApprove || fullPlan.status !== 'pending_approval'} aria-describedby={isBlocked ? `blocked-reason-${plan.plan_id}` : undefined} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
                       Approve
                     </NeuButton>
                   )}

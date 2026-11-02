@@ -100,6 +100,7 @@ function App() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null)
   const [selectedGraphNode, setSelectedGraphNode] = useState<GraphViewNode | null>(null)
   const [approvalPlan, setApprovalPlan] = useState<Plan | null>(null)
+  const approvalFocusTargetRef = useRef<HTMLElement | null>(null)
   const [earlyWarnings, setEarlyWarnings] = useState<EarlyWarningResult | null>(null)
 
   useEffect(() => {
@@ -383,17 +384,21 @@ function App() {
     setFocusSupplierId(supplierId)
   }, [])
 
-  const openApproval = (planId: string) => {
-    const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
-    if (!plan) return
-    setApprovalPlan(plan)
-    setAcknowledgements({})
-    setDecisionError(null)
-    setDecisionJustification('')
-    setAmendmentResult(null)
-    pendingDecisionRef.current = null
-  }
+  const openApproval = (planId: string, triggerElement?: HTMLElement | null) => {
+  const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
+  if (!plan) return
 
+  approvalFocusTargetRef.current = triggerElement ?? null
+  setApprovalPlan(plan)
+  setAcknowledgements({})
+  setDecisionError(null)
+  setDecisionJustification('')
+  setAmendmentResult(null)
+  pendingDecisionRef.current = null
+}
+const closeApproval = useCallback(() => {
+  setApprovalPlan(null)
+}, [])
   const submitApproval = async () => {
     if (!approvalPlan || approvalDisabledReason) return
     const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: reviewFindings.map((finding): Acknowledgement => ({ finding_id: finding.finding_id, actor_id: actorId, note: acknowledgements[finding.finding_id]?.note.trim() ?? '' })) }
@@ -593,9 +598,10 @@ function App() {
       {approvalPlan && (
         <Modal
           isOpen={!!approvalPlan}
-          onClose={() => setApprovalPlan(null)}
+          onClose={closeApproval}
           title={`Review ${approvalPlan.label}`}
           maxWidth="680px"
+          restoreFocusTo={approvalFocusTargetRef.current}
         >
           <dl className="finding-details" style={{ margin: 0 }}>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>

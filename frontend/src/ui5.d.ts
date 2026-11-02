@@ -29,7 +29,8 @@ type WrappingType = 'None' | 'Normal';
 type TagDesign = 'Set1' | 'Set2' | 'Neutral' | 'Information' | 'Positive' | 'Negative' | 'Critical';
 
 /** Common host props: every standard HTML attribute, `ref`, `key`, `slot`, children. */
-type HostProps<E extends HTMLElement = HTMLElement> = React.DetailedHTMLProps<React.HTMLAttributes<E>, E> & {
+type HostProps<E extends HTMLElement = HTMLElement> = Omit<React.DetailedHTMLProps<React.HTMLAttributes<E>, E>, 'unselectable'> & {
+  unselectable?: boolean | 'on' | 'off';
   slot?: string;
   children?: React.ReactNode;
 };
@@ -142,6 +143,7 @@ declare module 'react' {
       'ui5-card-header': HostProps & {
         titleText?: string;
         subtitleText?: string;
+        status?: string;
         additionalText?: string;
         interactive?: boolean;
         onclick?: UI5Handler;
@@ -256,7 +258,7 @@ declare module 'react' {
       };
 
       // ------------------------------------------------------ shell / navigation
-      'ui5-shellbar': HostProps & {
+      'ui5-shellbar': HostProps & AccessibleProps & {
         primaryTitle?: string;
         secondaryTitle?: string;
         notificationsCount?: string;
@@ -292,13 +294,13 @@ declare module 'react' {
         'onselection-change'?: UI5Handler<{ item: HTMLElement }>;
         'onitem-click'?: UI5Handler<{ item: HTMLElement }>;
       };
-      'ui5-side-navigation-item': HostProps & {
+      'ui5-side-navigation-item': HostProps & AccessibleProps & {
         text?: string;
         icon?: string;
         selected?: boolean;
         expanded?: boolean;
         disabled?: boolean;
-        unselectable?: boolean;
+        unselectable?: boolean | 'on' | 'off';
         href?: string;
         target?: string;
         tooltip?: string;
@@ -310,7 +312,7 @@ declare module 'react' {
         icon?: string;
         selected?: boolean;
         disabled?: boolean;
-        unselectable?: boolean;
+        unselectable?: boolean | 'on' | 'off';
         href?: string;
         target?: string;
         tooltip?: string;
@@ -348,13 +350,14 @@ declare module 'react' {
         contentLayout?: 'MultipleSteps' | 'SingleStep';
         'onstep-change'?: UI5Handler<{ step: HTMLElement; previousStep: HTMLElement; withScroll: boolean }>;
       };
-      'ui5-wizard-step': HostProps & {
+      'ui5-wizard-step': HostProps & AccessibleProps & {
         titleText?: string;
         subtitleText?: string;
         icon?: string;
         selected?: boolean;
         disabled?: boolean;
         branching?: boolean;
+        status?: string;
       };
     }
   }

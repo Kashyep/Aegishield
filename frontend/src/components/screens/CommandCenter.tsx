@@ -246,26 +246,37 @@ export function CommandCenter({
             const baselineLoss = evaluation?.assessment?.baseline_loss_inr ?? evaluation?.comparison?.baseline_loss_inr ?? 1160000;
             const planExposures = fullPlan?.financials?.exposures?.filter((e) => e.amount_inr !== null) ?? [];
 
+            // FB-03: Priority colour coding (MAX 2 recommended)
+            const isHighlyRecommended = plan.plan_id === recommendedPlanId || (recommendedPlanId === null && plan.outcome === 'passed');
+            const priorityDesign = isHighlyRecommended ? 'Positive' : 'Critical';
+            const priorityLabel = isHighlyRecommended ? 'Highly Recommended' : 'Alternate';
+            const cardLeftAccent = isHighlyRecommended
+              ? '4px solid var(--sapPositiveColor, #107e3e)'
+              : '4px solid var(--sapCriticalColor, #e9730c)';
+
             return (
              <ui5-card
   key={plan.plan_id}
   className="plan-card interactive"
-  style={{ width: '100%' }}
+  style={{ width: '100%', borderLeft: cardLeftAccent }}
 >
                 <div className="plan-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--color-info)', background: 'var(--color-info-bg)', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
                     {formatPlanId(plan.plan_id)}
                   </div>
-                  <NeuChip
-                    variant={
-                      !isVerdictVisible ? 'neutral' :
-                      planStatusClass === 'passed' || planStatusClass === 'approved' || planStatusClass === 'completed' ? 'success' :
-                      planStatusClass === 'blocked' || planStatusClass === 'rejected' || planStatusClass === 'failed' ? 'error' :
-                      'warning'
-                    }
-                  >
-                    {!isVerdictVisible ? 'Pending analysis' : planStatus.replace(/_/g, ' ')}
-                  </NeuChip>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <ui5-tag design={priorityDesign} className="priority-tag">{priorityLabel}</ui5-tag>
+                    <NeuChip
+                      variant={
+                        !isVerdictVisible ? 'neutral' :
+                        planStatusClass === 'passed' || planStatusClass === 'approved' || planStatusClass === 'completed' ? 'success' :
+                        planStatusClass === 'blocked' || planStatusClass === 'rejected' || planStatusClass === 'failed' ? 'error' :
+                        'warning'
+                      }
+                    >
+                      {!isVerdictVisible ? 'Pending analysis' : planStatus.replace(/_/g, ' ')}
+                    </NeuChip>
+                  </div>
                 </div>
                 <h3 style={{ margin: 'var(--space-4) 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>{plan.label}</h3>
                 <p className="plan-detail" style={{ minHeight: 36, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>

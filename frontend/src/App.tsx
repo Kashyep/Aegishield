@@ -102,7 +102,12 @@ function App() {
   const [approvalPlan, setApprovalPlan] = useState<Plan | null>(null)
   const approvalFocusTargetRef = useRef<HTMLElement | null>(null)
   const [earlyWarnings, setEarlyWarnings] = useState<EarlyWarningResult | null>(null)
+  const [evaluationRun, setEvaluationRun] = useState(true)
+  const [inspectedPlanIds, setInspectedPlanIds] = useState<string[]>([])
 
+  const handleInspectPlan = useCallback((planId: string) => {
+    setInspectedPlanIds((prev) => (prev.includes(planId) ? prev : [...prev, planId]))
+  }, [])
   useEffect(() => {
     let active = true
     getEarlyWarnings()
@@ -218,13 +223,21 @@ function App() {
     setDemoMessage('')
     try {
       const reset = await resetDemo(actorId)
-      setEvaluation(null)
+      // FB-01: After demo reset, land in analysis workspace without premature verdicts
+      try {
+        const baselineEval = await getEvaluation()
+        setEvaluation(baselineEval)
+      } catch {
+        // Retain prior evaluation if available
+      }
+      setEvaluationRun(false)
+      setInspectedPlanIds([])
       setGraphView(null)
       setExecution(null)
       setApprovedDecision(null)
       setAmendmentResult(null)
-      setEvaluationState('error')
-      setEvaluationError('No evaluation yet. Run the evaluation to assess the disruption.')
+      setEvaluationState('ready')
+      setEvaluationError('')
       setDemoMessage(`Demo reset at ${formatLocalTimestamp(reset.reset_at)}. Audit chain restarted (${reset.audit_event_id}).`)
       setShowResetConfirm(false)
     } catch (error) {
@@ -248,6 +261,7 @@ function App() {
       navigate('evaluation-progress')
       setEvaluationState('ready')
       const done = await pollEvaluation(accepted.evaluation_id)
+      setEvaluationRun(true)
       setDemoMessage(`Evaluation ${done.evaluation_id} ${done.status}.${accepted.superseded_plan_ids.length ? ` Superseded: ${accepted.superseded_plan_ids.join(', ')}.` : ''}`)
     } catch (error) {
       setDemoMessage(error instanceof Error ? error.message : 'Evaluation could not be started.')
@@ -501,7 +515,10 @@ const closeApproval = useCallback(() => {
             availableDisruptionId={availableDisruptionId}
             navigate={navigate}
             selectedPlan={selectedPlan}
-            setSelectedPlan={setSelectedPlan}
+            setSelectedPlan={(plan) => {
+              setSelectedPlan(plan);
+              if (plan) handleInspectPlan(plan.plan_id);
+            }}
             setSelectedFinding={setSelectedFinding}
             apiMode={apiMode}
             money={money}
@@ -513,6 +530,9 @@ const closeApproval = useCallback(() => {
             startPlanExecution={startPlanExecution}
             executionSubmitting={executionSubmitting}
             planWarnings={planWarnings}
+            evaluationRun={evaluationRun}
+            inspectedPlanIds={inspectedPlanIds}
+            onInspectPlan={handleInspectPlan}
           />
         )
       case 'evaluations':

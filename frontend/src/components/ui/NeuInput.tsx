@@ -1,20 +1,21 @@
-
+import type * as React from 'react';
 import { forwardRef } from 'react';
 
 interface NeuInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   hint?: string;
   error?: string;
+  showClearIcon?: boolean;
 }
 
 export const NeuInput = forwardRef<HTMLInputElement, NeuInputProps>(
-  ({ label, hint, error, className = '', id, ...props }, ref) => {
+  ({ label, hint, error, showClearIcon, className = '', id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
-      <div className="neu-field">
+      <div className="ae-field">
         {label && (
-          <label htmlFor={inputId} className="neu-label">
+          <label htmlFor={inputId} className="ae-label">
             {label}
           </label>
         )}
@@ -23,23 +24,23 @@ export const NeuInput = forwardRef<HTMLInputElement, NeuInputProps>(
           ref={ref as React.Ref<HTMLElement>}
           id={inputId}
           className={className}
-          value={props.value as string ?? props.defaultValue as string ?? ''}
+          value={(props.value as string) ?? (props.defaultValue as string) ?? ''}
           placeholder={props.placeholder}
           disabled={props.disabled}
           readonly={props.readOnly}
           required={props.required}
-          type={props.type}
+          type={props.type as 'Text' | 'Email' | 'Number' | 'Password' | 'Tel' | 'URL' | 'Search' | undefined}
           name={props.name}
           maxlength={props.maxLength}
-          minlength={props.minLength}
-          value-state={error ? 'Negative' : 'None'}
+          showClearIcon={showClearIcon}
+          valueState={error ? 'Negative' : 'None'}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
-          onInput={(event) => props.onChange?.(event as unknown as React.ChangeEvent<HTMLInputElement>)}
+          onInput={(event: React.FormEvent<HTMLElement>) => props.onChange?.(event as unknown as React.ChangeEvent<HTMLInputElement>)}
         />
 
-        {error && <p id={`${inputId}-error`} className="neu-hint">{error}</p>}
-        {hint && !error && <p id={`${inputId}-hint`} className="neu-hint">{hint}</p>}
+        {error && <p id={`${inputId}-error`} className="ae-hint" style={{ color: 'var(--sapNegativeColor)' }}>{error}</p>}
+        {hint && !error && <p id={`${inputId}-hint`} className="ae-hint">{hint}</p>}
       </div>
     );
   }
@@ -51,16 +52,18 @@ interface NeuTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAre
   label?: string;
   hint?: string;
   error?: string;
+  growing?: boolean;
+  growingMaxRows?: number;
 }
 
 export const NeuTextarea = forwardRef<HTMLTextAreaElement, NeuTextareaProps>(
-  ({ label, hint, error, className = '', id, ...props }, ref) => {
+  ({ label, hint, error, growing, growingMaxRows, className = '', id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
-      <div className="neu-field">
+      <div className="ae-field">
         {label && (
-          <label htmlFor={inputId} className="neu-label">
+          <label htmlFor={inputId} className="ae-label">
             {label}
           </label>
         )}
@@ -69,21 +72,23 @@ export const NeuTextarea = forwardRef<HTMLTextAreaElement, NeuTextareaProps>(
           ref={ref as React.Ref<HTMLElement>}
           id={inputId}
           className={className}
-          value={props.value as string ?? props.defaultValue ?? ''}
+          value={(props.value as string) ?? (props.defaultValue as string) ?? ''}
           placeholder={props.placeholder}
           disabled={props.disabled}
           readonly={props.readOnly}
           required={props.required}
           rows={props.rows}
           maxlength={props.maxLength}
-          value-state={error ? 'Negative' : 'None'}
+          growing={growing}
+          growingMaxRows={growingMaxRows}
+          valueState={error ? 'Negative' : 'None'}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
-          onInput={(event) => props.onChange?.(event as unknown as React.ChangeEvent<HTMLTextAreaElement>)}
+          onInput={(event: React.FormEvent<HTMLElement>) => props.onChange?.(event as unknown as React.ChangeEvent<HTMLTextAreaElement>)}
         />
 
-        {error && <p id={`${inputId}-error`} className="neu-hint">{error}</p>}
-        {hint && !error && <p id={`${inputId}-hint`} className="neu-hint">{hint}</p>}
+        {error && <p id={`${inputId}-error`} className="ae-hint" style={{ color: 'var(--sapNegativeColor)' }}>{error}</p>}
+        {hint && !error && <p id={`${inputId}-hint`} className="ae-hint">{hint}</p>}
       </div>
     );
   }
@@ -103,9 +108,9 @@ export const NeuSelect = forwardRef<HTMLSelectElement, NeuSelectProps>(
     const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
-      <div className="neu-field">
+      <div className="ae-field">
         {label && (
-          <label htmlFor={selectId} className="neu-label">
+          <label htmlFor={selectId} className="ae-label">
             {label}
           </label>
         )}
@@ -116,10 +121,10 @@ export const NeuSelect = forwardRef<HTMLSelectElement, NeuSelectProps>(
           className={className}
           disabled={props.disabled}
           required={props.required}
-          value-state={error ? 'Negative' : 'None'}
+          valueState={error ? 'Negative' : 'None'}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined}
-          onChange={(event) => props.onChange?.(event as unknown as React.ChangeEvent<HTMLSelectElement>)}
+          onChange={(event: React.FormEvent<HTMLElement>) => props.onChange?.(event as unknown as React.ChangeEvent<HTMLSelectElement>)}
         >
           {options.map((opt) => (
             <ui5-option key={opt.value} value={opt.value} selected={opt.value === (props.value ?? props.defaultValue)}>
@@ -128,8 +133,8 @@ export const NeuSelect = forwardRef<HTMLSelectElement, NeuSelectProps>(
           ))}
         </ui5-select>
 
-        {error && <p id={`${selectId}-error`} className="neu-hint">{error}</p>}
-        {hint && !error && <p id={`${selectId}-hint`} className="neu-hint">{hint}</p>}
+        {error && <p id={`${selectId}-error`} className="ae-hint" style={{ color: 'var(--sapNegativeColor)' }}>{error}</p>}
+        {hint && !error && <p id={`${selectId}-hint`} className="ae-hint">{hint}</p>}
       </div>
     );
   }

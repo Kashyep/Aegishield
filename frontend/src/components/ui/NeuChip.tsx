@@ -1,33 +1,48 @@
+import type * as React from 'react';
 
-interface NeuChipProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'accent' | 'neutral';
-  size?: 'sm' | 'md';
+type ChipVariant = 'primary' | 'success' | 'warning' | 'error' | 'info' | 'accent' | 'neutral';
+type TagDesign = 'Set1' | 'Set2' | 'Neutral' | 'Information' | 'Positive' | 'Negative' | 'Critical';
+
+const variantToDesign: Record<ChipVariant, TagDesign> = {
+  success: 'Positive',
+  error: 'Negative',
+  warning: 'Critical',
+  info: 'Information',
+  neutral: 'Neutral',
+  primary: 'Information',
+  accent: 'Information',
+};
+
+interface NeuChipProps extends React.HTMLAttributes<HTMLElement> {
+  variant?: ChipVariant;
+  design?: TagDesign;
+  size?: 'sm' | 'md' | 'S' | 'L';
   dot?: boolean;
   dotColor?: 'success' | 'warning' | 'error' | 'info' | 'neutral';
 }
 
-const chipColors = {
-  primary: '8',
-  success: '8',
-  warning: '5',
-  error: '1',
-  info: '6',
-  accent: '7',
-  neutral: '9',
-};
-
 export function NeuChip({
   variant = 'neutral',
+  design,
   dot,
+  size,
   className = '',
   children,
   ...props
 }: NeuChipProps) {
+  const resolvedDesign = design ?? variantToDesign[variant] ?? 'Neutral';
+  const tagSize = size === 'sm' || size === 'S' ? 'S' : undefined;
+
   return (
-    <ui5-badge color-scheme={chipColors[variant]} className={className} {...props}>
+    <ui5-tag
+      design={resolvedDesign}
+      size={tagSize}
+      className={className}
+      {...props}
+    >
       {dot && <span aria-hidden="true">● </span>}
       {children}
-    </ui5-badge>
+    </ui5-tag>
   );
 }
 
@@ -45,7 +60,7 @@ export function NeuPill({
 }: NeuPillProps) {
   return (
     <button
-      className={`neu-pill ${active ? 'active' : ''} ${className}`}
+      className={`ae-pill ${active ? 'active' : ''} ${className}`}
       aria-pressed={active}
       {...props}
     >
@@ -74,14 +89,13 @@ export function NeuPills({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`neu-pills ${className}`}
+      className={`ae-pills ${className}`}
       style={{
         display: 'flex',
         gap: 'var(--space-1)',
-        flexWrap: 'wrap',
-        borderBottom: '1px solid var(--color-border)',
-        paddingBottom: 'var(--space-2)',
-        marginBottom: 'var(--space-3)',
+        padding: 'var(--space-1)',
+        background: 'var(--sapGroup_ContentBackground)',
+        borderRadius: 'var(--radius-full)',
       }}
     >
       {tabs.map((tab) => (
@@ -89,15 +103,22 @@ export function NeuPills({
           key={tab.id}
           role="tab"
           aria-selected={activeTab === tab.id}
-          aria-controls={`${tab.id}-panel`}
           id={`${tab.id}-tab`}
-          className={`neu-pill ${activeTab === tab.id ? 'active' : ''}`}
+          className={`ae-pill ${activeTab === tab.id ? 'active' : ''}`}
           onClick={() => onChange(tab.id)}
         >
           {tab.icon && <span aria-hidden="true">{tab.icon}</span>}
-          {tab.label}
-          {tab.count !== undefined && (
-            <span style={{ marginLeft: 'var(--space-1)', opacity: 0.7 }}>
+          <span>{tab.label}</span>
+          {typeof tab.count === 'number' && (
+            <span
+              style={{
+                marginLeft: 'var(--space-1)',
+                padding: '0 var(--space-2)',
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--text-xs)',
+                background: activeTab === tab.id ? 'rgba(255,255,255,0.2)' : 'var(--sapGroup_ContentBackground)',
+              }}
+            >
               {tab.count}
             </span>
           )}
@@ -107,22 +128,30 @@ export function NeuPills({
   );
 }
 
-interface NeuBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral';
+interface NeuBadgeProps extends React.HTMLAttributes<HTMLElement> {
+  variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral' | ChipVariant;
+  design?: TagDesign;
   dot?: boolean;
 }
 
 export function NeuBadge({
   variant = 'neutral',
+  design,
   dot = false,
   className = '',
   children,
   ...props
 }: NeuBadgeProps) {
+  const resolvedDesign = design ?? variantToDesign[variant as ChipVariant] ?? 'Neutral';
+
   return (
-    <ui5-badge color-scheme={chipColors[variant]} className={className} {...props}>
+    <ui5-tag
+      design={resolvedDesign}
+      className={className}
+      {...props}
+    >
       {dot && <span aria-hidden="true">● </span>}
       {children}
-    </ui5-badge>
+    </ui5-tag>
   );
 }

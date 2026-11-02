@@ -1,5 +1,7 @@
 # Demo Readiness Review — 2026-10-23
 
+> **STATUS (2026-11-02):** Body verdict NO-GO is superseded by the addendum (GO WITH RISKS, lines ~513-530); as of 2026-11-02 F-01..F-05, F-07, F-14, F-16, F-17, F-21, F-23, F-30 are fixed in git; F-20 focus/escape handled in Modal.tsx/Drawer.tsx (pending live axe re-test); F-06, F-13a remain open P1; F-31 and F-15 fixed on branch fix/handoff-p1; see HANDOFF.md.
+
 **HEADER:**
 - **REPO_ROOT:** `C:/Users/kashy/Desktop/Agi`
 - **TODAY:** `2026-10-23`

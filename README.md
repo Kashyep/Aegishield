@@ -62,7 +62,7 @@ cd ../backend && uvicorn app.main:app --host 0.0.0.0 --port 8000
 │         └────────────────┼────────────────┼────────────────┘           │
 │                          ▼                ▼                            │
 │                   ┌─────────────┐  ┌─────────────┐                    │
-│                   │ Neomorphic  │  │ Evidence    │                    │
+│                   │ Flat Light  │  │ Evidence    │                    │
 │                   │ UI System   │  │ Drawer +    │                    │
 │                   │ (Custom CSS)│  │ Approval    │                    │
 │                   └─────────────┘  └─────────────┘                    │
@@ -143,7 +143,7 @@ cd ../backend && uvicorn app.main:app --host 0.0.0.0 --port 8000
 │   │   ├── hooks/              # useSidebar, useMediaQuery, useLocalStorage
 │   │   ├── styles/
 │   │   │   ├── tokens.css      # Design tokens (colors, spacing, radius, shadows)
-│   │   │   └── neomorphism.css # Neomorphic component utilities
+│   │   │   └── neomorphism.css # Component utilities (legacy name for flat UI)
 │   │   ├── index.css           # Global styles, component implementations
 │   │   └── App.tsx             # Root component, state, modals, drawers
 │   ├── package.json
@@ -248,16 +248,16 @@ blocked → superseded (new evaluation)
 
 ---
 
-## Frontend — Neomorphic Design System
+## Frontend — Flat Light Design System
+
+The UI uses a flat light theme with design tokens in `frontend/src/styles/tokens.css`. Note that `neomorphism.css` and `Neu*` component names are legacy names for flat utilities.
 
 ### Design Tokens (`src/styles/tokens.css`)
-- **Base background:** `#f0f2ef` (off-white for shadow visibility)
-- **Elevated surface:** `#f8faf6` (cards)
-- **Pressed/inset:** `#e8ebe4` (inputs)
+- **Base background:** `#fdfefb` (subtle off-white)
+- **Elevated surface:** `#ffffff` (cards)
+- **Subtle surface:** `#f5f7f3` (panels)
 - **Primary:** `#a0c346` | **Secondary:** `#98ddc2` | **Accent:** `#79c5d2`
-- **Neomorphic shadows:** Single light source (top-left)
-  - `--shadow-neu-raised`: `8px 8px 16px #d1d9cc, -8px -8px 16px #fff`
-  - `--shadow-neu-pressed`: `inset 4px 4px 8px #d1d9cc, inset -4px -4px 8px #fff`
+- **Flat surface styling:** Subtle borders and minimal elevation tokens (`--shadow-neu-raised`, `--shadow-neu-subtle`; pressed shadows disabled)
 
 ### Layout
 - **Sidebar:** Collapsible (260px ↔ 72px), off-canvas drawer on mobile (<768px), state persisted in localStorage
@@ -386,7 +386,7 @@ pytest tests/test_rules.py tests/test_dependency.py tests/test_schema_conformanc
 | **Backend entry point** | `backend/app/main.py` |
 | **Frontend entry point** | `frontend/src/App.tsx` |
 | **Design tokens** | `frontend/src/styles/tokens.css` |
-| **Neomorphic utilities** | `frontend/src/styles/neomorphism.css` |
+| **Flat UI utilities (legacy name)** | `frontend/src/styles/neomorphism.css` |
 
 ---
 
@@ -438,7 +438,7 @@ curl http://localhost:8000/api/v1/audit-events/verify
 | Evaluation stuck in `queued` | Check backend logs; LLM gateway may be timing out in `live` mode |
 | `PLAN_VERSION_STALE` on approval | Re-fetch plan with `GET /plans/{id}` for current version/hash |
 | Sidebar not collapsing | localStorage may have stale value; clear `aegisshield:sidebar-state` |
-| Neomorphic shadows not visible | Ensure background is `#f0f2ef` (not pure white) in `tokens.css` |
+| Styles or theme look incorrect | Ensure design tokens in `frontend/src/styles/tokens.css` are loaded |
 
 ---
 
@@ -468,7 +468,7 @@ Internal demo package for SAP Hackfest Bengaluru 2026. Not for production use.
 2. **Contracts are truth** — `contracts/schemas/` and `contracts/openapi.yaml` define all data shapes
 3. **Fixtures are goldens** — `fixtures/expected/` contains the exact outputs your code must produce
 4. **Determinism is mandatory** — same inputs must produce same IDs, amounts, and plan hashes across `live`/`recorded`/`off` modes
-5. **Neomorphic UI** — use `NeuCard`, `NeuButton`, `NeuInput`, `NeuChip` from `components/ui/`; never write custom shadows
+5. **Flat UI design** — flat light theme with design tokens in `frontend/src/styles/tokens.css`; `neomorphism.css` and `Neu*` component names (`NeuCard`, `NeuButton`, `NeuInput`, `NeuChip` from `components/ui/`) are legacy names for flat utilities
 6. **Sidebar state** — use `useSidebar()` hook; it handles collapse/expand, mobile drawer, and localStorage persistence
 7. **Hash routing** — screens map to URL hashes (`#command`, `#evaluations`, etc.) via `src/app/navigation.ts`
 8. **Modals/Drawers** — use `Modal`, `Drawer`, `ConfirmDialog` from `components/ui/`; they handle focus trapping and portals

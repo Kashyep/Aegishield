@@ -59,6 +59,7 @@ paths:
       description: Only available when AEGIS_DEMO_MODE=1. Writes a DEMO_RESET audit event as seq 1 of a new chain. Takes no body.
       parameters:
         - $ref: '#/components/parameters/XActorId'
+        - $ref: '#/components/parameters/XResetToken'
       responses:
         '200':
           description: Reset complete
@@ -146,6 +147,8 @@ paths:
                   value: {evaluation_id: EVAL-0001, status: queued, poll_url: /api/v1/evaluations/EVAL-0001, superseded_plan_ids: []}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -324,6 +327,8 @@ paths:
               schema: {$ref: '#/components/schemas/Execution'}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -405,6 +410,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/v1/audit-events:
     get:
       tags: [audit]
@@ -492,6 +499,12 @@ components:
       required: true
       description: Simulated identity (USR-PRIYA, USR-ARJUN, USR-VIEW). Not authentication.
       schema: {type: string, pattern: '^USR-[A-Z]+$'}
+    XResetToken:
+      name: X-Reset-Token
+      in: header
+      required: false
+      description: Shared secret required when AEGIS_RESET_TOKEN is set on the server
+      schema: {type: string}
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -517,7 +530,7 @@ components:
             actorRequired:
               value: {type: 'https://aegisshield.local/problems/actor-required', title: Actor required, status: 400, code: ACTOR_REQUIRED, detail: Send X-Actor-Id with a demo actor id., instance: /api/v1/plans/PLN-0002/decisions}
     Forbidden:
-      description: Role not permitted, or demo mode disabled
+      description: Role not permitted, demo mode disabled, or invalid reset token
       content:
         application/problem+json:
           schema: {$ref: '#/components/schemas/Problem'}

@@ -2,6 +2,10 @@
 
 Format: `## <version> — <date>` then one bullet per change with owner and reason. SemVer rules in `docs/00-source-of-truth.md` §15.2.
 
+## Unreleased
+- A1: Demo reset authorization token header `X-Reset-Token` and `RESET_TOKEN_INVALID` error code.
+- A6: Error codes `AMENDMENT_ALREADY_ACCEPTED` and `LC_VERSION_STALE` added to `common.schema.json`; documented 403 responses on evaluations and executions operations, and 409 responses on simulate-acceptance operation in `openapi.yaml`.
+
 ## 1.0.0 — 19 Oct 2026 (release candidate; freeze on 25 Oct 2026)
 - Initial schemas: common, master-data, disruption, graph, trade-rules, plan, decision, api, fixtures (Member 3; graph/disruption Member 4; trade-rules Member 5).
 - Initial OpenAPI 3.1 for `/api/v1` (Member 3).

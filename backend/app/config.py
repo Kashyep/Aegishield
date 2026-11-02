@@ -8,6 +8,7 @@ FIXTURES = ROOT / "fixtures"
 DB_PATH = Path(os.getenv("AEGIS_DB_PATH", str(ROOT / "work" / "aegis-demo.sqlite3")))
 DEMO_MODE = os.getenv("AEGIS_DEMO_MODE", "1").lower() in {"1", "true", "yes"}
 LLM_MODE = os.getenv("AEGIS_LLM_MODE", "off")
+RESET_TOKEN = os.getenv("AEGIS_RESET_TOKEN") or None
 CONTRACT_VERSION = "1.1.1"
 # Comma-separated browser origins allowed to call the API (dev servers; same-origin deployments need none).
 CORS_ORIGINS = [o.strip() for o in os.getenv(

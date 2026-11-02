@@ -1,7 +1,8 @@
 import json
+import hmac
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from copy import deepcopy
 import yaml
 from jsonschema import Draft202012Validator
@@ -13,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from . import config
 from .config import FIXTURES, LLM_MODE, DEMO_MODE, CONTRACT_VERSION, CORS_ORIGINS, FRONTEND_DIST
 from .services.fixtures import load_fixtures, snapshot_id, digest, load_signals
 from .services.evaluation import build_evaluation_payload
@@ -193,17 +195,26 @@ def health():
 
 
 @app.post("/api/v1/demo/reset")
-def reset_demo(x_actor_id: str = Header(..., pattern=r"^USR-[A-Z]+$")):
+def reset_demo(
+    x_actor_id: str = Header(..., pattern=r"^USR-[A-Z]+$"),
+    x_reset_token: Optional[str] = Header(None, alias="X-Reset-Token"),
+):
     global fx, SNAPSHOT, signals_fixture
     if not DEMO_MODE:
         return problem_response(403, "DEMO_MODE_DISABLED", "Demo reset is only available when AEGIS_DEMO_MODE=1", instance="/api/v1/demo/reset")
-    if get_actor_obj(x_actor_id)["role"] == "system":
+    actor = get_actor_obj(x_actor_id)
+    if actor["role"] == "system":
         return problem_response(403, "ACTOR_REQUIRED", f"Unknown actor {x_actor_id}", instance="/api/v1/demo/reset")
+    if actor["role"] == "viewer":
+        return problem_response(403, "ROLE_FORBIDDEN", "Viewer role cannot reset demo", instance="/api/v1/demo/reset")
+    active_token = config.RESET_TOKEN
+    if active_token:
+        if not x_reset_token or not hmac.compare_digest(x_reset_token.encode("utf-8"), active_token.encode("utf-8")):
+            return problem_response(403, "RESET_TOKEN_INVALID", "Invalid or missing reset token", instance="/api/v1/demo/reset")
 
     fresh = load_fixtures(FIXTURES)
     fresh_signals = load_signals(FIXTURES)
     fresh_snapshot = snapshot_id(fresh)
-    actor = get_actor_obj(x_actor_id)
     with transaction() as con:
         for table in (
             "evaluations",

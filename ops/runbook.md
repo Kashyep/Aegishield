@@ -54,6 +54,7 @@ Copy-Item .env.example .env
 | `AEGIS_DB_PATH` | `work/aegis-demo.sqlite3` | SQLite database file location (`/tmp/aegis-demo.sqlite3` in cloud). |
 | `AEGIS_CORS_ORIGINS` | `http://localhost:5173,...` | Comma-separated allowed browser origins for dual-server dev mode. |
 | `AEGIS_FRONTEND_DIST`| `frontend/dist` | Directory of built frontend assets served at `/` by FastAPI. |
+| `AEGIS_RESET_TOKEN` | — | Optional secret token guarding `POST /api/v1/demo/reset` (via `X-Reset-Token` header). See `ops/DEPLOY-CHECKLIST.md`. |
 | `AEGIS_LLM_BASE_URL` | — | OpenAI-compatible endpoint URL (live mode only; no code default, set in .env, see .env.example). |
 | `AEGIS_LLM_MODEL` | — | Model identifier (live mode only; no code default, set in .env, see .env.example). |
 | `AEGIS_LLM_API_KEY` | — | Secret API key (live mode only). |
@@ -146,6 +147,9 @@ Deploys the unified application to SAP BTP Cloud Foundry trial:
 - **Manifest:** `ops/btp/manifest.yml`
 - **Live Deployed Route:** `https://aegisshield-demo.cfapps.ap21.hana.ondemand.com`
 
+> [!IMPORTANT]
+> `frontend/dist` must be built (`VITE_API_MODE=live VITE_API_BASE_URL=/`) before `cf push` because the Python buildpack does not build Node. The `.cfignore` file uploads the pre-built `frontend/dist` assets so FastAPI can serve the static frontend.
+
 ### Deployment Steps
 
 ```powershell
@@ -167,6 +171,10 @@ curl.exe -X POST https://aegisshield-demo.cfapps.ap21.hana.ondemand.com/api/v1/d
 
 > [!NOTE]
 > SQLite on BTP Cloud Foundry lives at `/tmp/aegis-demo.sqlite3`. It is ephemeral and resets on app restart or re-push. Always run the reset command before starting a demo.
+
+### Removed Targets
+
+- **Vercel:** Vercel configuration was removed on branch `fix/handoff-p1` (unsupported, non-functional). AegisShield is hosted on SAP BTP Cloud Foundry or containerized via Docker.
 
 ---
 

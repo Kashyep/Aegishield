@@ -2,6 +2,10 @@
 
 Format: `## <version> — <date>` then one bullet per change with owner and reason. SemVer rules in `docs/00-source-of-truth.md` §15.2.
 
+## Unreleased
+- A1: Demo reset authorization token header `X-Reset-Token` and `RESET_TOKEN_INVALID` error code.
+- A6: Error codes `AMENDMENT_ALREADY_ACCEPTED` and `LC_VERSION_STALE` added to `common.schema.json`; documented 403 responses on evaluations and executions operations, and 409 responses on simulate-acceptance operation in `openapi.yaml`.
+
 ## 1.1.1 — 30 Oct 2026, 20:30 (owner metadata only)
 - The enterprise data pipeline moves from Member 2 to **Member 1** (docs/00 D-031):
   - owner of `master-data.schema.json`

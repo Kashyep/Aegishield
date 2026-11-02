@@ -209,19 +209,44 @@
   padding-right: var(--space-10);
 }
 
+/* -------------------------------------------------------------------------
+   Labels vs Values (D8 Typography)
+   Label: --sapContent_LabelColor, regular (font-weight: 400)
+   Value: --sapTextColor, semibold (font-weight: 600)
+   ------------------------------------------------------------------------- */
+.ae-label,
+.field-label,
+.form-label,
+.metric-label,
+.section-label,
+.ae-audit-label,
+.facility-details dt,
+.finding-details dt,
+.detail-list dt,
+.ae-finding-details dt,
+dt {
+  color: var(--sapContent_LabelColor);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  font-family: var(--font-body);
+}
+
 .ae-label {
   display: block;
   margin-bottom: var(--space-1);
-  color: var(--sapContent_LabelColor);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-body);
   letter-spacing: var(--tracking-wide);
 }
 
-.ae-value {
+.ae-value,
+.field-value,
+.metric-value,
+.facility-details dd,
+.finding-details dd,
+.detail-list dd,
+.ae-finding-details dd,
+dd {
   color: var(--sapTextColor);
-  font-weight: var(--weight-semibold);
+  font-weight: 600;
   font-family: var(--font-body);
 }
 
@@ -592,4 +617,73 @@
   width: 48px;
   height: 48px;
   font-size: var(--text-xl);
+}
+
+/* ==========================================================================
+   Typography: Fiori Horizon Headings & ui5-title (D8)
+   ========================================================================== */
+ui5-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--sapTextColor);
+}
+
+ui5-title[level="H1"],
+ui5-title[size="H1"] {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+ui5-title[level="H2"],
+ui5-title[size="H2"] {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+ui5-title[level="H3"],
+ui5-title[size="H3"] {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+ui5-title[level="H4"],
+ui5-title[size="H4"] {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+ui5-title[level="H5"],
+ui5-title[size="H5"] {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+ui5-title[level="H6"],
+ui5-title[size="H6"] {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* PageHeader component uses ui5-title with bold styling */
+.page-header ui5-title {
+  display: block;
+  margin: 0;
+  font-weight: 700;
+  color: var(--sapTextColor);
+}
+
+.page-header-content ui5-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--sapTextColor);
+}
+
+/* JetBrains Mono ONLY for PO/LC/rule/node IDs and hashes per D2/D8 */
+.mono,
+.node-id.mono,
+.ae-table td:last-child {
+  font-family: var(--font-mono);
 }

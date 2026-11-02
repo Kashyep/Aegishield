@@ -10,7 +10,9 @@ test('DA-05: highlights exactly the Chonburi <- Kedah <- Zenith evidence path fo
   expect(await edgeKind(page, 'E-004')).toBe('path')
   expect(await edgeKind(page, 'E-005')).toBe('path')
   for (const id of ['E-001', 'E-002', 'E-003', 'E-006', 'E-007', 'E-008', 'E-009']) expect(await edgeKind(page, id)).not.toBe('path')
-  expect(await edgeKind(page, 'CAND-SUP-B')).toBe('candidate')
+  // FB-14: Proposed candidate dotted lines must NOT be drawn on disrupted view
+  await expect(page.locator('[data-edge-id="CAND-SUP-B"]')).toHaveCount(0)
+  await expect(page.locator('[data-kind="candidate"]')).toHaveCount(0)
   expect(await nodeStatus(page, 'FAC-FABZ')).toBe('disrupted')
   expect(await nodeStatus(page, 'FAC-B-CHB')).toBe('blocked')
   expect(await nodeStatus(page, 'FAC-C-BDG')).toBe('candidate_passed')
@@ -32,6 +34,9 @@ test('switching to SUP-C shows a passed candidate with no disruption path', asyn
   await expect(page.locator('[data-kind="path"]')).toHaveCount(0)
   expect(await edgeKind(page, 'E-007')).toBe('focus')
   expect(await edgeKind(page, 'E-008')).toBe('focus')
+  // FB-14: Candidate dotted line is drawn in candidate/P2 view (SUP-C)
+  expect(await edgeKind(page, 'CAND-SUP-C')).toBe('candidate')
+  await expect(page.locator('[data-edge-id="CAND-SUP-C"]')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Dependency check result' })).toContainText('SUP-C · Passed')
 })
 
@@ -50,4 +55,19 @@ test('LLM badge reflects the evaluation mode and blocked P1 offers an LC amendme
   await expect(changes).toContainText('47AUCP 600 SUB-ARTICLE 20(C) IS EXCLUDED.(deleted)')
   await expect(dialog.getByRole('button', { name: 'Request LC amendment' })).toBeDisabled()
   await expect(dialog.getByRole('button', { name: 'Approve plan' })).toBeDisabled()
+})
+
+test('FB-14: proposed candidate dotted lines are isolated from disrupted view and only shown in candidate/P2 view', async ({ page }) => {
+  await page.goto('/#supply-graph')
+  // Disrupted view (SUP-B): candidate dotted lines must NOT be drawn
+  await expect(page.locator('[data-kind="candidate"]')).toHaveCount(0)
+  await expect(page.locator('[data-edge-id="CAND-SUP-B"]')).toHaveCount(0)
+  await expect(page.locator('[data-edge-id="CAND-SUP-C"]')).toHaveCount(0)
+
+  // Candidate / P2 view (SUP-C): candidate dotted line is drawn
+  await page.getByRole('button', { name: /^SUP-C/ }).click()
+  await expect(page.locator('[data-edge-id="CAND-SUP-C"]')).toBeVisible()
+  expect(await edgeKind(page, 'CAND-SUP-C')).toBe('candidate')
+  // CAND-SUP-B is not drawn on P2 view
+  await expect(page.locator('[data-edge-id="CAND-SUP-B"]')).toHaveCount(0)
 })

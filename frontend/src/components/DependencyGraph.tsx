@@ -141,6 +141,11 @@ export const DependencyGraph = React.memo(function DependencyGraph({ view, resul
           {['default', 'path', 'focus', 'candidate'].map((kind) => <marker key={kind} id={`graph-arrow-${kind}`} className={`arrow-${kind}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" /></marker>)}
         </defs>
         {view.edges.map((edge) => {
+          const isCandidateP2View = view.focus_supplier_id === 'SUP-C'
+          // FB-14: Proposed-candidate dotted lines must NOT be drawn on the disrupted supply-chain view; only in the candidate/P2 view.
+          if (edge.candidate && (!isCandidateP2View || edge.id !== 'CAND-SUP-C')) {
+            return null
+          }
           const from = positions[edge.source]
           const to = positions[edge.target]
           if (!from || !to) return null

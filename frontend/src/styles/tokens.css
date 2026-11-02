@@ -1,75 +1,4 @@
-/* AegisShield security-operations tokens. Keep this file as the single source of truth. */
-@font-face {
-  font-family: 'Alegreya SC';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/alegreya-sc-400.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Alegreya SC';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/alegreya-sc-700.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Alegreya SC';
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-  src: url('/fonts/alegreya-sc-800.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Overpass';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/overpass-400.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Overpass';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/overpass-500.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Overpass';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/overpass-600.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Overpass';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/overpass-700.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Overpass';
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-  src: url('/fonts/overpass-800.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Shanti';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/shanti-400.woff2') format('woff2');
-}
+/* AegisShield security-operations tokens. Fiori Horizon design system. */
 
 @font-face {
   font-family: 'JetBrains Mono';
@@ -88,10 +17,10 @@
 }
 
 :root {
-  --font-heading: "Alegreya SC", Georgia, serif;
-  --font-body: "Overpass", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-accent: "Shanti", "Overpass", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Mono", Consolas, monospace;
+  --font-heading: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-body: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-accent: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   --text-xs: .6875rem; --text-sm: .8125rem; --text-base: .875rem; --text-md: 1rem;
   --text-lg: 1.125rem; --text-xl: 1.5rem; --text-2xl: 2rem;
@@ -100,37 +29,68 @@
   --leading-tight: 1.2; --leading-normal: 1.5; --leading-relaxed: 1.6;
   --tracking-tight: -.02em; --tracking-normal: 0; --tracking-wide: .02em; --tracking-wider: .06em;
 
-  /* Original AegisShield light palette (HEAD tokens.css). Flat surfaces, no decorative shadows. */
-  --color-text: #080b04; --color-text-inverse: #fdfefb;
-  --color-text-muted: #3a3f33; --color-text-muted-light: #5a5f52;
-  --color-bg: #fdfefb; --color-bg-elevated: #ffffff; --color-bg-subtle: #f5f7f3; --color-bg-dark: #080b04;
-  --color-primary: #a0c346; --color-primary-hover: #8fb03d; --color-primary-active: #7aa335;
-  --color-primary-light: #e8f4d0; --color-primary-focus: #6b8e2e; --color-primary-text: #5a7a1e;
-  --color-primary-text-hover: #4a6518; --color-primary-bg: #4a6518; --color-primary-bg-hover: #3d5213;
-  --color-secondary: #98ddc2; --color-secondary-hover: #85d4b3; --color-secondary-light: #e8f7f0;
-  --color-accent: #79c5d2; --color-accent-hover: #68b8c5; --color-accent-light: #e8f6fa;
+  /* SAP Fiori Horizon variables mapped to legacy design tokens */
+  --color-text: var(--sapTextColor, #1d2d3e);
+  --color-text-inverse: var(--sapContent_ContrastTextColor, #ffffff);
+  --color-text-muted: var(--sapContent_LabelColor, #556b82);
+  --color-text-muted-light: var(--sapContent_LabelColor, #556b82);
+  --color-bg: var(--sapBackgroundColor, #f5f6f7);
+  --color-bg-elevated: var(--sapTile_Background, #ffffff);
+  --color-bg-subtle: var(--sapGroup_ContentBackground, #ffffff);
+  --color-bg-dark: var(--sapShell_Background, #1d2d3e);
 
-  --color-success: #1f7a45; --color-success-bg: #e8f7ef; --color-success-border: #b9ddc9; --color-success-text: #176441;
-  --color-warning: #7a4b00; --color-warning-bg: #fff9ed; --color-warning-border: #fde8a3; --color-warning-text: #7a4b00;
-  --color-error: #a12c20; --color-error-bg: #fff0ed; --color-error-border: #edc6c1; --color-error-text: #87281f;
-  --color-info: #0a6ed1; --color-info-bg: #edf4fb; --color-info-border: #bdcbd9; --color-info-text: #285578;
-  --color-focus-ring: #003d7a; --color-focus-ring-offset: #ffffff;
-  --color-border: #d1d9cc; --color-border-light: #e8ebe4; --color-border-focus: var(--color-focus-ring);
-  --color-neu-shadow-dark: #d1d9cc; --color-neu-shadow-light: #ffffff;
-  --shadow-neu-subtle: 0 1px 2px rgb(8 11 4 / .06);
-  --shadow-neu-raised: 0 1px 3px rgb(8 11 4 / .08);
-  --shadow-neu-raised-lg: 0 2px 6px rgb(8 11 4 / .08);
-  --shadow-neu-pressed: none;
-  --shadow-neu-pressed-lg: none;
-  --shadow-neu-inner: none;
-  --shadow-sm: 0 1px 2px rgb(8 11 4 / .06); --shadow-md: 0 2px 6px rgb(8 11 4 / .08);
-  --shadow-lg: 0 4px 12px rgb(8 11 4 / .1); --shadow-xl: 0 8px 20px rgb(8 11 4 / .12);
+  --color-primary: var(--sapBrandColor, #0070f2);
+  --color-primary-hover: var(--sapButton_Hover_Background, #0064d9);
+  --color-primary-active: var(--sapButton_Active_Background, #0056ba);
+  --color-primary-light: var(--sapHighlightColor, #0070f2);
+  --color-primary-focus: var(--sapContent_FocusColor, #0070f2);
+  --color-primary-text: var(--sapBrandColor, #0070f2);
+  --color-primary-text-hover: var(--sapBrandColor, #0070f2);
+  --color-primary-bg: var(--sapBrandColor, #0070f2);
+  --color-primary-bg-hover: var(--sapButton_Hover_Background, #0064d9);
+
+  --color-secondary: var(--sapNeutralColor, #6a7d8f);
+  --color-secondary-hover: var(--sapNeutralColor, #6a7d8f);
+  --color-secondary-light: var(--sapGroup_ContentBackground, #ffffff);
+  --color-accent: var(--sapAccentColor1, #e78c07);
+  --color-accent-hover: var(--sapAccentColor1, #e78c07);
+  --color-accent-light: var(--sapGroup_ContentBackground, #ffffff);
+
+  --color-success: var(--sapPositiveColor, #107e3e);
+  --color-success-bg: var(--sapPositiveBackground, #f1fdf6);
+  --color-success-border: var(--sapPositiveBorderColor, #107e3e);
+  --color-success-text: var(--sapPositiveTextColor, #107e3e);
+
+  --color-warning: var(--sapCriticalColor, #e9730c);
+  --color-warning-bg: var(--sapCriticalBackground, #fff8f0);
+  --color-warning-border: var(--sapCriticalBorderColor, #e9730c);
+  --color-warning-text: var(--sapCriticalTextColor, #e9730c);
+
+  --color-error: var(--sapNegativeColor, #bb0000);
+  --color-error-bg: var(--sapNegativeBackground, #fff0f0);
+  --color-error-border: var(--sapNegativeBorderColor, #bb0000);
+  --color-error-text: var(--sapNegativeTextColor, #bb0000);
+
+  --color-info: var(--sapInformativeColor, #0a6ed1);
+  --color-info-bg: var(--sapInformativeBackground, #f5faff);
+  --color-info-border: var(--sapInformativeBorderColor, #0a6ed1);
+  --color-info-text: var(--sapInformativeTextColor, #0a6ed1);
+
+  --color-focus-ring: var(--sapContent_FocusColor, #0070f2);
+  --color-focus-ring-offset: var(--sapContent_ContrastFocusColor, #ffffff);
+  --color-border: var(--sapTile_BorderColor, #d9d9d9);
+  --color-border-light: var(--sapGroup_ContentBorderColor, #ebebeb);
+  --color-border-focus: var(--sapContent_FocusColor, #0070f2);
+
+  --shadow-sm: var(--sapContent_Shadow0, 0 1px 2px rgb(0 0 0 / .05));
+  --shadow-md: var(--sapContent_Shadow1, 0 2px 4px rgb(0 0 0 / .08));
+  --shadow-lg: var(--sapContent_Shadow2, 0 4px 8px rgb(0 0 0 / .10));
+  --shadow-xl: var(--sapContent_Shadow3, 0 8px 16px rgb(0 0 0 / .12));
 
   --space-0: 0; --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
   --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem; --space-16: 4rem;
   --space-page: 2rem; --space-section: 1.5rem; --space-card-gap: 1.25rem; --space-content: 1rem;
   --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 10px; --radius-2xl: 12px; --radius-3xl: 14px; --radius-full: 9999px;
-  --radius-neu-sm: 8px; --radius-neu-md: 12px; --radius-neu-lg: 16px; --radius-neu-xl: 20px;
   --sidebar-width-expanded: 260px; --sidebar-width-collapsed: 72px; --sidebar-width: var(--sidebar-width-expanded);
   --header-height: 56px; --header-height-mobile: 56px; --drawer-width: 520px; --modal-max-width: 680px; --content-max-width: 1400px; --graph-canvas-width: 1215px;
   --duration-fast: 120ms; --duration-normal: 180ms; --duration-slow: 240ms;

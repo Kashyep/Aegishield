@@ -1,6 +1,4 @@
-import "@ui5/webcomponents-icons/dist/menu.js";
-import "@ui5/webcomponents/dist/Tag.js";
-import "@ui5/webcomponents/dist/Card.js";
+import './ui5';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import "@ui5/webcomponents/dist/Assets.js";

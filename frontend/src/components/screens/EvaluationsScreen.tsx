@@ -75,6 +75,26 @@ interface EvaluationsScreenProps {
   setSelectedFinding: (finding: Finding | null) => void;
 }
 
+/**
+ * FB-09 ARCHITECTURAL NOTE — "Step results" vs "Check results":
+ *
+ * Inspection outcome:
+ * 1. "Step results" represents the multi-agent pipeline orchestrator's execution trace
+ *    (6 stages: disruption_sensing, supplier_dependency, trade_compliance, inventory_rebalancing,
+ *    plan_generation, plan_comparison) with execution metadata (status, owner, attempts, finished_at).
+ * 2. "Check results" represents policy and compliance validation outcomes (passed, needs_review, blocked)
+ *    evaluated for each specific recovery plan (e.g. LC rules, FTA rules of origin, ATP inventory allocation).
+ *
+ * Design decision:
+ * - "Step results" serves a distinct, valuable purpose for execution traceability and system transparency,
+ *   and is housed in the dedicated `EvaluationProgressScreen` (accessible via "View evaluation progress").
+ * - It does NOT duplicate plan check results. However, displaying pipeline execution steps inside
+ *   `EvaluationsScreen` would duplicate content and confuse plan validation with agent pipeline orchestration.
+ * - Therefore, `EvaluationsScreen` cleanly focuses on recovery plan comparison (Validation status ->
+ *   Financial status -> Check results) and scenario findings, linking to `EvaluationProgressScreen` for
+ *   the pipeline agent execution trace.
+ */
+
 export function EvaluationsScreen({
   evaluation,
   evaluationState,
@@ -217,7 +237,7 @@ export function EvaluationsScreen({
                       </div>
                     </section>
 
-                    {/* FB-08 Section 3: Check results */}
+                    {/* FB-08 / FB-09: Check results (plan validation rules, distinct from pipeline agent step results) */}
                     <section className="plan-section check-results-section" data-section="check-results" aria-label={`Check results for ${plan.plan_id}`} style={{ padding: 'var(--space-3) 0' }}>
                       <span className="section-label" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase', display: 'block', marginBottom: 'var(--space-1)' }}>
                         Check results

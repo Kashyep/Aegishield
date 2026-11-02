@@ -166,50 +166,68 @@ export function EvaluationsScreen({
                 const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
 
                 return (
-                  <NeuCard as="article" key={plan.plan_id} variant="raised" className="plan-card interactive" style={{ padding: 'var(--space-5)' }}>
-                    <div className="plan-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--color-info)', background: 'var(--color-info-bg)', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
+                  <NeuCard as="article" key={plan.plan_id} variant="raised" className="plan-card ae-plan-card interactive" style={{ padding: 'var(--space-5)' }}>
+                    <div className="plan-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+                      <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--sapHighlightColor, var(--color-info))', background: 'var(--sapInformationBackground, var(--color-info-bg))', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
                         {formatPlanId(plan.plan_id)}
                       </div>
-                      <ui5-tag design={getValidationStatusDesign(planStatus)}>
-                        {planStatus.replace(/_/g, ' ')}
-                      </ui5-tag>
+                      <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)', flex: 1, marginLeft: 'var(--space-3)' }}>{plan.label}</h3>
                     </div>
-                    <h3 style={{ margin: 'var(--space-4) 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>{plan.label}</h3>
-                    <p className="plan-detail" style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>Net avoided loss: {money(plan.net_avoided_loss_inr)}</p>
 
-                    <div className="financial-block" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', padding: 'var(--space-4) 0', borderTop: '1px solid var(--color-border-light)', borderBottom: '1px solid var(--color-border-light)' }}>
-                      <div className="financial-row-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                        <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Net avoided loss{isBlocked ? ' · on paper' : ''}</span>
+                    {/* FB-08 Section 1: Validation status */}
+                    <section className="plan-section validation-status-section" data-section="validation-status" aria-label={`Validation status for ${plan.plan_id}`} style={{ paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span className="section-label" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase' }}>
+                          Validation status
+                        </span>
+                        <ui5-tag design={getValidationStatusDesign(planStatus)}>
+                          {planStatus.replace(/_/g, ' ')}
+                        </ui5-tag>
+                      </div>
+                    </section>
+
+                    {/* FB-08 Section 2: Financial status */}
+                    <section className="plan-section financial-status-section" data-section="financial-status" aria-label={`Financial status for ${plan.plan_id}`} style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                      <span className="section-label" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase', display: 'block', marginBottom: 'var(--space-2)' }}>
+                        Financial status
+                      </span>
+                      <div className="financial-row-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
+                        <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Net avoided loss{isBlocked ? ' · on paper' : ''}</span>
                         <strong style={{ fontSize: 'var(--text-xl)', fontFamily: 'var(--font-heading)' }}>{money(plan.net_avoided_loss_inr)}</strong>
                       </div>
-                      <div className="financial-breakdown" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2) var(--space-3)', marginTop: 'var(--space-1)', paddingTop: 'var(--space-2)', borderTop: '1px dashed var(--color-border-light)' }}>
+                      <div className="financial-breakdown" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2) var(--space-3)', paddingTop: 'var(--space-2)', borderTop: '1px dashed var(--sapTile_BorderColor, var(--color-border-light))' }}>
                         <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Recovery cost</span>
+                          <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Recovery cost</span>
                           <strong style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)' }}>{money(plan.recovery_cost_inr)}</strong>
                         </div>
                         <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Residual loss</span>
+                          <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Residual loss</span>
                           <strong style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)' }}>{money(plan.residual_loss_inr)}</strong>
                         </div>
                         <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Worst-case exposure</span>
+                          <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Worst-case exposure</span>
                           <strong style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)' }}>worst {money(worstCaseExposure)}</strong>
                         </div>
                         <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Outcome</span>
+                          <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Outcome</span>
                           <div>
                             <ui5-tag design={getValidationStatusDesign(plan.outcome)}>{plan.outcome.toUpperCase()}</ui5-tag>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </section>
 
-                    <div className="checks-row" style={{ margin: 'var(--space-3) 0', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
-                      {plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked
-                    </div>
+                    {/* FB-08 Section 3: Check results */}
+                    <section className="plan-section check-results-section" data-section="check-results" aria-label={`Check results for ${plan.plan_id}`} style={{ padding: 'var(--space-3) 0' }}>
+                      <span className="section-label" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase', display: 'block', marginBottom: 'var(--space-1)' }}>
+                        Check results
+                      </span>
+                      <div className="checks-row" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
+                        {plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked
+                      </div>
+                    </section>
 
-                    <div style={{ marginTop: 'var(--space-3)' }}>
+                    <div style={{ marginTop: 'var(--space-2)' }}>
                       <NeuButton
                         variant="secondary"
                         onClick={() => {
@@ -312,16 +330,16 @@ export function EvaluationsScreen({
                   </div>
 
                   <div className="evidence-plan-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--sapTile_Background, var(--color-bg-subtle))', borderRadius: 'var(--radius-md)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
-                    <div>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block', marginBottom: 'var(--space-1)' }}>Validation status</span>
+                    <div data-section="validation-status">
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontWeight: 'var(--weight-bold)' }}>Validation status</span>
                       <ui5-tag design={getValidationStatusDesign(selectedEvidencePlan.status)}>{selectedEvidencePlan.status}</ui5-tag>
                     </div>
-                    <div>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Financial impact</span>
+                    <div data-section="financial-status">
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontWeight: 'var(--weight-bold)' }}>Financial status</span>
                       <strong>{selectedEvidencePlan.financials ? money(selectedEvidencePlan.financials.net_avoided_loss_inr) : '—'}</strong>
                     </div>
-                    <div>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block' }}>Check results</span>
+                    <div data-section="check-results">
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontWeight: 'var(--weight-bold)' }}>Check results</span>
                       <strong>{selectedEvidencePlan.check_outcome_counts.passed} passed · {selectedEvidencePlan.check_outcome_counts.needs_review} need review · {selectedEvidencePlan.check_outcome_counts.blocked} blocked</strong>
                     </div>
                   </div>

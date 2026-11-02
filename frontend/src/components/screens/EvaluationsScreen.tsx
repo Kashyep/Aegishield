@@ -1,9 +1,46 @@
+import { useState, useMemo } from 'react';
 import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
 import { NeuButton } from '../ui/NeuButton';
 import { NeuChip } from '../ui/NeuChip';
 import { type Screen } from '../../app/navigation';
 import type { Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
+
+function getFindingRelevance(finding: Finding, evaluation?: Evaluation | null): number {
+  let score = 0;
+  // Blocked / failed findings represent immediate critical execution barriers
+  if (finding.outcome === 'blocked' || finding.outcome === 'failed') {
+    score += 100;
+  } else if (finding.outcome === 'needs_review' || finding.outcome === 'warning') {
+    score += 50;
+  } else {
+    score += 10;
+  }
+  // Actionable remedies elevate importance
+  if (finding.remedies && finding.remedies.length > 0) {
+    score += 20;
+  }
+  // Findings concerning suppliers affected in this scenario
+  if (evaluation?.assessment?.affected_supplier_ids?.includes(finding.subject.id)) {
+    score += 25;
+  }
+  // Finding directly on the disruption ID
+  if (evaluation?.assessment?.disruption_id === finding.subject.id) {
+    score += 15;
+  }
+  return score;
+}
+
+function rankFindings(findings: Finding[], evaluation?: Evaluation | null): Finding[] {
+  return [...findings].sort((a, b) => {
+    const scoreA = getFindingRelevance(a, evaluation);
+    const scoreB = getFindingRelevance(b, evaluation);
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA;
+    }
+    return a.finding_id.localeCompare(b.finding_id);
+  });
+}
 
 interface EvaluationsScreenProps {
   evaluation: Evaluation | null;
@@ -26,6 +63,17 @@ export function EvaluationsScreen({
   getWorstCaseExposure,
   setSelectedFinding,
 }: EvaluationsScreenProps) {
+  const [showAllFindings, setShowAllFindings] = useState(false);
+
+  const rankedFindings = useMemo(
+    () => rankFindings(evaluation?.findings ?? [], evaluation),
+    [evaluation]
+  );
+  const DEFAULT_VISIBLE_FINDINGS = 3;
+  const visibleFindings = showAllFindings
+    ? rankedFindings
+    : rankedFindings.slice(0, DEFAULT_VISIBLE_FINDINGS);
+  const remainingCount = Math.max(0, rankedFindings.length - DEFAULT_VISIBLE_FINDINGS);
   if (evaluationState === 'loading') {
     return (
       <PageBody>
@@ -131,14 +179,23 @@ export function EvaluationsScreen({
               })}
             </div>
 
-            <PageHeader title="Findings" subtitle={`${evaluation.findings.length} findings from the evaluation fixture.`} />
+            <PageHeader
+              title="Findings"
+              subtitle={
+                hasFindings
+                  ? (showAllFindings
+                      ? `Showing all ${rankedFindings.length} findings, ranked by scenario relevance.`
+                      : `Showing top ${Math.min(DEFAULT_VISIBLE_FINDINGS, rankedFindings.length)} findings most relevant to the active scenario (${remainingCount} more hidden).`)
+                  : '0 findings from the evaluation fixture.'
+              }
+            />
 
             {hasFindings ? (
               <div className="finding-list" style={{ display: 'grid', gap: 'var(--space-2)' }}>
-                {evaluation.findings.map((finding) => (
+                {visibleFindings.map((finding) => (
                   <button
                     key={finding.finding_id}
-                    className="finding-link"
+                    className="finding-link ae-finding-item"
                     onClick={() => setSelectedFinding(finding)}
                     style={{
                       display: 'flex',
@@ -147,22 +204,37 @@ export function EvaluationsScreen({
                       gap: 'var(--space-1)',
                       width: '100%',
                       padding: 'var(--space-3) var(--space-4)',
-                      border: '1px solid var(--color-border)',
+                      border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
                       borderRadius: 'var(--radius-lg)',
-                      color: 'var(--color-text)',
-                      background: 'var(--color-bg-elevated)',
+                      color: 'var(--sapTextColor, var(--color-text))',
+                      background: 'var(--sapTile_Background, var(--color-bg-elevated))',
                       textAlign: 'left',
                       fontFamily: 'var(--font-body)',
                       cursor: 'pointer',
                       transition: 'border-color var(--duration-fast), background var(--duration-fast)',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-light)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-bg-elevated)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--sapHighlightColor, var(--color-primary))'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--sapTile_BorderColor, var(--color-border))'; }}
                   >
-                    <strong>{finding.title}</strong>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>{finding.finding_id} · {finding.check_code} · {finding.outcome}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 'var(--space-2)' }}>
+                      <strong>{finding.title}</strong>
+                      <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
+                        {finding.finding_id} · {finding.check_code} · {finding.outcome}
+                      </span>
+                    </div>
                   </button>
                 ))}
+                {remainingCount > 0 && (
+                  <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'center' }}>
+                    <NeuButton
+                      variant="secondary"
+                      onClick={() => setShowAllFindings(!showAllFindings)}
+                      aria-label={showAllFindings ? 'Show less findings' : `Show more findings (${remainingCount} remaining)`}
+                    >
+                      {showAllFindings ? 'Show less' : `Show more (${remainingCount} more)`}
+                    </NeuButton>
+                  </div>
+                )}
               </div>
             ) : (
               <NeuCard variant="subtle" className="progress-state" role="status" style={{ padding: 'var(--space-5)' }}>

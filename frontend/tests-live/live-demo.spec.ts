@@ -35,6 +35,14 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await page.keyboard.press('Escape')
 
   await page.getByLabel('Simulated identity').selectOption('USR-PRIYA')
+  await page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' }).getByRole('button', { name: 'Attempt approval' }).click()
+  const p1Approval = page.getByRole('dialog', { name: 'Review P1 Fastest-cheapest' })
+  await expect(p1Approval).toBeVisible()
+  await p1Approval.getByRole('button', { name: 'Attempt approval (blocked)' }).click()
+  await expect(p1Approval.locator('.api-error')).toContainText('Cannot approve: this plan is blocked by its fixture checks.')
+  await page.keyboard.press('Escape')
+  await expect(p1Approval).toBeHidden()
+
   await page.locator('.plan-card').filter({ hasText: 'P2 AegisShield verified' }).getByRole('button', { name: 'Approve' }).click()
   const p2 = page.getByRole('dialog', { name: 'Review P2 AegisShield verified' })
   await p2.getByRole('button', { name: 'Approve plan' }).click()
@@ -45,3 +53,17 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await page.getByRole('button', { name: 'Verify chain' }).click()
   await expect(page.getByText(/Chain valid/)).toBeVisible()
 })
+
+test('getPolicies in live mode returns live policies from the backend', async ({ page }) => {
+  await page.goto('/#command')
+  // Dynamic import inside page.evaluate: required because static Node test imports cannot cross the CDP boundary to browser scope
+  const policies = await page.evaluate(async () => {
+    const mod = await import('/src/api/client.ts')
+    return await mod.getPolicies()
+  })
+  expect(policies).toBeDefined()
+  expect(policies.demo_actors.length).toBeGreaterThan(0)
+  expect(policies.approval_policy.approver_roles).toContain('supply_planner')
+  expect(policies.demo_actors.some((a) => a.actor_id === 'USR-PRIYA')).toBe(true)
+})
+

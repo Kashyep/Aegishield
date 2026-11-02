@@ -417,6 +417,18 @@ export type DemoResetResponse = {
   audit_event_id: string
 }
 
+export type ScenarioResponse = {
+  scenario?: unknown
+  customer_orders?: unknown[]
+  purchase_orders?: unknown[]
+  shipments?: unknown[]
+  suppliers?: unknown[]
+  inventory?: unknown[]
+  letters_of_credit?: unknown[]
+  actors?: DemoActor[]
+  policies?: Policies
+}
+
 
 export type EarlyWarningSubjectType = 'node' | 'location'
 export type EarlyWarningLevel = 'none' | 'watch' | 'warning'

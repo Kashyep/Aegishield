@@ -63,9 +63,60 @@ export const DependencyGraph = React.memo(function DependencyGraph({ view, resul
 
   return (
     <section className="dependency-graph" aria-label="Dependency evidence graph">
-      <div className="graph-focus" role="group" aria-label="Candidate supplier to explain">
-        <span>Explain candidate:</span>
-        {candidates.map((c) => <button key={c.supplierId} className={`focus-button ${c.supplierId === view.focus_supplier_id ? 'active' : ''}`} aria-pressed={c.supplierId === view.focus_supplier_id} onClick={() => onFocusSupplier(c.supplierId)}>{c.supplierId} · {c.label}</button>)}
+      <div
+        className="graph-focus"
+        role="group"
+        aria-label="Candidate supplier to explain"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 'var(--space-3, 0.75rem)',
+          margin: 'var(--space-2, 0.5rem) 0 var(--space-4, 1rem)',
+        }}
+      >
+        <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
+          Explain candidate:
+        </span>
+        {candidates.map((c) => {
+          const isActive = c.supplierId === view.focus_supplier_id;
+          return (
+            <button
+              key={c.supplierId}
+              className={`focus-button ${isActive ? 'active' : ''}`}
+              aria-pressed={isActive}
+              onClick={() => onFocusSupplier(c.supplierId)}
+              style={{
+                minHeight: '44px',
+                minWidth: '44px',
+                padding: '0.625rem 1.25rem',
+                fontSize: '0.9375rem',
+                fontWeight: 600,
+                borderRadius: 'var(--sapButton_BorderCornerRadius, 0.5rem)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
+                ...(isActive
+                  ? {
+                      backgroundColor: 'var(--sapButton_Emphasized_Background, #0070f2)',
+                      color: 'var(--sapButton_Emphasized_TextColor, #ffffff)',
+                      borderColor: 'var(--sapButton_Emphasized_BorderColor, #0070f2)',
+                      boxShadow: 'var(--sapContent_Shadow0, 0 1px 3px rgba(0,0,0,0.15))',
+                    }
+                  : {
+                      backgroundColor: 'var(--sapTile_Background, #ffffff)',
+                      color: 'var(--sapTextColor, #1d2d3e)',
+                      borderColor: 'var(--sapTile_BorderColor, #d9d9d9)',
+                    }),
+              }}
+            >
+              {c.supplierId} · {c.label}
+            </button>
+          );
+        })}
       </div>
       {result && <section className={`dependency-verdict ${result.outcome}`} aria-live="polite" aria-label="Dependency check result">
         <strong>{view.focus_supplier_id} · {OUTCOME_TEXT[result.outcome] ?? result.outcome}</strong>

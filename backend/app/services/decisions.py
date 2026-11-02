@@ -19,13 +19,16 @@ def decide_plan(
 ) -> tuple[int, dict[str, Any] | JSONResponse, dict[str, str] | None]:
     actors_by_id = {a["actor_id"]: a for a in fx["policies"]["demo_actors"]}
     actor = actors_by_id.get(x_actor_id)
+    action = body.get("action")
     if not actor:
+        fallback_actor = {
+            "actor_id": x_actor_id if (x_actor_id and x_actor_id.startswith("USR-")) else "USR-UNKNOWN",
+            "role": "system",
+            "kind": "system",
+            "display_name": None,
+        }
+        append_event(con, "DECISION_REFUSED", fallback_actor, {"type": "plan", "id": plan_id}, {"action": action, "code": "ACTOR_REQUIRED"})
         return 400, problem_response(400, "ACTOR_REQUIRED", f"Unknown actor {x_actor_id}", instance=path), None
-    if actor["role"] == "viewer":
-        return 403, problem_response(403, "ROLE_FORBIDDEN", "Viewer role cannot make decisions", instance=path), None
-
-    if not idempotency_key or len(idempotency_key) < 8:
-        return 400, problem_response(400, "IDEMPOTENCY_KEY_REQUIRED", "Idempotency-Key must be at least 8 characters", instance=path), None
 
     actor_obj = {
         "actor_id": actor["actor_id"],
@@ -33,24 +36,33 @@ def decide_plan(
         "kind": "human",
         "display_name": actor.get("display_name"),
     }
+    if actor["role"] == "viewer":
+        append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id}, {"action": action, "code": "ROLE_FORBIDDEN"})
+        return 403, problem_response(403, "ROLE_FORBIDDEN", "Viewer role cannot make decisions", instance=path), None
+
+    if not idempotency_key or len(idempotency_key) < 8:
+        append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id}, {"action": action, "code": "IDEMPOTENCY_KEY_REQUIRED"})
+        return 400, problem_response(400, "IDEMPOTENCY_KEY_REQUIRED", "Idempotency-Key must be at least 8 characters", instance=path), None
+
     request_hash = digest({"path": path, "actor_id": x_actor_id, "body": body})
 
     # 2. Idempotency replay check
     prev_idem = con.execute("SELECT request_hash, response_json, status_code FROM idempotency WHERE key=?", (idempotency_key,)).fetchone()
     if prev_idem:
         if prev_idem["request_hash"] != request_hash:
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id}, {"action": action, "code": "IDEMPOTENCY_KEY_REUSED"})
             return 409, problem_response(409, "IDEMPOTENCY_KEY_REUSED", "Idempotency key reused with different request body", instance=path), None
         return 200, json.loads(prev_idem["response_json"]), {"Idempotent-Replay": "true"}
 
     # 3. Plan exists
     plan_row = con.execute("SELECT plan_id, evaluation_id, version, status, plan_hash, payload_json FROM plans WHERE plan_id=?", (plan_id,)).fetchone()
     if not plan_row:
+        append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id}, {"action": action, "code": "NOT_FOUND"})
         return 404, problem_response(404, "NOT_FOUND", f"Plan {plan_id} does not exist", instance=path), None
 
     plan = json.loads(plan_row["payload_json"])
     plan_version = plan["version"]
     plan_hash = plan["plan_hash"]
-    action = body.get("action")
 
     # 4. Plan superseded
     if plan["status"] == "superseded":
@@ -122,6 +134,7 @@ def decide_plan(
             return 403, problem_response(403, "ROLE_FORBIDDEN", f"Role {actor['role']} cannot reject plans", instance=path), None
 
         if not body.get("justification") or len(body["justification"].strip()) < 10:
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
             return 400, problem_response(400, "VALIDATION_ERROR", "Rejection justification must be at least 10 characters", instance=path), None
 
         resulting_status = "rejected"
@@ -140,25 +153,28 @@ def decide_plan(
             return 422, problem_response(422, "NO_AMENDABLE_FINDING", "No blocked letter-of-credit finding found on plan", instance=path), None
 
         if not body.get("justification") or len(body["justification"].strip()) < 10:
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
             return 422, problem_response(422, "VALIDATION_ERROR", "Amendment justification must be at least 10 characters", instance=path), None
         amendment_data = body.get("amendment")
         if not amendment_data:
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
             return 422, problem_response(422, "VALIDATION_ERROR", "Amendment details are required", instance=path), None
         lc_record = next(
             (lc for lc in fx["letters_of_credit"]["letters_of_credit"] if lc["lc_id"] == amendment_data["lc_id"]),
             None,
         )
         if lc_record is None:
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "NOT_FOUND"})
             return 404, problem_response(404, "NOT_FOUND", f"Letter of credit {amendment_data['lc_id']} does not exist", instance=path), None
         if any(change["field_tag"] not in {"43T", "47A"} for change in amendment_data["requested_changes"]):
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
             return 422, problem_response(422, "VALIDATION_ERROR", "The demo can simulate changes to LC fields 43T and 47A only", instance=path), None
-
         n_amd = con.execute("SELECT count(*) n FROM amendment_requests").fetchone()["n"] + 1
         amendment_request_id = f"AMD-{n_amd:04d}"
         resulting_status = "blocked"
     else:
+        append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
         return 400, problem_response(400, "VALIDATION_ERROR", f"Invalid action {action}", instance=path), None
-
     # 8. Commit
     dec_count = con.execute("SELECT count(*) n FROM decisions").fetchone()["n"] + 1
     decision_id = f"DEC-{dec_count:04d}"

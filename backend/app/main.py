@@ -127,12 +127,29 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
         for error in exc.errors()
     ]
     header_errors = [error for error in exc.errors() if error["loc"] and error["loc"][0] == "header"]
-    missing = {error["loc"][-1] for error in header_errors if error["type"] == "missing"}
+    missing = {str(error["loc"][-1]).lower().replace("-", "_") for error in header_errors if error["type"] == "missing"}
     code = (
-        "ACTOR_REQUIRED" if missing & {"x_actor_id", "X-Actor-Id"}
-        else "IDEMPOTENCY_KEY_REQUIRED" if missing & {"idempotency_key", "Idempotency-Key"}
+        "ACTOR_REQUIRED" if "x_actor_id" in missing
+        else "IDEMPOTENCY_KEY_REQUIRED" if "idempotency_key" in missing
         else "VALIDATION_ERROR"
     )
+    path = request.url.path
+    if path.startswith("/api/v1/plans/"):
+        parts = path.split("/")
+        if len(parts) >= 6 and parts[3] == "plans" and parts[5] in ("decisions", "executions"):
+            plan_id = parts[4]
+            raw_actor = request.headers.get("x-actor-id")
+            if raw_actor:
+                actor = get_actor_obj(raw_actor)
+                event_type = "DECISION_REFUSED" if parts[5] == "decisions" else "EXECUTION_REFUSED"
+                with transaction() as con:
+                    append_event(
+                        con,
+                        event_type,
+                        actor,
+                        {"type": "plan", "id": plan_id},
+                        {"code": code},
+                    )
     return problem_response(
         403 if header_errors else 422,
         code,
@@ -182,8 +199,15 @@ def request_body_problem(operation_id: str, body: dict[str, Any], instance: str)
 
 @app.get("/api/v1/health")
 def health():
+    db_ok = True
+    try:
+        with read_connection() as con:
+            con.execute("SELECT 1").fetchone()
+    except Exception:
+        db_ok = False
+
     return {
-        "status": "ok",
+        "status": "ok" if db_ok else "degraded",
         "api_version": "v1",
         "contract_version": CONTRACT_VERSION,
         "data_mode": "synthetic",
@@ -268,6 +292,7 @@ def scenario():
         "inventory": fx["inventory"]["positions"],
         "letters_of_credit": fx["letters_of_credit"]["letters_of_credit"],
         "actors": fx["policies"]["demo_actors"],
+        "policies": fx["policies"],
     }
 
 
@@ -311,7 +336,7 @@ def create_evaluation(
 
     request_hash = digest({"path": path, "actor_id": x_actor_id, "body": body})
 
-    with transaction() as con:
+    with read_connection() as con:
         prev = con.execute("SELECT request_hash, response_json FROM idempotency WHERE key=?", (idempotency_key,)).fetchone()
         if prev:
             if prev["request_hash"] != request_hash:
@@ -327,22 +352,6 @@ def create_evaluation(
         plan_ids = (f"PLN-{plan_number:04d}", f"PLN-{plan_number + 1:04d}")
         poll = f"/api/v1/evaluations/{evaluation_id}"
 
-        superseded_plan_ids = []
-        for row in con.execute(
-            "SELECT p.plan_id, p.payload_json FROM plans p "
-            "JOIN evaluations e ON e.evaluation_id=p.evaluation_id "
-            "WHERE e.disruption_id=? AND p.status IN ('blocked', 'needs_review', 'pending_approval')",
-            (disruption_id,),
-        ).fetchall():
-            pid = row["plan_id"]
-            previous_plan = json.loads(row["payload_json"])
-            previous_plan["status"] = "superseded"
-            con.execute("UPDATE plans SET status='superseded', payload_json=? WHERE plan_id=?", (json.dumps(previous_plan), pid))
-            append_event(con, "PLAN_SUPERSEDED", actor, {"type": "plan", "id": pid}, {"status": "superseded"})
-            superseded_plan_ids.append(pid)
-
-        append_event(con, "EVALUATION_REQUESTED", actor, {"type": "evaluation", "id": evaluation_id}, {"disruption_id": disruption_id})
-        started_at = datetime.now(timezone.utc).isoformat()
         extra_costs_verified = None
         amendment_rows = con.execute(
             "SELECT payload_json FROM amendment_requests WHERE status='simulated_accepted'"
@@ -356,27 +365,56 @@ def create_evaluation(
                 for r in amendment_rows
             )
             extra_costs_verified = {"lc_amendment_fee": total_fee}
-        try:
-            payload = build_evaluation_payload(
-                fx, disruption_id, evaluation_id, plan_ids, LLM_MODE,
-                started_at, max_depth=max_depth,
-                extra_costs_verified=extra_costs_verified,
-            )
-            completed_at = payload["completed_at"]
-            evaluation_status = payload["status"]
-        except Exception as exc:
-            completed_at = datetime.now(timezone.utc).isoformat()
-            evaluation_status = "failed"
-            error = {"code": "EVALUATION_FAILED", "message": str(exc)[:500]}
-            payload = {
-                "schema_version": "1.0.0", "evaluation_id": evaluation_id,
-                "disruption_id": disruption_id, "status": "failed", "data_mode": "synthetic",
-                "llm_mode": LLM_MODE, "input_snapshot_id": SNAPSHOT,
-                "created_at": started_at, "completed_at": completed_at, "steps": [],
-                "assessment": None, "dependency_results": [], "rule_results": [],
-                "options": [], "findings": [], "evidence": [], "plans": [],
-                "comparison": None, "explanations": [], "error": error,
-            }
+
+    started_at = datetime.now(timezone.utc).isoformat()
+    try:
+        payload = build_evaluation_payload(
+            fx, disruption_id, evaluation_id, plan_ids, LLM_MODE,
+            started_at, max_depth=max_depth,
+            extra_costs_verified=extra_costs_verified,
+        )
+        completed_at = payload["completed_at"]
+        evaluation_status = payload["status"]
+    except Exception as exc:
+        completed_at = datetime.now(timezone.utc).isoformat()
+        evaluation_status = "failed"
+        error = {"code": "EVALUATION_FAILED", "message": str(exc)[:500]}
+        payload = {
+            "schema_version": "1.0.0", "evaluation_id": evaluation_id,
+            "disruption_id": disruption_id, "status": "failed", "data_mode": "synthetic",
+            "llm_mode": LLM_MODE, "input_snapshot_id": SNAPSHOT,
+            "created_at": started_at, "completed_at": completed_at, "steps": [],
+            "assessment": None, "dependency_results": [], "rule_results": [],
+            "options": [], "findings": [], "evidence": [], "plans": [],
+            "comparison": None, "explanations": [], "error": error,
+        }
+
+    with transaction() as con:
+        prev = con.execute("SELECT request_hash, response_json FROM idempotency WHERE key=?", (idempotency_key,)).fetchone()
+        if prev:
+            if prev["request_hash"] != request_hash:
+                return problem_response(409, "IDEMPOTENCY_KEY_REUSED", "Idempotency key reused with different request body", instance=path)
+            poll = json.loads(prev["response_json"])["poll_url"]
+            response.headers["Idempotent-Replay"] = "true"
+            response.headers["Location"] = poll
+            return json.loads(prev["response_json"])
+
+        superseded_plan_ids = []
+        if evaluation_status == "completed":
+            for row in con.execute(
+                "SELECT p.plan_id, p.payload_json FROM plans p "
+                "JOIN evaluations e ON e.evaluation_id=p.evaluation_id "
+                "WHERE e.disruption_id=? AND p.status IN ('blocked', 'needs_review', 'pending_approval')",
+                (disruption_id,),
+            ).fetchall():
+                pid = row["plan_id"]
+                previous_plan = json.loads(row["payload_json"])
+                previous_plan["status"] = "superseded"
+                con.execute("UPDATE plans SET status='superseded', payload_json=? WHERE plan_id=?", (json.dumps(previous_plan), pid))
+                append_event(con, "PLAN_SUPERSEDED", actor, {"type": "plan", "id": pid}, {"status": "superseded"})
+                superseded_plan_ids.append(pid)
+
+        append_event(con, "EVALUATION_REQUESTED", actor, {"type": "evaluation", "id": evaluation_id}, {"disruption_id": disruption_id})
 
         for step in payload["steps"]:
             step_name = step["step"]
@@ -445,7 +483,6 @@ def create_evaluation(
             """,
             (idempotency_key, path, request_hash, 202, json.dumps(accepted), completed_at),
         )
-
     response.headers["Location"] = poll
     return accepted
 
@@ -493,6 +530,15 @@ def handle_plan_decision(
     body = body.model_dump(mode="json", by_alias=True, exclude_unset=True)
     invalid = request_body_problem("decidePlan", body, path)
     if invalid:
+        actor = get_actor_obj(x_actor_id)
+        with transaction() as con:
+            append_event(
+                con,
+                "DECISION_REFUSED",
+                actor,
+                {"type": "plan", "id": plan_id},
+                {"action": body.get("action"), "code": "VALIDATION_ERROR"},
+            )
         return invalid
     with transaction() as con:
         status_code, result, headers = decide_plan(con, fx, plan_id, x_actor_id, idempotency_key, body, path)
@@ -518,6 +564,15 @@ def handle_plan_execution(
     body = body.model_dump(exclude_unset=True)
     invalid = request_body_problem("executePlan", body, path)
     if invalid:
+        actor = get_actor_obj(x_actor_id)
+        with transaction() as con:
+            append_event(
+                con,
+                "EXECUTION_REFUSED",
+                actor,
+                {"type": "plan", "id": plan_id},
+                {"code": "VALIDATION_ERROR"},
+            )
         return invalid
     with transaction() as con:
         status_code, result, headers = execute_plan(con, fx, plan_id, x_actor_id, idempotency_key, body, path, SNAPSHOT)

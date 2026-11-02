@@ -138,6 +138,9 @@
           "items": {
             "$ref": "master-data.schema.json#/$defs/DemoActor"
           }
+        },
+        "policies": {
+          "$ref": "master-data.schema.json#/$defs/Policies"
         }
       }
     },

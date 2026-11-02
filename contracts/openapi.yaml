@@ -82,10 +82,10 @@ paths:
     get:
       tags: [scenario]
       operationId: getScenario
-      summary: Scenario header, orders, purchase orders, shipments, suppliers, inventory, letters of credit and demo actors
+      summary: Scenario header, orders, purchase orders, shipments, suppliers, inventory, letters of credit, demo actors and policies
       responses:
         '200':
-          description: Scenario snapshot
+          description: Scenario snapshot including master data, transactional state, demo actors and policies
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ScenarioResponse'}

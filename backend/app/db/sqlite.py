@@ -109,12 +109,18 @@ CREATE TABLE IF NOT EXISTS audit_events (
 """
 
 
+def init_schema(con: sqlite3.Connection) -> None:
+    has_meta = con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'").fetchone()
+    if not has_meta:
+        con.executescript(SCHEMA)
+
+
 def connect():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB_PATH, timeout=10, isolation_level=None)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
-    con.executescript(SCHEMA)
+    init_schema(con)
     return con
 
 

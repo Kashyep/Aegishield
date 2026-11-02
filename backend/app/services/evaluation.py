@@ -5,6 +5,7 @@ Pure functions operate only on validated fixture data; HTTP and persistence stay
 from __future__ import annotations
 import datetime as dt
 import json
+import time
 from typing import Any
 from .fixtures import canonical_json, digest as sha256_of, snapshot_id as input_snapshot_id
 from .rules import query_rule_applicability as rule_applicability
@@ -36,7 +37,7 @@ def div_half_up(numerator: int, denominator: int) -> int:
 def worst(outcomes) -> str:
     considered = [o for o in outcomes if o != "not_applicable"]
     if not considered:
-        return "passed"
+        raise ValueError("worst() arg is an empty sequence or contains no applicable outcomes")
     return max(considered, key=lambda o: OUTCOME_RANK[o])
 
 def as_of_date(fx: dict) -> str:
@@ -208,8 +209,14 @@ def fta_findings(fx: dict, quote: dict, route: dict, rq: dict):
     rule_ev = [f"EVD-RULE-{a['rule_id']}" for a in rq["applicable"]]
     out = []
     if rq["outcome"] != "resolved" or "origin_consignment" not in rule_ids:
+        finding_ev = list(rule_ev)
+        if not finding_ev:
+            route_ev_id = f"EVD-ROUTE-{rid}"
+            finding_ev = [route_ev_id]
+            if route_ev_id not in evid:
+                evid[route_ev_id] = evd_route(route)
         out.append(finding(f"FND-FTA-RULES-{rid}", "FTA.RULE_APPLICABILITY", "trade_compliance", "needs_review", subj,
-                           "Applicable trade rules could not be resolved for this import date", rule_ev,
+                           "Applicable trade rules could not be resolved for this import date", finding_ev,
                            details={"missing_rule_types": rq["missing_rule_types"], "conflicts": rq["conflicts"]}))
         return out, evid
     transit = [locs[p]["country"] for p in route["transshipment_port_ids"]]
@@ -247,41 +254,41 @@ def duty_at_risk(quote: dict, route: dict, qty: int, rq: dict):
     value = qty * (quote["unit_price_inr"] + route["freight_inr_per_unit"])
     return div_half_up(value * diff, 10000), rates
 
-def source_options(fx: dict, assessment: dict):
-    quotes = fx["supplier_quotes"]["quotes"]
-    routes = fx["route_options"]["route_options"]
-    lcs = index(fx["letters_of_credit"]["letters_of_credit"], "lc_id")
-    locs = index(fx["master_data"]["locations"], "location_id")
-    baseline_price = fx["supplier_quotes"]["baseline_unit_price"]["unit_price_inr"]
-    disrupted = assessment["disrupted_node_ids"]
+def _inventory_step(fx: dict) -> tuple[list[dict], dict[str, dict], dict[str, dict]]:
     today = as_of_date(fx)
-    options, deps, findings, evidence, rule_results = [], {}, {}, {}, {}
-
+    options, findings, evidence = [], {}, {}
     for pos in fx["inventory"]["positions"]:
+        pid = pos["inventory_source_id"]
         atp = max(0, pos["on_hand"] - pos["reserved"] - pos["protected_floor"])
-        oid = f"OPT-{pos['inventory_source_id']}"
-        f = finding(f"FND-INV-ATP-{pos['inventory_source_id']}", "INV.AVAILABLE_TO_PROMISE", "inventory_rebalancing",
-                    "passed" if atp > 0 else "blocked", {"type": "inventory_source", "id": pos["inventory_source_id"]},
-                    f"{atp} units available to promise above protected floor", [f"EVD-INV-{pos['inventory_source_id']}"],
+        oid = f"OPT-{pid}"
+        f = finding(f"FND-INV-ATP-{pid}", "INV.AVAILABLE_TO_PROMISE", "inventory_rebalancing",
+                    "passed" if atp > 0 else "blocked", {"type": "inventory_source", "id": pid},
+                    f"{atp} units available to promise above protected floor", [f"EVD-INV-{pid}"],
                     details={"on_hand": pos["on_hand"], "reserved": pos["reserved"], "protected_floor": pos["protected_floor"], "atp": atp})
         findings[f["finding_id"]] = f
-        evidence[f"EVD-INV-{pos['inventory_source_id']}"] = {
-            "evidence_id": f"EVD-INV-{pos['inventory_source_id']}", "kind": "fixture_record", "source_ids": ["SRC-INV-SNAPSHOT"],
-            "title": f"Inventory position {pos['inventory_source_id']}", "authority": "internal", "synthetic": True,
-            "locator": {"record_id": pos["inventory_source_id"]}, "excerpt": f"on_hand {pos['on_hand']}, reserved {pos['reserved']}, protected_floor {pos['protected_floor']}"}
-        options.append({"option_id": oid, "kind": "inventory", "inventory_source_id": pos["inventory_source_id"], "quote_id": None,
-                        "supplier_id": None, "route_option_id": None, "capacity_group": pos["inventory_source_id"], "capacity_units": atp,
+        evidence[f"EVD-INV-{pid}"] = {
+            "evidence_id": f"EVD-INV-{pid}", "kind": "fixture_record", "source_ids": ["SRC-INV-SNAPSHOT"],
+            "title": f"Inventory position {pid}", "authority": "internal", "synthetic": True,
+            "locator": {"record_id": pid},
+            "excerpt": f"on_hand {pos['on_hand']}, reserved {pos['reserved']}, protected_floor {pos['protected_floor']}"}
+        options.append({"option_id": oid, "kind": "inventory", "inventory_source_id": pid, "quote_id": None,
+                        "supplier_id": None, "route_option_id": None, "capacity_group": pid, "capacity_units": atp,
                         "eta_plant": add_days(today, pos["transfer_days"]), "unit_incremental_cost_inr": pos["transfer_cost_inr_per_unit"],
                         "cost_components_per_unit": {"inventory_transfer": pos["transfer_cost_inr_per_unit"]},
                         "finding_ids": [f["finding_id"]], "outcome": f["outcome"]})
+    return options, findings, evidence
 
+
+def _dependency_step(fx: dict, quotes: list[dict], disrupted: list[str]) -> tuple[dict[str, dict], dict[str, dict], dict[str, dict]]:
+    deps, findings, evidence = {}, {}, {}
     for q in quotes:
-        if q["supplier_id"] not in deps:
-            deps[q["supplier_id"]] = dependency_check(fx, q["supplier_id"], q["part_id"], disrupted)
-            dep = deps[q["supplier_id"]]
-            fid = f"FND-DEP-{q['supplier_id']}"
+        sid = q["supplier_id"]
+        if sid not in deps:
+            deps[sid] = dependency_check(fx, sid, q["part_id"], disrupted)
+            dep = deps[sid]
+            fid = f"FND-DEP-{sid}"
             findings[fid] = finding(fid, "DEP.SHARED_DISRUPTED_DEPENDENCY", "supplier_dependency", dep["outcome"],
-                                    {"type": "supplier", "id": q["supplier_id"]},
+                                    {"type": "supplier", "id": sid},
                                     {"blocked": "Alternate supplier depends on the disrupted node", "needs_review": "Supplier independence cannot be confirmed",
                                      "passed": "No upstream path to the disrupted node within depth"}[dep["outcome"]],
                                     [e["evidence_id"] for e in dep["evidence"]],
@@ -290,13 +297,33 @@ def source_options(fx: dict, assessment: dict):
                                              "coverage_complete": dep["coverage"]["complete"]})
             for e in dep["evidence"]:
                 evidence[e["evidence_id"]] = e
-        eligible = {r["route_option_id"] for r in eligible_routes(q, routes)}  # MOD-06 decides eligibility
-        for r in routes:  # fixture order is kept: it is the golden options[] order
-            if r["route_option_id"] not in eligible:
+    return deps, findings, evidence
+
+
+def _routing_step(quotes: list[dict], routes: list[dict]) -> dict[str, set[str]]:
+    return {q["quote_id"]: {r["route_option_id"] for r in eligible_routes(q, routes)} for q in quotes}
+
+
+def _trade_compliance_step(
+    fx: dict,
+    quotes: list[dict],
+    routes: list[dict],
+    eligible_by_quote: dict[str, set[str]],
+    dep_findings: dict[str, dict],
+) -> tuple[list[dict], dict[str, dict], dict[str, dict], dict[str, dict]]:
+    lcs = index(fx["letters_of_credit"]["letters_of_credit"], "lc_id")
+    locs = index(fx["master_data"]["locations"], "location_id")
+    baseline_price = fx["supplier_quotes"]["baseline_unit_price"]["unit_price_inr"]
+    options, findings, evidence, rule_results = [], {}, {}, {}
+    for q in quotes:
+        eligible = eligible_by_quote[q["quote_id"]]
+        for r in routes:
+            rid = r["route_option_id"]
+            if rid not in eligible:
                 continue
             fids = [f"FND-DEP-{q['supplier_id']}"]
             rq = rule_applicability(fx, rule_query_for(fx, q, r))
-            rule_results[r["route_option_id"]] = rq
+            rule_results[rid] = rq
             ff, fe = fta_findings(fx, q, r, rq)
             for f in ff:
                 findings[f["finding_id"]] = f
@@ -308,13 +335,30 @@ def source_options(fx: dict, assessment: dict):
                     findings[f["finding_id"]] = f
                     fids.append(f["finding_id"])
                 evidence.update(le)
-            outcome = worst(findings[f]["outcome"] for f in fids)
-            options.append({"option_id": f"OPT-{r['route_option_id']}", "kind": "supplier", "inventory_source_id": None, "quote_id": q["quote_id"],
-                            "supplier_id": q["supplier_id"], "route_option_id": r["route_option_id"], "capacity_group": q["quote_id"],
+            all_fs = {**dep_findings, **findings}
+            outcome = worst(all_fs[f]["outcome"] for f in fids)
+            options.append({"option_id": f"OPT-{rid}", "kind": "supplier", "inventory_source_id": None, "quote_id": q["quote_id"],
+                            "supplier_id": q["supplier_id"], "route_option_id": rid, "capacity_group": q["quote_id"],
                             "capacity_units": q["capacity_units"], "eta_plant": r["eta_plant"],
                             "unit_incremental_cost_inr": (q["unit_price_inr"] - baseline_price) + r["freight_inr_per_unit"],
                             "cost_components_per_unit": {"supplier_price_premium": q["unit_price_inr"] - baseline_price, "freight": r["freight_inr_per_unit"]},
                             "finding_ids": fids, "outcome": outcome})
+    return options, findings, evidence, rule_results
+
+
+def source_options(fx: dict, assessment: dict):
+    quotes = fx["supplier_quotes"]["quotes"]
+    routes = fx["route_options"]["route_options"]
+    disrupted = assessment["disrupted_node_ids"]
+    inv_options, inv_findings, inv_evidence = _inventory_step(fx)
+    deps, dep_findings, dep_evidence = _dependency_step(fx, quotes, disrupted)
+    eligible_by_quote = _routing_step(quotes, routes)
+    supp_options, trade_findings, trade_evidence, rule_results = _trade_compliance_step(
+        fx, quotes, routes, eligible_by_quote, dep_findings
+    )
+    options = inv_options + supp_options
+    findings = {**inv_findings, **dep_findings, **trade_findings}
+    evidence = {**inv_evidence, **dep_evidence, **trade_evidence}
     return options, deps, findings, evidence, rule_results
 
 def greedy_plan(fx: dict, assessment: dict, options: list, strategy: str):
@@ -419,9 +463,14 @@ def financials(fx: dict, assessment: dict, lines: list, options_by_id: dict, fin
             fta = [f for f in fs if f["check_code"] == "FTA.DIRECT_CONSIGNMENT" and f["outcome"] == "needs_review"]
             if fta:
                 amt, rates = duty_at_risk(quotes[o["quote_id"]], routes[o["route_option_id"]], line["qty"], rule_results[o["route_option_id"]])
-                exposures.append({"exposure_id": f"EXP-FTA-{line['line_id']}", "line_id": line["line_id"], "finding_id": fta[0]["finding_id"],
-                                  "kind": "duty_if_preference_denied", "amount_inr": amt, "mutually_exclusive_group": group,
-                                  "basis": f"(unit price + freight) x {line['qty']} x (MFN {rates['tariff_mfn']} bps - preferential {rates.get('tariff_preferential')} bps)"})
+                if rates is None or "tariff_mfn" not in rates:
+                    exposures.append({"exposure_id": f"EXP-FTA-{line['line_id']}", "line_id": line["line_id"], "finding_id": fta[0]["finding_id"],
+                                      "kind": "duty_if_preference_denied", "amount_inr": None, "mutually_exclusive_group": group,
+                                      "basis": "Not quantified: MFN tariff rate unavailable"})
+                else:
+                    exposures.append({"exposure_id": f"EXP-FTA-{line['line_id']}", "line_id": line["line_id"], "finding_id": fta[0]["finding_id"],
+                                      "kind": "duty_if_preference_denied", "amount_inr": amt, "mutually_exclusive_group": group,
+                                      "basis": f"(unit price + freight) x {line['qty']} x (MFN {rates['tariff_mfn']} bps - preferential {rates.get('tariff_preferential')} bps)"})
             lc = [f for f in fs if f["check_code"].startswith("LC.") and f["outcome"] == "blocked"]
             if lc:
                 exposures.append({"exposure_id": f"EXP-LC-{line['line_id']}", "line_id": line["line_id"], "finding_id": lc[0]["finding_id"],
@@ -543,24 +592,165 @@ def evaluate(
     plan_ids: tuple[str, str],
     extra_costs_verified: dict[str, int] | None = None,
 ) -> dict[str, Any]:
+    # Step 1: disruption_sensing
+    t0_s1 = time.perf_counter()
+    s1_start = dt.datetime.now(dt.timezone.utc).isoformat()
     assessment = assess_disruption(fx, disruption_id)
-    options, deps, findings, evidence, rule_results = source_options(fx, assessment)
     sf = sensing_finding(assessment)
-    findings[sf["finding_id"]] = sf
-    for e in assessment["evidence"]:
-        evidence[e["evidence_id"]] = e
+    s1_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s1 = time.perf_counter()
+    s1_duration = max(0, int(round((t1_s1 - t0_s1) * 1000)))
+    if assessment.get("outcome") == "passed":
+        s1_status = "succeeded"
+    elif assessment.get("outcome") == "failed":
+        s1_status = "failed"
+    else:
+        s1_status = "degraded"
+    s1_error = {"code": f"SENSING_{s1_status.upper()}", "message": ", ".join(assessment["issues"])} if (s1_status in ("degraded", "failed") and assessment.get("issues")) else None
+    step1 = {
+        "seq": 1,
+        "step": "disruption_sensing",
+        "owner": "member_1",
+        "status": s1_status,
+        "attempts": 1,
+        "timeout_ms": 10000,
+        "started_at": s1_start,
+        "finished_at": s1_end,
+        "duration_ms": s1_duration,
+        "mode": "gold",
+        "error": s1_error,
+    }
+
+    quotes = fx["supplier_quotes"]["quotes"]
+    routes = fx["route_options"]["route_options"]
+    disrupted = assessment["disrupted_node_ids"]
+
+    # Step 2: supplier_dependency
+    t0_s2 = time.perf_counter()
+    s2_start = dt.datetime.now(dt.timezone.utc).isoformat()
+    deps, dep_findings, dep_evidence = _dependency_step(fx, quotes, disrupted)
+    s2_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s2 = time.perf_counter()
+    s2_duration = max(0, int(round((t1_s2 - t0_s2) * 1000)))
+    step2 = {
+        "seq": 2,
+        "step": "supplier_dependency",
+        "owner": "member_4",
+        "status": "succeeded",
+        "attempts": 1,
+        "timeout_ms": 5000,
+        "started_at": s2_start,
+        "finished_at": s2_end,
+        "duration_ms": s2_duration,
+        "mode": "deterministic",
+        "error": None,
+    }
+
+    # Step 3: routing
+    t0_s3 = time.perf_counter()
+    s3_start = dt.datetime.now(dt.timezone.utc).isoformat()
+    eligible_by_quote = _routing_step(quotes, routes)
+    s3_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s3 = time.perf_counter()
+    s3_duration = max(0, int(round((t1_s3 - t0_s3) * 1000)))
+    step3 = {
+        "seq": 3,
+        "step": "routing",
+        "owner": "member_1",
+        "status": "succeeded",
+        "attempts": 1,
+        "timeout_ms": 5000,
+        "started_at": s3_start,
+        "finished_at": s3_end,
+        "duration_ms": s3_duration,
+        "mode": "deterministic",
+        "error": None,
+    }
+
+    # Step 4: inventory_rebalancing
+    t0_s4 = time.perf_counter()
+    s4_start = dt.datetime.now(dt.timezone.utc).isoformat()
+    inv_options, inv_findings, inv_evidence = _inventory_step(fx)
+    s4_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s4 = time.perf_counter()
+    s4_duration = max(0, int(round((t1_s4 - t0_s4) * 1000)))
+    step4 = {
+        "seq": 4,
+        "step": "inventory_rebalancing",
+        "owner": "member_1",
+        "status": "succeeded",
+        "attempts": 1,
+        "timeout_ms": 5000,
+        "started_at": s4_start,
+        "finished_at": s4_end,
+        "duration_ms": s4_duration,
+        "mode": "deterministic",
+        "error": None,
+    }
+
+    # Step 5: trade_compliance
+    t0_s5 = time.perf_counter()
+    s5_start = dt.datetime.now(dt.timezone.utc).isoformat()
+    supp_options, trade_findings, trade_evidence, rule_results = _trade_compliance_step(
+        fx, quotes, routes, eligible_by_quote, dep_findings
+    )
+    for lc in fx["letters_of_credit"]["letters_of_credit"]:
+        trade_evidence[f"EVD-LCB-{lc['lc_id']}"] = {"evidence_id": f"EVD-LCB-{lc['lc_id']}", "kind": "fixture_record", "source_ids": [lc["available_balance_source_ref"]],
+                                             "title": f"Available balance of {lc['lc_id']}", "authority": "internal", "synthetic": True,
+                                             "locator": {"lc_id": lc["lc_id"]}, "excerpt": f"available_balance_inr {lc['available_balance_inr']}"}
+        trade_evidence[f"EVD-LCF-{lc['lc_id']}-43P"] = evd_lc_field(lc, "partial_shipments")
+
+    options = inv_options + supp_options
+    findings = {sf["finding_id"]: sf, **dep_findings, **inv_findings, **trade_findings}
+    evidence = {e["evidence_id"]: e for e in assessment["evidence"]}
+    evidence.update(dep_evidence)
+    evidence.update(inv_evidence)
+    evidence.update(trade_evidence)
+    s5_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s5 = time.perf_counter()
+    s5_duration = max(0, int(round((t1_s5 - t0_s5) * 1000)))
+    step5 = {
+        "seq": 5,
+        "step": "trade_compliance",
+        "owner": "member_4",
+        "status": "succeeded",
+        "attempts": 1,
+        "timeout_ms": 5000,
+        "started_at": s5_start,
+        "finished_at": s5_end,
+        "duration_ms": s5_duration,
+        "mode": "deterministic",
+        "error": None,
+    }
+
+    # Step 6: plan_assembly
+    t0_s6 = time.perf_counter()
+    s6_start = dt.datetime.now(dt.timezone.utc).isoformat()
     p1, p1f = build_plan(fx, assessment, options, findings, rule_results, plan_ids[0], "P1 Fastest-cheapest (cost and time only)", "cost_time_only", evaluation_id=evaluation_id)
     p2, p2f = build_plan(fx, assessment, options, findings, rule_results, plan_ids[1], "P2 AegisShield verified", "constraint_verified", evaluation_id=evaluation_id, extra_costs=extra_costs_verified)
     for f in p1f + p2f:
         findings[f["finding_id"]] = f
-    lcs = fx["letters_of_credit"]["letters_of_credit"]
-    for lc in lcs:
-        evidence[f"EVD-LCB-{lc['lc_id']}"] = {"evidence_id": f"EVD-LCB-{lc['lc_id']}", "kind": "fixture_record", "source_ids": [lc["available_balance_source_ref"]],
-                                             "title": f"Available balance of {lc['lc_id']}", "authority": "internal", "synthetic": True,
-                                             "locator": {"lc_id": lc["lc_id"]}, "excerpt": f"available_balance_inr {lc['available_balance_inr']}"}
-        evidence[f"EVD-LCF-{lc['lc_id']}-43P"] = evd_lc_field(lc, "partial_shipments")
+    s6_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s6 = time.perf_counter()
+    s6_duration = max(0, int(round((t1_s6 - t0_s6) * 1000)))
+    step6 = {
+        "seq": 6,
+        "step": "plan_assembly",
+        "owner": "member_4",
+        "status": "succeeded",
+        "attempts": 1,
+        "timeout_ms": 5000,
+        "started_at": s6_start,
+        "finished_at": s6_end,
+        "duration_ms": s6_duration,
+        "mode": "deterministic",
+        "error": None,
+    }
+
+    steps = [step1, step2, step3, step4, step5, step6]
+
     return {"assessment": assessment, "options": options, "dependency": deps, "findings": findings, "evidence": evidence,
-            "rule_results": rule_results, "plans": [p1, p2]}
+            "rule_results": rule_results, "plans": [p1, p2], "steps": steps}
 
 
 def build_evaluation_payload(
@@ -585,37 +775,6 @@ def build_evaluation_payload(
         for plan in result["plans"]:
             plan["input_snapshot_id"] = snapshot
             plan["plan_hash"] = sha256_of(plan_hash_material(plan))
-    if completed_at is None:
-        completed_at = dt.datetime.now(dt.timezone.utc).isoformat()
-    started = dt.datetime.fromisoformat(started_at)
-    completed = dt.datetime.fromisoformat(completed_at)
-    duration_ms = max(0, int((completed - started).total_seconds() * 1000))
-    definitions = [
-        # v2 ownership (docs/00 §7.3, contracts 1.1.0): sensing, routing, inventory = M1; dependency, compliance, plan assembly = M4; explanation = M3
-        ("disruption_sensing", "member_1", 10000, "gold"),
-        ("supplier_dependency", "member_4", 5000, "deterministic"),
-        ("routing", "member_1", 5000, "deterministic"),
-        ("inventory_rebalancing", "member_1", 5000, "deterministic"),
-        ("trade_compliance", "member_4", 5000, "deterministic"),
-        ("plan_assembly", "member_4", 5000, "deterministic"),
-        ("explanation", "member_3", 10000, "template"),
-    ]
-    steps = [
-        {
-            "seq": seq,
-            "step": name,
-            "owner": owner,
-            "status": "succeeded",
-            "attempts": 1,
-            "timeout_ms": timeout_ms,
-            "started_at": started_at,
-            "finished_at": completed_at,
-            "duration_ms": duration_ms if seq == 7 else 0,
-            "mode": mode,
-            "error": None,
-        }
-        for seq, (name, owner, timeout_ms, mode) in enumerate(definitions, start=1)
-    ]
     plans = result["plans"]
     comparison_plans = [
         {
@@ -660,18 +819,69 @@ def build_evaluation_payload(
     findings = result["findings"]
     gw = gateway if gateway is not None else gateway_from_env(llm_mode)
     explanations, infos = [], []
+    t0_s7 = time.perf_counter()
+    s7_start = dt.datetime.now(dt.timezone.utc).isoformat()
+    expl_time = completed_at if completed_at is not None else s7_start
     for plan in plans:  # MOD-12 (Member 5): template / recorded / live, validated; never changes outcomes
-        xpl, info = explain_plan(plan, findings, gw, completed_at)
+        xpl, info = explain_plan(plan, findings, gw, expl_time)
         explanations.append(xpl)
         infos.append(info)
-    step7 = steps[6]
+    s7_end = dt.datetime.now(dt.timezone.utc).isoformat()
+    t1_s7 = time.perf_counter()
+    s7_duration = max(0, int(round((t1_s7 - t0_s7) * 1000)))
+
     modes = {i["mode"] for i in infos}
-    step7["mode"] = modes.pop() if len(modes) == 1 else "template"
-    step7["attempts"] = max([1] + [i["attempts"] for i in infos])
-    if any(i["degraded"] for i in infos):
-        step7["status"] = "degraded"
-        errs = sorted({i["error"] for i in infos if i["error"]})
-        step7["error"] = {"code": "LLM_DEGRADED", "message": errs[0]} if errs else None
+    mode7 = modes.pop() if len(modes) == 1 else "template"
+    attempts7 = max([1] + [i["attempts"] for i in infos])
+    status7 = "degraded" if any(i["degraded"] for i in infos) else "succeeded"
+    errs = sorted({i["error"] for i in infos if i["error"]})
+    error7 = {"code": "LLM_DEGRADED", "message": errs[0]} if (status7 == "degraded" and errs) else None
+
+    step7 = {
+        "seq": 7,
+        "step": "explanation",
+        "owner": "member_3",
+        "status": status7,
+        "attempts": attempts7,
+        "timeout_ms": 10000,
+        "started_at": s7_start,
+        "finished_at": s7_end,
+        "duration_ms": s7_duration,
+        "mode": mode7,
+        "error": error7,
+    }
+
+    if "steps" in result and len(result["steps"]) == 6:
+        steps = list(result["steps"]) + [step7]
+    else:
+        definitions = [
+            ("disruption_sensing", "member_1", 10000, "gold"),
+            ("supplier_dependency", "member_4", 5000, "deterministic"),
+            ("routing", "member_1", 5000, "deterministic"),
+            ("inventory_rebalancing", "member_1", 5000, "deterministic"),
+            ("trade_compliance", "member_4", 5000, "deterministic"),
+            ("plan_assembly", "member_4", 5000, "deterministic"),
+        ]
+        steps = [
+            {
+                "seq": seq,
+                "step": name,
+                "owner": owner,
+                "status": "succeeded",
+                "attempts": 1,
+                "timeout_ms": timeout_ms,
+                "started_at": started_at,
+                "finished_at": s7_start,
+                "duration_ms": 0,
+                "mode": mode,
+                "error": None,
+            }
+            for seq, (name, owner, timeout_ms, mode) in enumerate(definitions, start=1)
+        ] + [step7]
+
+    if completed_at is None:
+        completed_at = s7_end
+
     return {
         "schema_version": "1.0.0",
         "evaluation_id": evaluation_id,

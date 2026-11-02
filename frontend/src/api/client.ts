@@ -14,6 +14,7 @@ import type {
   Health,
   Policies,
   Plan,
+  ScenarioResponse,
   SupplyGraph,
   EarlyWarningResult,
 } from './types'
@@ -36,8 +37,19 @@ export class ApiError extends Error {
   }
 }
 
-const apiMode: ApiMode = import.meta.env.VITE_API_MODE === 'live' ? 'live' : 'stub'
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
+declare const process: { env?: Record<string, string | undefined> } | undefined
+
+function getEnvVar(key: string): string | undefined {
+  if (typeof import.meta !== 'undefined' && 'env' in import.meta && import.meta.env) {
+    return import.meta.env[key]
+  }
+  if (typeof process !== 'undefined' && process?.env) {
+    return process.env[key]
+  }
+  return undefined
+}
+const apiMode: ApiMode = getEnvVar('VITE_API_MODE') === 'live' ? 'live' : 'stub'
+const apiBaseUrl = (getEnvVar('VITE_API_BASE_URL') || 'http://localhost:8000').replace(/\/$/, '')
 
 async function getStub<T>(path: string): Promise<T> {
   const response = await fetch(path)
@@ -164,7 +176,18 @@ export async function getEvaluationById(evaluationId: string): Promise<Evaluatio
   return (await request<Evaluation>(`/api/v1/evaluations/${encodeURIComponent(evaluationId)}`)).data
 }
 
-export function getPolicies(): Promise<Policies> {
+export async function getPolicies(): Promise<Policies> {
+  if (apiMode === 'stub') {
+    return getStub<Policies>('/stubs/policies.json')
+  }
+  try {
+    const res = await request<ScenarioResponse>('/api/v1/scenario')
+    if (res.data.policies) {
+      return res.data.policies
+    }
+  } catch {
+    // fall back to stubs only if policies is missing
+  }
   return getStub<Policies>('/stubs/policies.json')
 }
 
@@ -172,13 +195,34 @@ export async function getPlan(planId: string): Promise<Plan> {
   return (await request<Plan>(`/api/v1/plans/${encodeURIComponent(planId)}`)).data
 }
 
-export function submitDecision(
+export async function submitDecision(
   planId: string,
   actorId: string,
   idempotencyKey: string,
   decision: DecisionRequest,
 ): Promise<ApiResult<Decision>> {
-  if (apiMode === 'stub') requireLiveMode()
+  if (apiMode === 'stub') {
+    let isBlocked = planId === 'PLN-0001'
+    try {
+      const evaluation = await getEvaluation()
+      const plan = evaluation.plans.find((p) => p.plan_id === planId)
+      if (plan) {
+        isBlocked = plan.status === 'blocked'
+      }
+    } catch {
+      // ignore
+    }
+    if (decision.action === 'approve' && isBlocked) {
+      const problem: ApiProblem = {
+        title: 'Plan is blocked',
+        status: 422,
+        code: 'PLAN_BLOCKED',
+        detail: `Plan ${planId} is blocked and cannot be approved`,
+      }
+      throw new ApiError(`Plan is blocked: ${problem.detail}`, 422, problem)
+    }
+    requireLiveMode()
+  }
   return request<Decision>(`/api/v1/plans/${encodeURIComponent(planId)}/decisions`, {
     method: 'POST',
     actorId,

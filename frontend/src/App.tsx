@@ -298,10 +298,12 @@ function App() {
     const acknowledgement = acknowledgements[finding.finding_id]
     return Boolean(currentActor && permittedRoles.includes(currentActor.role) && acknowledgement?.checked && acknowledgement.note.trim().length >= 5)
   })
-  const approvalDisabledReason = approvalPlan?.status === 'blocked'
-    ? 'Blocked plans cannot be approved. Review the blocking findings first.'
-    : !actorCanApprove ? 'Switch to an approver role to approve this plan.'
-    : !reviewsAcknowledged ? 'Acknowledge every review finding with a note of at least 5 characters.' : ''
+  const isBlockedPlan = approvalPlan?.status === 'blocked'
+  const approvalDisabledReason = !actorCanApprove
+    ? 'Switch to an approver role to approve this plan.'
+    : (!isBlockedPlan && !reviewsAcknowledged)
+    ? 'Acknowledge every review finding with a note of at least 5 characters.'
+    : ''
   const amendableFindings = approvalPlan && evaluation
     ? evaluation.findings.filter((finding) => approvalPlan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked' && finding.check_code.startsWith('LC.'))
     : []
@@ -401,7 +403,14 @@ const closeApproval = useCallback(() => {
 }, [])
   const submitApproval = async () => {
     if (!approvalPlan || approvalDisabledReason) return
-    const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: reviewFindings.map((finding): Acknowledgement => ({ finding_id: finding.finding_id, actor_id: actorId, note: acknowledgements[finding.finding_id]?.note.trim() ?? '' })) }
+    const validAcks: Acknowledgement[] = reviewFindings
+      .filter((finding) => acknowledgements[finding.finding_id]?.checked && (acknowledgements[finding.finding_id]?.note.trim().length ?? 0) >= 5)
+      .map((finding) => ({
+        finding_id: finding.finding_id,
+        actor_id: actorId,
+        note: acknowledgements[finding.finding_id].note.trim(),
+      }))
+    const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: validAcks }
     const serializedBody = JSON.stringify(body)
     if (pendingDecisionRef.current?.body !== serializedBody) pendingDecisionRef.current = { body: serializedBody, key: crypto.randomUUID() }
     setDecisionSubmitting(true)
@@ -742,7 +751,7 @@ const closeApproval = useCallback(() => {
           )}
 
           {policiesError && <p className="load-error" role="alert" style={{ color: 'var(--color-error-text)' }}>{policiesError}</p>}
-          {apiMode === 'stub' && <p className="approval-note" style={{ marginTop: 'var(--space-3)' }}>Fixture mode contains no decision response. Connect the backend in live mode to submit; no approval will be simulated here.</p>}
+          {apiMode === 'stub' && !isBlockedPlan && <p className="approval-note" style={{ marginTop: 'var(--space-3)' }}>Fixture mode contains no decision response. Connect the backend in live mode to submit; no approval will be simulated here.</p>}
           {decisionError && (
             <div className="api-error" role="alert" style={{ margin: 'var(--space-4) 0', padding: 'var(--space-3)', border: '1px solid var(--color-error-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-error-text)', background: 'var(--color-error-bg)' }}>
               <strong>{getErrorMessage(decisionError)}</strong>
@@ -755,9 +764,32 @@ const closeApproval = useCallback(() => {
 
           <div className="neu-dialog-actions">
             <NeuButton variant="secondary" disabled={decisionSubmitting} onClick={() => setApprovalPlan(null)}>Cancel</NeuButton>
-            <NeuButton variant="primary" disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'} onClick={submitApproval}>
-              {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
-            </NeuButton>
+            {isBlockedPlan ? (
+              <>
+                <NeuButton
+                  variant="primary"
+                  disabled={true}
+                  title="Plan is blocked by fixture checks"
+                >
+                  Approve plan
+                </NeuButton>
+                <NeuButton
+                  variant="secondary"
+                  disabled={decisionSubmitting || !actorCanApprove}
+                  onClick={submitApproval}
+                >
+                  {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
+                </NeuButton>
+              </>
+            ) : (
+              <NeuButton
+                variant="primary"
+                disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
+                onClick={submitApproval}
+              >
+                {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
+              </NeuButton>
+            )}
           </div>
         </Modal>
       )}

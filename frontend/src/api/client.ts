@@ -40,9 +40,14 @@ export class ApiError extends Error {
 
 declare const process: { env?: Record<string, string | undefined> } | undefined
 
+// Vite replaces the `import.meta.env` expression at build time. Do not guard it with
+// `'env' in import.meta`: that check is left as-is and is false in a production bundle,
+// which silently forced every built app into stub mode.
+const viteEnv: Record<string, string | undefined> | undefined = import.meta.env
+
 function getEnvVar(key: string): string | undefined {
-  if (typeof import.meta !== 'undefined' && 'env' in import.meta && import.meta.env) {
-    return import.meta.env[key]
+  if (viteEnv) {
+    return viteEnv[key]
   }
   if (typeof process !== 'undefined' && process?.env) {
     return process.env[key]

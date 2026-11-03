@@ -13,7 +13,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await expect(page.getByText('100/100').first()).toBeVisible()
   await page.getByRole('button', { name: /Command Center/ }).click()
 
-  await page.getByRole('button', { name: 'Run evaluation' }).click()
+  await page.locator('header').filter({ hasText: 'SUPPLY CHAIN RESILIENCE' }).getByRole('button', { name: 'Run evaluation' }).click()
   await expect(page.getByText('Evaluation EVAL-0001 is completed.')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByLabel('LLM mode')).toHaveText('LLM: recorded')
 

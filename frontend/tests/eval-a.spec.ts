@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getPlanJustification, PLAN_JUSTIFICATIONS } from '../src/components/screens/CommandCenter';
+import { getPlanJustification, PLAN_JUSTIFICATIONS } from '../src/components/screens/justifications';
 
 test.describe('FB-04: Plan justification 60-80 word count unit test', () => {
   test('every configured plan justification satisfies the 60-80 word count requirement', () => {

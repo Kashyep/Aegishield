@@ -176,6 +176,9 @@ function App() {
   const [evaluationState, setEvaluationState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [evaluationError, setEvaluationError] = useState('')
   const [graphError, setGraphError] = useState('')
+  // Bumped whenever the graph must be fetched again (new evaluation run, demo reset). evaluationCompleted alone
+  // stays true across a reset-then-rerun, so the effect below would otherwise never re-fire.
+  const [graphRevision, setGraphRevision] = useState(0)
   const [stepAnnouncement, setStepAnnouncement] = useState('')
   const [availableDisruptionId, setAvailableDisruptionId] = useState<string | null>(null)
   const [evaluationId, setEvaluationId] = useState('EVAL-0001')
@@ -209,7 +212,7 @@ function App() {
     }
   }, [evaluationId, focusSupplierId, evaluationCompleted])
 
-  useEffect(() => { void loadGraph() }, [loadGraph])
+  useEffect(() => { void loadGraph() }, [loadGraph, graphRevision])
 
   useEffect(() => {
     if (getApiMode() !== 'live') return
@@ -249,6 +252,7 @@ function App() {
       setEvaluationRun(false)
       setInspectedPlanIds([])
       setGraphView(null)
+      setGraphRevision((revision) => revision + 1)
       setExecution(null)
       setApprovedDecision(null)
       setAmendmentResult(null)
@@ -278,6 +282,7 @@ function App() {
       setEvaluationState('ready')
       const done = await pollEvaluation(accepted.evaluation_id)
       setEvaluationRun(true)
+      setGraphRevision((revision) => revision + 1)
       setDemoMessage(`Evaluation ${done.evaluation_id} ${done.status}.${accepted.superseded_plan_ids.length ? ` Superseded: ${accepted.superseded_plan_ids.join(', ')}.` : ''}`)
     } catch (error) {
       setDemoMessage(error instanceof Error ? error.message : 'Evaluation could not be started.')

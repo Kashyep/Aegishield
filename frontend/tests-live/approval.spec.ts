@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { navTo } from '../tests/helpers/nav'
+import liveConfig from '../playwright.live.config'
+
+// Same API origin the official live config starts and the frontend calls (its webServer health URL is `${API}/api/v1/health`).
+const API = new URL((liveConfig.webServer as Array<{ url?: string }>)[0].url ?? '').origin
 
 const P2_NAME = 'P2 AegisShield verified'
 const P2_REVIEW = 'Review P2 AegisShield verified'
@@ -58,9 +62,9 @@ test('re-approving a plan already decided on the server shows DECISION_EXISTS, w
   // Open the review while the UI still believes PLN-0002 is pending, then decide it elsewhere.
   await p2Card(page).getByRole('button', { name: 'Approve', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: P2_REVIEW })
-  const plan = await page.request.get('http://127.0.0.1:8096/api/v1/plans/PLN-0002')
+  const plan = await page.request.get(`${API}/api/v1/plans/PLN-0002`)
   const { version, plan_hash: planHash } = await plan.json()
-  const other = await page.request.post('http://127.0.0.1:8096/api/v1/plans/PLN-0002/decisions', {
+  const other = await page.request.post(`${API}/api/v1/plans/PLN-0002/decisions`, {
     headers: { 'X-Actor-Id': 'USR-PRIYA', 'Idempotency-Key': `other-tab-${Date.now()}` },
     data: { action: 'approve', plan_version: version, plan_hash: planHash, justification: null, acknowledgements: [] },
   })

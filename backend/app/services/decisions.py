@@ -9,6 +9,17 @@ from ..audit.chain import append_event
 from ..api.problems import problem_response
 
 
+def _is_iso_date(value: Any) -> bool:
+    """True when value is a calendar date written as YYYY-MM-DD."""
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        return False
+    return True
+
+
 def decide_plan(
     con,
     fx: dict[str, Any],
@@ -168,9 +179,16 @@ def decide_plan(
         if lc_record is None:
             append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "NOT_FOUND"})
             return 404, problem_response(404, "NOT_FOUND", f"Letter of credit {amendment_data['lc_id']} does not exist", instance=path), None
-        if any(change["field_tag"] not in {"43T", "47A"} for change in amendment_data["requested_changes"]):
+        if any(change["field_tag"] not in {"43T", "44C", "47A"} for change in amendment_data["requested_changes"]):
             append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
-            return 422, problem_response(422, "VALIDATION_ERROR", "The demo can simulate changes to LC fields 43T and 47A only", instance=path), None
+            return 422, problem_response(422, "VALIDATION_ERROR", "The demo can simulate changes to LC fields 43T, 44C and 47A only", instance=path), None
+        if any(
+            change["field_tag"] == "44C"
+            and not _is_iso_date(change.get("to"))
+            for change in amendment_data["requested_changes"]
+        ):
+            append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
+            return 422, problem_response(422, "VALIDATION_ERROR", "Field 44C value must be an ISO date (YYYY-MM-DD)", instance=path), None
         n_amd = con.execute("SELECT count(*) n FROM amendment_requests").fetchone()["n"] + 1
         amendment_request_id = f"AMD-{n_amd:04d}"
         resulting_status = "blocked"

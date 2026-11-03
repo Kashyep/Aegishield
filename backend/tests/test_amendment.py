@@ -94,3 +94,49 @@ def test_f07_post_amendment_p2_financials(tmp_path, monkeypatch):
     # extra_costs_verified lc_amendment_fee of 8000
     amend_fee_lines = [b for b in f2.get("cost_breakdown", []) if b["category"] == "lc_amendment_fee"]
     assert amend_fee_lines == [{"category": "lc_amendment_fee", "amount_inr": 8000}]
+
+
+def _request_lc_amendment(tmp_path, monkeypatch, name, changes):
+    """Evaluate DIS-2026-0042 on a fresh demo DB and post a request_amendment decision with the given changes."""
+    monkeypatch.setenv("AEGIS_LLM_MODE", "off")
+    monkeypatch.setattr("backend.app.main.LLM_MODE", "off")
+    monkeypatch.setattr("backend.app.db.sqlite.DB_PATH", tmp_path / f"{name}.sqlite3")
+
+    c = TestClient(app)
+    P = {"X-Actor-Id": "USR-PRIYA"}
+    A = {"X-Actor-Id": "USR-ARJUN"}
+    assert c.post("/api/v1/demo/reset", headers=P).status_code == 200
+    assert c.post(
+        "/api/v1/evaluations",
+        headers={**P, "Idempotency-Key": f"eval-{name}"},
+        json={"disruption_id": "DIS-2026-0042"},
+    ).status_code == 202
+    h = c.get("/api/v1/plans/PLN-0001").json()["plan_hash"]
+    return c.post(
+        "/api/v1/plans/PLN-0001/decisions",
+        headers={**A, "Idempotency-Key": f"dec-{name}"},
+        json={
+            "action": "request_amendment",
+            "plan_version": 1,
+            "plan_hash": h,
+            "justification": "Ask the bank to move the latest shipment date.",
+            "acknowledgements": [],
+            "amendment": {"lc_id": "LC-SYN-0117", "requested_changes": changes},
+        },
+    )
+
+
+def test_request_amendment_accepts_44c_shipment_date(tmp_path, monkeypatch):
+    r = _request_lc_amendment(tmp_path, monkeypatch, "amd-44c-ok", [
+        {"field_tag": "44C", "from": "2026-11-05", "to": "2026-11-20"},
+    ])
+    assert r.status_code == 201
+    assert r.json()["amendment_request_id"] == "AMD-0001"
+
+
+@pytest.mark.parametrize("bad_value", ["2026-13-45", "15-11-2026", "2026-11-5", "", None])
+def test_request_amendment_rejects_invalid_44c_value(tmp_path, monkeypatch, bad_value):
+    r = _request_lc_amendment(tmp_path, monkeypatch, f"amd-44c-bad-{abs(hash(str(bad_value)))}", [
+        {"field_tag": "44C", "from": "2026-11-05", "to": bad_value},
+    ])
+    assert r.status_code == 422

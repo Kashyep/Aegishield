@@ -225,6 +225,10 @@ paths:
         plan already decided (409 DECISION_EXISTS) -> action rules:
         approve: role in approver_roles (403); plan blocked (422 PLAN_BLOCKED); every needs_review finding acknowledged (422 ACKNOWLEDGEMENT_REQUIRED)
         by an actor whose role may acknowledge that agent's findings (403 ROLE_FORBIDDEN).
+        approve with override_blocked true on a blocked plan (optional flag, additive): same role and version/hash/idempotency checks and
+        acknowledgements; justification of at least 20 non-space characters (422 VALIDATION_ERROR). The plan becomes approved, the
+        decision records override_blocked true, and the audit event DECISION_RECORDED carries payload.override_blocked and blocked_reasons.
+        Without the flag a blocked plan is still refused with 422 PLAN_BLOCKED.
         reject: role in reject_roles; justification required.
         request_amendment: role trade_compliance_officer; plan must contain a blocked LC.* finding (422 NO_AMENDABLE_FINDING); plan stays blocked.
         Every refusal is written to the audit log as DECISION_REFUSED.

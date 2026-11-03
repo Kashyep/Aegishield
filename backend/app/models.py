@@ -36,6 +36,7 @@ class DecisionRequest(ContractModel):
     justification: str | None = Field(max_length=1000)
     acknowledgements: list[AcknowledgementRequest]
     amendment: AmendmentDecisionRequest | None = None
+    override_blocked: bool | None = None
 
 
 class ExecutionRequest(ContractModel):

@@ -173,6 +173,7 @@ function App() {
   const [decisionError, setDecisionError] = useState<ApiError | null>(null)
   const [decisionSubmitting, setDecisionSubmitting] = useState(false)
   const [decisionJustification, setDecisionJustification] = useState('')
+  const [overrideConfirmed, setOverrideConfirmed] = useState(false)
   const [evaluationState, setEvaluationState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [evaluationError, setEvaluationError] = useState('')
   const [graphError, setGraphError] = useState('')
@@ -362,6 +363,22 @@ function App() {
     : decisionJustification.trim().length < 10 ? 'Enter a justification of at least 10 characters.'
     : ''
 
+  const blockingFindings = approvalPlan && evaluation
+    ? evaluation.findings.filter((finding) => approvalPlan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked')
+    : []
+  const overrideJustificationLength = decisionJustification.replace(/\s/g, '').length
+  const overrideDisabledReason = getApiMode() === 'stub'
+    ? 'Fixture mode cannot submit decisions. Connect the backend in live mode.'
+    : !actorCanApprove
+    ? 'Switch to an approver role to approve this plan.'
+    : !reviewsAcknowledged
+    ? 'Acknowledge every review finding with a note of at least 5 characters.'
+    : !overrideConfirmed
+    ? 'Tick the risk acknowledgement to enable the override.'
+    : overrideJustificationLength < 20
+    ? 'Enter an override justification of at least 20 characters.'
+    : ''
+
   const submitAmendment = async () => {
     if (!approvalPlan || !amendmentLcId || amendmentDisabledReason) return
     const allChanges = [
@@ -469,13 +486,15 @@ function App() {
     setDecisionError(null)
     setDecisionJustification(mode === 'amend' ? 'Request MT707 LC amendment: allow transhipment on 43T, delete 47A container exclusion, and extend 44C shipment date.' : '')
     setAmendmentResult(null)
+    setOverrideConfirmed(false)
     pendingDecisionRef.current = null
   }
 const closeApproval = useCallback(() => {
   setApprovalPlan(null)
 }, [])
-  const submitApproval = async () => {
-    if (!approvalPlan || approvalDisabledReason || decisionInFlightRef.current) return
+  const submitApproval = async (override = false) => {
+    const disabledReason = override ? overrideDisabledReason : approvalDisabledReason
+    if (!approvalPlan || disabledReason || decisionInFlightRef.current) return
     // Blocked plans stay submittable on purpose ("Attempt approval (blocked)"); the server refuses them with PLAN_BLOCKED.
     if (!['pending_approval', 'blocked'].includes(approvalPlan.status)) {
       setDecisionError(new ApiError(`Plan ${approvalPlan.plan_id} is ${approvalPlan.status.replace(/_/g, ' ')} and cannot be approved. Reload the current plan.`))
@@ -488,7 +507,7 @@ const closeApproval = useCallback(() => {
         actor_id: actorId,
         note: acknowledgements[finding.finding_id].note.trim(),
       }))
-    const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: validAcks }
+    const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: validAcks, ...(override ? { override_blocked: true } : {}) }
     const serializedBody = JSON.stringify(body)
     if (pendingDecisionRef.current?.body !== serializedBody) pendingDecisionRef.current = { body: serializedBody, key: crypto.randomUUID() }
     decisionInFlightRef.current = true
@@ -496,10 +515,11 @@ const closeApproval = useCallback(() => {
     setDecisionError(null)
     try {
       const result = await submitDecision(approvalPlan.plan_id, actorId, pendingDecisionRef.current.key, body)
-      setEvaluation((previous) => previous && ({ ...previous, plans: previous.plans.map((plan) => plan.plan_id === result.data.plan_id ? { ...plan, status: result.data.resulting_plan_status, decision_ids: [result.data.decision_id] } : plan) }))
+      const overridden = result.data.override_blocked === true
+      setEvaluation((previous) => previous && ({ ...previous, plans: previous.plans.map((plan) => plan.plan_id === result.data.plan_id ? { ...plan, status: result.data.resulting_plan_status, decision_ids: [result.data.decision_id], ...(overridden ? { approved_with_override: true } : {}) } : plan) }))
       setApprovedDecision(result.data)
       setApprovalPlan(null)
-      setDemoMessage(`Plan ${result.data.plan_id} approved by ${result.data.actor.actor_id}.`)
+      setDemoMessage(overridden ? `Plan ${result.data.plan_id} approved with override by ${result.data.actor.actor_id}.` : `Plan ${result.data.plan_id} approved by ${result.data.actor.actor_id}.`)
     } catch (error) {
       setDecisionError(error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : 'Decision could not be submitted.'))
     } finally {
@@ -729,7 +749,7 @@ const closeApproval = useCallback(() => {
                   <ui5-button
                     design="Negative"
                     disabled={decisionSubmitting || !actorCanApprove}
-                    onClick={submitApproval}
+                    onClick={() => void submitApproval(false)}
                     accessibleName="Attempt approval (blocked)"
                   >
                     {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
@@ -739,7 +759,7 @@ const closeApproval = useCallback(() => {
                 <ui5-button
                   design="Positive"
                   disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
-                  onClick={submitApproval}
+                  onClick={() => void submitApproval(false)}
                   accessibleName="Approve plan"
                 >
                   {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
@@ -784,7 +804,7 @@ const closeApproval = useCallback(() => {
           </dl>
 
           <p className={approvalPlan.status === 'blocked' ? 'blocked-reason' : 'approval-note'} style={{ margin: 'var(--space-3) 0', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: approvalPlan.status === 'blocked' ? 'var(--color-error-text)' : 'var(--color-text-muted)', background: approvalPlan.status === 'blocked' ? 'var(--color-error-bg)' : 'var(--color-bg-subtle)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
-            {approvalPlan.status === 'blocked' ? 'Cannot approve: this plan is blocked by its fixture checks.' : `Outcome: ${approvalPlan.outcome}. Confirm the current plan version and evidence before approval.`}
+            {approvalPlan.status === 'blocked' ? 'Standard approval is refused for a blocked plan. An explicit, recorded override is available below.' : `Outcome: ${approvalPlan.outcome}. Confirm the current plan version and evidence before approval.`}
           </p>
 
           {activePlanWarnings.length > 0 && (
@@ -827,8 +847,34 @@ const closeApproval = useCallback(() => {
           )}
           {approvalDisabledReason && <p className="blocked-reason" style={{ marginBottom: 'var(--space-3)', color: 'var(--color-error-text)' }}>{approvalDisabledReason}</p>}
 
-          <label className="ae-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>(optional for approval)</span></label>
-          <textarea id="approval-justification" className="ae-textarea" value={decisionJustification} onChange={(e) => setDecisionJustification(e.target.value)} maxLength={1000} rows={3} placeholder="Record the reason for this approval" />
+          {isBlockedPlan && (
+            <section className="override-section" aria-label="Blocked plan override" style={{ margin: 'var(--space-3) 0', padding: 'var(--space-3)', border: '1px solid var(--color-error-border)', borderRadius: 'var(--radius-md)', background: 'var(--color-error-bg)' }}>
+              <ui5-message-strip design="Negative" hideCloseButton>
+                <strong>This plan is blocked.</strong> Standard approval is refused. It can be approved only as an explicit, recorded override.
+              </ui5-message-strip>
+              <ul aria-label="Blocking reasons" style={{ margin: 'var(--space-2) 0', paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>
+                {blockingFindings.map((finding) => (
+                  <li key={finding.finding_id}>{finding.title} <span className="mono" style={{ color: 'var(--color-text-muted)' }}>({finding.finding_id})</span></li>
+                ))}
+              </ul>
+              <ui5-checkbox
+                className="override-confirm"
+                text="I understand the risks and approve this blocked plan as an override"
+                checked={overrideConfirmed}
+                onChange={(e: React.FormEvent<HTMLElement>) => setOverrideConfirmed((e.target as HTMLElement & { checked?: boolean }).checked === true)}
+              />
+            </section>
+          )}
+          <label className="ae-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>{isBlockedPlan ? '(required for override, at least 20 characters)' : '(optional for approval)'}</span></label>
+          <textarea id="approval-justification" className="ae-textarea" value={decisionJustification} onChange={(e) => setDecisionJustification(e.target.value)} maxLength={1000} rows={3} placeholder={isBlockedPlan ? 'Explain why the risks are acceptable for this override' : 'Record the reason for this approval'} />
+          {isBlockedPlan && (
+            <div className="override-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)', margin: 'var(--space-3) 0' }}>
+              <ui5-button design="Negative" disabled={decisionSubmitting || Boolean(overrideDisabledReason)} onClick={() => void submitApproval(true)} accessibleName="Approve anyway (override)">
+                {decisionSubmitting ? 'Submitting…' : 'Approve anyway (override)'}
+              </ui5-button>
+              {overrideDisabledReason && <p className="ae-hint" style={{ margin: 0, color: 'var(--color-error)' }}>{overrideDisabledReason}</p>}
+            </div>
+          )}
 
           <section className="acknowledgement-section" style={{ marginTop: 'var(--space-5)' }}>
             <h3 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Required acknowledgements</h3>
@@ -924,7 +970,7 @@ const closeApproval = useCallback(() => {
           )}
 
           {policiesError && <p className="load-error" role="alert" style={{ color: 'var(--color-error-text)' }}>{policiesError}</p>}
-          {apiMode === 'stub' && !isBlockedPlan && <p className="approval-note" style={{ marginTop: 'var(--space-3)' }}>Fixture mode contains no decision response. Connect the backend in live mode to submit; no approval will be simulated here.</p>}
+          {apiMode === 'stub' && <p className="approval-note" style={{ marginTop: 'var(--space-3)' }}>Fixture mode contains no decision response. Connect the backend in live mode to submit; no approval will be simulated here.</p>}
           {decisionError && (
             <div className="api-error" role="alert" style={{ margin: 'var(--space-4) 0', padding: 'var(--space-3)', border: '1px solid var(--color-error-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-error-text)', background: 'var(--color-error-bg)' }}>
               <strong>{getErrorMessage(decisionError)}</strong>

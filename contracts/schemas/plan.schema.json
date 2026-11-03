@@ -429,6 +429,10 @@
           },
           "description": "Present on GET /plans/{id}; omitted in evaluation goldens."
         },
+        "approved_with_override": {
+          "type": "boolean",
+          "description": "Optional, additive (see contracts CHANGELOG Unreleased). true only when the plan was approved through an override of its blocked status. Set by a decision, never by an evaluation; absent otherwise."
+        },
         "execution_id": {
           "oneOf": [
             {

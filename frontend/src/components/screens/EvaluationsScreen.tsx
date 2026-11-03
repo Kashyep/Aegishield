@@ -463,6 +463,7 @@ export function EvaluationsScreen({
                         <ui5-tag design={getValidationStatusDesign(planStatus)}>
                           {planStatus.replace(/_/g, ' ')}
                         </ui5-tag>
+                        {fullPlan?.approved_with_override && <ui5-tag design="Negative" className="override-tag">Override</ui5-tag>}
                       </div>
                     </section>
 

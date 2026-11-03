@@ -293,6 +293,9 @@ export function CommandCenter({
                     >
                       {!isVerdictVisible ? 'Pending analysis' : planStatus.replace(/_/g, ' ')}
                     </NeuChip>
+                    {fullPlan?.approved_with_override && (
+                      <ui5-tag design="Negative" className="override-tag" title="Approved through an explicit override of a blocked plan">Override</ui5-tag>
+                    )}
                   </div>
                 </div>
                 <h3 style={{ margin: 'var(--space-4) 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>{plan.label}</h3>

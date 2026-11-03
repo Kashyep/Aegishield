@@ -3,6 +3,7 @@
 Format: `## <version> — <date>` then one bullet per change with owner and reason. SemVer rules in `docs/00-source-of-truth.md` §15.2.
 
 ## Unreleased
+- Override of blocked plans (additive, optional): `DecisionRequest.override_blocked` (boolean) in `decision.schema.json`; `Decision.override_blocked`; `RecoveryPlan.approved_with_override` in `plan.schema.json`; `decidePlan` description in `openapi.yaml`. Without the flag, behaviour is unchanged (422 `PLAN_BLOCKED`). No fixtures, goldens, hashes or enums changed.
 - A1: Demo reset authorization token header `X-Reset-Token` and `RESET_TOKEN_INVALID` error code.
 - A6: Error codes `AMENDMENT_ALREADY_ACCEPTED` and `LC_VERSION_STALE` added to `common.schema.json`; documented 403 responses on evaluations and executions operations, and 409 responses on simulate-acceptance operation in `openapi.yaml`.
 - B5: Add optional policies property (`$ref: master-data.schema.json#/$defs/Policies`) to `ScenarioResponse` in `api.schema.json`; updated `openapi.yaml` ScenarioResponse description; included policies in `GET /api/v1/scenario`.

@@ -112,6 +112,14 @@ declare module 'react' {
         wrappingType?: WrappingType;
         size?: 'S' | 'L';
       };
+      'ui5-checkbox': HostProps & AccessibleProps & {
+        text?: string;
+        checked?: boolean;
+        disabled?: boolean;
+        name?: string;
+        value?: string;
+        wrappingType?: WrappingType;
+      };
       'ui5-badge': HostProps & AccessibleProps & {
         colorScheme?: string;
         'color-scheme'?: string;

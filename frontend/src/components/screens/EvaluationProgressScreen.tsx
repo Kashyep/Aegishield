@@ -166,7 +166,7 @@ export function EvaluationProgressScreen({
                 Evaluation {evaluation.evaluation_id} is {evaluation.status}.
               </p>
               {evaluation?.steps?.length ? evaluation.steps.map((step) => (
-                <NeuCard key={step.seq} variant="raised" className={`progress-step ae-progress-step ${step.status}`} role="article" data-step-seq={step.seq} aria-label={`Evaluation step ${step.seq}: ${step.step.replace(/_/g, ' ')}`} style={{ display: 'grid', gridTemplateColumns: '34px minmax(180px, 1fr) auto minmax(160px, auto)', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4) 0', borderTop: '1px solid var(--color-border-light)' }}>
+                <NeuCard key={step.seq} variant="raised" className={`progress-step ae-progress-step ${step.status}`} role="article" data-step-seq={step.seq} aria-label={`Evaluation step ${step.seq}: ${step.step.replace(/_/g, ' ')}`} style={{ padding: 'var(--space-4) 0', borderTop: '1px solid var(--color-border-light)' }}>
                   <span
                     role="img"
                     className={`progress-step-icon ae-step-tick ${viewedSteps.has(step.seq) ? 'viewed' : 'unviewed'}`}
@@ -182,7 +182,7 @@ export function EvaluationProgressScreen({
                   >
                     {step.status === 'succeeded' ? <Check size={14} /> : step.status === 'failed' ? <X size={14} /> : <Circle size={8} fill="currentColor" />}
                   </span>
-                  <div>
+                  <div className="ae-step-main">
                     <h2 style={{ margin: '0 0 var(--space-1)', color: 'var(--color-text)', fontSize: 'var(--text-md)', textTransform: 'capitalize', fontFamily: 'var(--font-heading)' }}>
                       {step.seq}. {step.step.replace(/_/g, ' ')}
                     </h2>
@@ -203,7 +203,7 @@ export function EvaluationProgressScreen({
                   <ui5-tag design="Information" className="mode-chip">
                     {step.mode ?? 'not specified'}
                   </ui5-tag>
-                  <time dateTime={step.finished_at ?? undefined} style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', textAlign: 'right', fontFamily: 'var(--font-accent)' }}>
+                  <time className="ae-step-time" dateTime={step.finished_at ?? undefined} style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
                     {step.finished_at ? new Date(step.finished_at).toLocaleString() : ''}
                   </time>
                 </NeuCard>

@@ -379,6 +379,18 @@ function App() {
     ? 'Enter an override justification of at least 20 characters.'
     : ''
 
+  // Who may acknowledge a finding, and whether the current identity is one of them.
+  const acknowledgementRolesFor = (finding: Finding): string[] => policies?.approval_policy.acknowledgement_roles[finding.agent] ?? []
+  const actorCanAcknowledge = (finding: Finding): boolean => Boolean(currentActor && acknowledgementRolesFor(finding).includes(currentActor.role))
+  // A blocked plan can be overridden by an identity that may approve AND may acknowledge every review finding.
+  const actorCanOverridePlan = (plan: Plan): boolean => Boolean(
+    currentActor && actorCanApprove && evaluation
+    && evaluation.findings
+      .filter((finding) => plan.finding_ids.includes(finding.finding_id) && finding.outcome === 'needs_review')
+      .every(actorCanAcknowledge)
+  )
+  const formatRole = (role: string): string => role.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
+
   const submitAmendment = async () => {
     if (!approvalPlan || !amendmentLcId || amendmentDisabledReason) return
     const allChanges = [
@@ -616,6 +628,7 @@ const closeApproval = useCallback(() => {
             openApproval={openApproval}
             actorCanApprove={actorCanApprove}
             actorCanAmend={actorCanAmend}
+            actorCanOverridePlan={actorCanOverridePlan}
             decisionSubmitting={decisionSubmitting}
             startPlanExecution={startPlanExecution}
             executionSubmitting={executionSubmitting}
@@ -863,6 +876,32 @@ const closeApproval = useCallback(() => {
                 checked={overrideConfirmed}
                 onChange={(e: React.FormEvent<HTMLElement>) => setOverrideConfirmed((e.target as HTMLElement & { checked?: boolean }).checked === true)}
               />
+              <div className="override-requirements" role="group" aria-label="Override requirements" style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>
+                <p style={{ margin: '0 0 var(--space-1)', fontWeight: 'var(--weight-bold)' }}>Still required before the override can be submitted</p>
+                <ul style={{ margin: 0, paddingLeft: 'var(--space-5)' }}>
+                  {reviewFindings.map((finding) => {
+                    const roles = acknowledgementRolesFor(finding).map(formatRole).join(' or ') || 'not specified'
+                    const acknowledgement = acknowledgements[finding.finding_id]
+                    const done = Boolean(acknowledgement?.checked && acknowledgement.note.trim().length >= 5)
+                    const status = !actorCanAcknowledge(finding)
+                      ? `Acknowledgement by ${roles} required. Switch identity to ${roles} to acknowledge it.`
+                      : done
+                      ? 'Acknowledged.'
+                      : `Acknowledgement by ${roles} required: tick "I acknowledge this review finding" and add a note.`
+                    return (
+                      <li key={finding.finding_id} className={done && actorCanAcknowledge(finding) ? 'requirement-met' : 'requirement-open'}>
+                        <strong>{finding.title}</strong> ({finding.finding_id}): {status}
+                      </li>
+                    )
+                  })}
+                  <li className={overrideConfirmed ? 'requirement-met' : 'requirement-open'}>
+                    Risk acknowledgement: {overrideConfirmed ? 'ticked.' : 'tick the box above.'}
+                  </li>
+                  <li className={overrideJustificationLength >= 20 ? 'requirement-met' : 'requirement-open'}>
+                    Override justification: at least 20 characters ({Math.min(overrideJustificationLength, 20)}/20).
+                  </li>
+                </ul>
+              </div>
             </section>
           )}
           <label className="ae-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>{isBlockedPlan ? '(required for override, at least 20 characters)' : '(optional for approval)'}</span></label>

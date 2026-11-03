@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { navItems, screenLabel, type Screen } from '../../app/navigation';
 import type { Policies } from '../../api/types';
 
@@ -69,9 +69,11 @@ export function Sidebar({
   const isMobileOpen = state === 'mobile-open' && isMobile;
   const isCollapsed = !isExpanded && !isMobileOpen;
 
-  useEffect(() => {
+  // Close the mobile drawer when an item is activated (including the current screen).
+  const navigate = useCallback((screen: Screen) => {
+    onNavigate(screen);
     if (isMobileOpen) onCloseMobile();
-  }, [activeScreen, isMobileOpen, onCloseMobile]);
+  }, [onNavigate, isMobileOpen, onCloseMobile]);
 
   const navRef = useRef<HTMLElement | null>(null);
 
@@ -83,7 +85,7 @@ export function Sidebar({
       const item = customEvt.detail?.item;
       const screenId = item?.getAttribute('data-id') as Screen | null;
       if (screenId) {
-        onNavigate(screenId);
+        navigate(screenId);
       }
     };
     el.addEventListener('selection-change', listener);
@@ -92,13 +94,13 @@ export function Sidebar({
       el.removeEventListener('selection-change', listener);
       el.removeEventListener('item-click', listener);
     };
-  }, [onNavigate]);
+  }, [navigate]);
 
   const handleSelectionChange = (event: CustomEvent<SideNavEventDetail>) => {
     const item = event.detail?.item;
     const screenId = item?.getAttribute('data-id') as Screen | null;
     if (screenId) {
-      onNavigate(screenId);
+      navigate(screenId);
     }
   };
 
@@ -200,7 +202,7 @@ export function Sidebar({
             selected={activeScreen === item.id}
             accessibleName={item.label}
             title={screenLabel(item.id)}
-            onClick={() => onNavigate(item.id)}
+            onClick={() => navigate(item.id)}
           />
         ))}
 
@@ -242,42 +244,6 @@ export function Sidebar({
       >
         {llmBadgeFull}
       </span>
-
-      {/* Accessible navigation action buttons for click automation */}
-      <div
-        className="sidebar-accessible-nav"
-        aria-label="Navigation actions"
-        style={{
-          position: 'absolute',
-          top: '72px',
-          left: 0,
-          width: '100%',
-          pointerEvents: 'none',
-        }}
-      >
-        {navItems.map((item, idx) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onNavigate(item.id)}
-            style={{
-              position: 'absolute',
-              top: `${idx * 44}px`,
-              left: 0,
-              width: '100%',
-              height: '44px',
-              opacity: 0.001,
-              pointerEvents: 'auto',
-              cursor: 'pointer',
-              border: 'none',
-              background: 'transparent',
-            }}
-            aria-label={item.label}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

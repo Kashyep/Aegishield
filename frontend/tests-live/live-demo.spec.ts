@@ -6,24 +6,24 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await page.getByRole('dialog', { name: 'Reset demo?' }).getByRole('button', { name: 'Reset demo' }).click()
   await expect(page.locator('#demo-toast').filter({ hasText: 'Demo reset' })).toBeVisible()
 
-  await page.getByRole('button', { name: /Early warnings/ }).click()
+  await page.locator('ui5-side-navigation-item[data-id="early-warnings"]').click()
   await expect(page.getByText('97/100')).toBeVisible()
   await expect(page.getByText(/Heuristic index, not a probability/).first()).toBeVisible()
   await page.getByRole('button', { name: /^Now/ }).click()
   await expect(page.getByText('100/100').first()).toBeVisible()
-  await page.getByRole('button', { name: /Command Center/ }).click()
+  await page.locator('ui5-side-navigation-item[data-id="command"]').click()
 
   await page.locator('header').filter({ hasText: 'SUPPLY CHAIN RESILIENCE' }).getByRole('button', { name: 'Run evaluation' }).click()
   await expect(page.getByText('Evaluation EVAL-0001 is completed.')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByLabel('LLM mode')).toHaveText('LLM: recorded')
 
-  await page.getByRole('button', { name: /Supply graph/ }).click()
+  await page.locator('ui5-side-navigation-item[data-id="supply-graph"]').click()
   await expect(page.getByRole('img', { name: 'Dependency evidence graph for SUP-B' })).toBeVisible()
   await expect(page.locator('[data-kind="path"]')).toHaveCount(2)
   await page.getByRole('button', { name: /^SUP-C/ }).click()
   await expect(page.getByRole('region', { name: 'Dependency check result' })).toContainText('SUP-C · Passed')
 
-  await page.getByRole('button', { name: /Command Center/ }).click()
+  await page.locator('ui5-side-navigation-item[data-id="command"]').click()
   await expect(page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' }).locator('.plan-warning')).toContainText('Zenith Kulim wafer fab')
   await expect(page.locator('.plan-card').filter({ hasText: 'P2 AegisShield verified' }).locator('.plan-warning')).toHaveCount(0)
   await page.getByLabel('Simulated identity').selectOption('USR-ARJUN')
@@ -49,7 +49,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await expect(p2).toBeHidden()
   await expect(page.locator('.plan-card').filter({ hasText: 'P2 AegisShield verified' })).toContainText('approved')
 
-  await page.getByRole('button', { name: /Audit trail/ }).click()
+  await page.locator('ui5-side-navigation-item[data-id="audit-trail"]').click()
   await page.getByRole('button', { name: 'Verify chain' }).click()
   await expect(page.locator('.audit-verified')).toContainText(/Chain valid/)
 })

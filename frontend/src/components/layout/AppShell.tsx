@@ -68,7 +68,8 @@ export function AppShell({
             position: 'fixed',
             inset: 0,
             background: 'rgba(0, 0, 0, 0.4)',
-            zIndex: 100,
+            // Above page content, below the NavigationLayout drawer (z 2) and header (z 3).
+            zIndex: 1,
             display: isMobile ? 'block' : 'none',
           }}
           aria-hidden="true"
@@ -84,6 +85,7 @@ export function AppShell({
         <Topbar
           slot="header"
           onMenuClick={toggle}
+          isMobile={isMobile}
           screenLabel={screenLabel(activeScreen)}
           actorId={actorId}
           onActorChange={setActorId}

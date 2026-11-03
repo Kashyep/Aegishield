@@ -17,7 +17,7 @@ test('open Early warnings -> sees 97/100, WARNING, heuristic index, not a probab
   await page.goto('/#command')
 
   // Navigate to Early warnings from sidebar nav
-  await page.getByRole('button', { name: 'Early warnings' }).click()
+  await page.locator('ui5-side-navigation-item[data-id="early-warnings"]').click()
 
   // Heading is visible
   await expect(page.getByRole('heading', { name: 'Early warnings' })).toBeVisible()

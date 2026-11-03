@@ -168,6 +168,7 @@ export function EvaluationProgressScreen({
               {evaluation?.steps?.length ? evaluation.steps.map((step) => (
                 <NeuCard key={step.seq} variant="raised" className={`progress-step ae-progress-step ${step.status}`} role="article" data-step-seq={step.seq} aria-label={`Evaluation step ${step.seq}: ${step.step.replace(/_/g, ' ')}`} style={{ display: 'grid', gridTemplateColumns: '34px minmax(180px, 1fr) auto minmax(160px, auto)', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4) 0', borderTop: '1px solid var(--color-border-light)' }}>
                   <span
+                    role="img"
                     className={`progress-step-icon ae-step-tick ${viewedSteps.has(step.seq) ? 'viewed' : 'unviewed'}`}
                     data-status={viewedSteps.has(step.seq) ? 'viewed' : 'unviewed'}
                     aria-label={viewedSteps.has(step.seq) ? 'Step viewed' : 'Step not viewed yet'}

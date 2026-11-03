@@ -53,7 +53,7 @@ test('LLM badge reflects the evaluation mode and blocked P1 offers an LC amendme
   const changes = dialog.getByRole('table', { name: 'Requested changes to LC-SYN-0117' })
   await expect(changes).toContainText('43TNOT ALLOWEDALLOWED')
   await expect(changes).toContainText('47AUCP 600 SUB-ARTICLE 20(C) IS EXCLUDED.(deleted)')
-  await expect(dialog.getByRole('button', { name: 'Request LC amendment' })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Request LC amendment' })).toBeEnabled()
   await expect(dialog.getByRole('button', { name: 'Approve plan' })).toBeDisabled()
 })
 

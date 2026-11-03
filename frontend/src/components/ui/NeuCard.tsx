@@ -10,8 +10,8 @@ interface NeuCardProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 export const NeuCard = forwardRef<HTMLElement, NeuCardProps>(
-  ({ variant = 'raised', as: _as, title, subtitle, titleText, subtitleText, className = '', children, style, ...props }, ref) => {
-    void _as;
+  ({ variant = 'raised', as: _as, title, subtitle, titleText, subtitleText, className = '', children, style, role, ...props }, ref) => {
+    const computedRole = role || (_as === 'section' ? 'region' : (_as === 'article' ? 'article' : undefined));
     const finalTitle = titleText ?? title;
     const finalSubtitle = subtitleText ?? subtitle;
     const hasHeader = Boolean(finalTitle || finalSubtitle);
@@ -25,6 +25,7 @@ export const NeuCard = forwardRef<HTMLElement, NeuCardProps>(
         ref={ref}
         className={cardClasses}
         style={style}
+        role={computedRole}
         {...props}
       >
         {hasHeader && (

@@ -53,4 +53,11 @@ test.describe('Supply Network home screen (FB-18)', () => {
     // Accessibility check on the entire screen
     await expectNoAccessibilityViolations(page);
   });
+
+  test('is the default route when the app opens with no hash', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: 'Supply Network', level: 1 })).toBeVisible();
+    await expect(page.locator('ui5-side-navigation-item[data-id="supply-network"]').first()).toHaveAttribute('text', 'Supply Network');
+  });
 });

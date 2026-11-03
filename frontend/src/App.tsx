@@ -230,12 +230,7 @@ function ApprovalModal({
 
 
 function App() {
-  const [activeScreen, setActiveScreen] = useState<Screen>(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#supply-network') {
-      return 'supply-network' as Screen
-    }
-    return readScreenFromHash()
-  })
+  const [activeScreen, setActiveScreen] = useState<Screen>(() => readScreenFromHash())
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [graphView, setGraphView] = useState<GraphView | null>(null)
   const [focusSupplierId, setFocusSupplierId] = useState('SUP-B')
@@ -457,11 +452,7 @@ function App() {
 
   useEffect(() => {
     const syncScreenFromHistory = () => {
-      if (window.location.hash === '#supply-network') {
-        setActiveScreen('supply-network' as Screen)
-      } else {
-        setActiveScreen(readScreenFromHash())
-      }
+      setActiveScreen(readScreenFromHash())
     }
     window.addEventListener('popstate', syncScreenFromHistory)
     window.addEventListener('hashchange', syncScreenFromHistory)
@@ -813,7 +804,7 @@ const closeApproval = useCallback(() => {
             formatLocalTimestamp={formatLocalTimestamp}
           />
         )
-      case 'supply-network' as Screen:
+      case 'supply-network':
         return <SupplyNetworkScreen />
       default:
         return null

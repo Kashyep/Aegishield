@@ -12,6 +12,7 @@ import '@ui5/webcomponents-icons/dist/radar-chart.js';
 import '@ui5/webcomponents-icons/dist/checklist.js';
 import '@ui5/webcomponents-icons/dist/play.js';
 import '@ui5/webcomponents-icons/dist/org-chart.js';
+import '@ui5/webcomponents-icons/dist/overview-chart.js';
 import '@ui5/webcomponents-icons/dist/history.js';
 import '@ui5/webcomponents-icons/dist/connected.js';
 import '@ui5/webcomponents-icons/dist/decline.js';
@@ -34,6 +35,8 @@ interface SideNavEventDetail {
 
 function screenIcon(id: string): string {
   switch (id) {
+    case 'supply-network':
+      return 'overview-chart';
     case 'command':
       return 'bbyd-dashboard';
     case 'early-warnings':

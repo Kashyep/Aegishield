@@ -35,20 +35,21 @@ export function useSidebar() {
     }
   }, [state]);
 
-  // Auto-collapse on mobile
+  // Auto-collapse on mobile: the drawer starts closed and only opens on request.
   useEffect(() => {
     if (isMobile && state === 'expanded') {
-      setState('mobile-open');
+      setState('collapsed');
     }
   }, [isMobile, state]);
 
   const toggle = useCallback(() => {
     setState(prev => {
+      if (isMobile) return prev === 'mobile-open' ? 'collapsed' : 'mobile-open';
       if (prev === 'expanded') return 'collapsed';
       if (prev === 'collapsed') return 'expanded';
       return 'expanded'; // mobile-open -> expanded
     });
-  }, []);
+  }, [isMobile]);
 
   const open = useCallback(() => setState('expanded'), []);
   const close = useCallback(() => setState('collapsed'), []);

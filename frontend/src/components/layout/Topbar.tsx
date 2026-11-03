@@ -24,6 +24,7 @@ interface TopbarProps {
   policies: Policies | null;
   apiMode: string;
   onMenuClick: () => void;
+  isMobile?: boolean;
   slot?: string;
 }
 
@@ -38,6 +39,7 @@ export function Topbar({
   policies,
   apiMode,
   onMenuClick,
+  isMobile = false,
   slot,
 }: TopbarProps) {
   const actors = policies?.demo_actors ?? [];
@@ -102,7 +104,8 @@ export function Topbar({
         ref={shellbarRef}
         primaryTitle="AegisShield AI"
         secondaryTitle="Supply-Chain Recovery Preflight"
-        showSearchField
+        // On phones a forced-open search goes full-width and covers the menu button.
+        showSearchField={!isMobile}
         accessibleName={`AegisShield AI - ${screenLabel}`}
         {...({ showCoPilot: false })}
         accessibilityAttributes={{

@@ -1,1 +1,159 @@
-supply_network.json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Supply Network Flow and Node Inventory",
+  "description": "Additive contract for supply network status, inventory on hand, stock in transit, and movement history (FB-18). Synthetic data.",
+  "$defs": {
+    "NodeStatus": {
+      "type": "string",
+      "enum": ["operational", "disrupted", "warning", "at_risk", "monitored"]
+    },
+    "EdgeStatus": {
+      "type": "string",
+      "enum": ["active", "delayed", "disrupted"]
+    },
+    "NetworkNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "label",
+        "role",
+        "country",
+        "status",
+        "status_reason",
+        "inventory_on_hand",
+        "stock_in_transit",
+        "movement_history"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "pattern": "^FAC-[A-Z0-9-]+$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "country": {
+          "$ref": "common.schema.json#/$defs/CountryCode"
+        },
+        "supplier_id": {
+          "type": ["string", "null"]
+        },
+        "status": {
+          "$ref": "#/$defs/NodeStatus"
+        },
+        "status_reason": {
+          "type": "string"
+        },
+        "inventory_on_hand": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stock_in_transit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "movement_history": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "inventory_cover_days": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "NetworkEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "source",
+        "target",
+        "part_id",
+        "in_transit_qty",
+        "status"
+      ],
+      "properties": {
+        "edge_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^FAC-[A-Z0-9-]+$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^FAC-[A-Z0-9-]+$"
+        },
+        "part_id": {
+          "$ref": "common.schema.json#/$defs/PartId"
+        },
+        "in_transit_qty": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/EdgeStatus"
+        }
+      }
+    },
+    "SupplyNetwork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "dataset_id",
+        "synthetic",
+        "as_of",
+        "disclaimer",
+        "total_on_hand",
+        "total_in_transit",
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "common.schema.json#/$defs/SchemaVersion"
+        },
+        "dataset_id": {
+          "type": "string"
+        },
+        "synthetic": {
+          "$ref": "common.schema.json#/$defs/Synthetic"
+        },
+        "as_of": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "disclaimer": {
+          "type": "string"
+        },
+        "total_on_hand": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_in_transit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NetworkNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NetworkEdge"
+          }
+        }
+      }
+    }
+  }
+}

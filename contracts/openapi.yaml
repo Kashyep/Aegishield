@@ -639,4 +639,4 @@ components:
     RuleQuery: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleQuery'}
     RuleApplicabilityResult: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleApplicabilityResult'}
     EarlyWarningResult: {$ref: './schemas/signals.schema.json#/$defs/EarlyWarningResult'}
-    SupplyNetwork: {$ref: './schemas/supply_network.json#/$defs/SupplyNetwork'}
+    SupplyNetwork: {$ref: './schemas/supply_network.schema.json#/$defs/SupplyNetwork'}

@@ -6,6 +6,10 @@ const STORAGE_KEY = 'aegisshield:sidebar-state';
 const DEFAULT_STATE: SidebarState = 'expanded';
 const MOBILE_BREAKPOINT = 768;
 
+function isPhoneViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
+}
+
 function readStoredState(): SidebarState {
   if (typeof window === 'undefined') return DEFAULT_STATE;
   try {
@@ -16,13 +20,17 @@ function readStoredState(): SidebarState {
 }
 
 export function useSidebar() {
-  const [state, setState] = useState<SidebarState>(readStoredState);
+  // Phone state is decided before the first render. Starting from the desktop
+  // state and collapsing in an effect made ui5-navigation-layout animate its
+  // drawer from open to closed, so the drawer covered the content for ~300ms.
+  const [state, setState] = useState<SidebarState>(() =>
+    (isPhoneViewport() ? 'collapsed' : readStoredState()));
 
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(isPhoneViewport);
 
   // Check mobile breakpoint
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    const checkMobile = () => setIsMobile(isPhoneViewport());
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);

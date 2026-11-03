@@ -68,6 +68,10 @@ export function Sidebar({
   const isExpanded = state === 'expanded';
   const isMobileOpen = state === 'mobile-open' && isMobile;
   const isCollapsed = !isExpanded && !isMobileOpen;
+  // A closed phone drawer is slid off-screen by the layout. Visibility makes it
+  // non-focusable and non-hit-testable. It turns hidden only after the 0.3s slide-out
+  // (the layout's transform transition), and turns visible at once when opened.
+  const isPhoneDrawerClosed = isMobile && !isMobileOpen;
 
   // Close the phone drawer only when the screen actually changes. Depending on
   // isMobileOpen here closed the drawer the moment the menu opened it.
@@ -143,6 +147,13 @@ export function Sidebar({
       } : {
         height: '100%',
         position: 'relative',
+        ...(isPhoneDrawerClosed ? {
+          visibility: 'hidden',
+          transition: 'visibility 0s linear 0.3s',
+        } : {
+          visibility: 'visible',
+          transition: 'visibility 0s',
+        }),
       }}
     >
       <ui5-side-navigation

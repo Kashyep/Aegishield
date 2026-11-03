@@ -46,7 +46,7 @@ async function closeDrawerIfOpen(page: Page): Promise<void> {
   }
 }
 
-test.describe('hit testing: no element is covered at its centre', () => {
+test.describe('hit testing: no element is covered at its centre or quarter points', () => {
   for (const route of ROUTES) {
     for (const vp of VIEWPORTS) {
       test(`${route} @ ${vp.width}x${vp.height}`, async ({ page }) => {
@@ -70,14 +70,19 @@ test.describe('hit testing: no element is covered at its centre', () => {
             if (cs.display === 'none' || cs.visibility === 'hidden') continue;
             const r = el.getBoundingClientRect();
             if (r.width === 0 || r.height === 0) continue;
-            const x = r.left + r.width / 2;
-            const y = r.top + r.height / 2;
-            if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
-            tested++;
-            const hit = document.elementFromPoint(x, y);
-            if (!within(el, hit)) {
-              const label = el.getAttribute('text') || el.getAttribute('aria-label') || (el.textContent ?? '').trim();
-              offenders.push(`${el.tagName.toLowerCase()} "${label.slice(0, 40)}" covered by ${hit?.tagName.toLowerCase() ?? 'null'}`);
+            // Centre plus the four quarter points. Extreme corners are deliberately not sampled: they fall
+            // outside rounded inner buttons, so a miss there says nothing about the hit target.
+            const samples: [number, number][] = [[0.5, 0.5], [0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]];
+            for (const [fx, fy] of samples) {
+              const x = r.left + r.width * fx;
+              const y = r.top + r.height * fy;
+              if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+              tested++;
+              const hit = document.elementFromPoint(x, y);
+              if (!within(el, hit)) {
+                const label = el.getAttribute('text') || el.getAttribute('aria-label') || (el.textContent ?? '').trim();
+                offenders.push(`${el.tagName.toLowerCase()} "${label.slice(0, 40)}" at ${fx * 100}%,${fy * 100}% covered by ${hit?.tagName.toLowerCase() ?? 'null'}`);
+              }
             }
           }
           return { tested, offenders };
@@ -161,6 +166,35 @@ test.describe('phone drawer', () => {
     await expect.poll(() => page.evaluate(() => location.hash)).toBe('#audit-trail')
     await expect(page.locator('ui5-side-navigation-item[text="Close navigation"]')).toHaveCount(0)
     await expect(page.locator('.sidebar-backdrop')).toHaveCount(0)
+  })
+
+  test('closed drawer is visibility:hidden and has no hit area @ 390x844', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await gotoRoute(page, '#execution')
+    await closeDrawerIfOpen(page)
+
+    const nav = page.locator('ui5-side-navigation')
+    const navState = () => nav.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      const cs = getComputedStyle(el)
+      const samples: [number, number][] = []
+      for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) samples.push([(innerWidth * i) / 4 - 0.5, (innerHeight * j) / 4 - 0.5])
+      const hitNav = samples.some(([x, y]) => {
+        let n: Node | null = document.elementFromPoint(Math.max(0, x), Math.max(0, y))
+        while (n) { if (n === el) return true; n = n.parentNode ?? (n as ShadowRoot).host ?? null }
+        return false
+      })
+      return { visibility: cs.visibility, right: r.right, hitNav }
+    })
+
+    // The slide-out takes 0.3s; visibility turns hidden when it finishes.
+    await expect.poll(async () => (await navState()).visibility, { timeout: 2000 }).toBe('hidden')
+    const state = await navState()
+    expect(state.right).toBeLessThanOrEqual(0)
+    expect(state.hitNav).toBe(false)
+
+    // Hidden items are also removed from the keyboard focus order and accessibility tree.
+    await expect(page.getByRole('treeitem', { name: 'Audit trail', exact: true })).toBeHidden()
   })
 
   test('Escape and the backdrop dismiss the drawer @ 390x844', async ({ page }) => {

@@ -56,25 +56,27 @@
   --color-accent-hover: var(--sapAccentColor1, #e78c07);
   --color-accent-light: var(--sapGroup_ContentBackground, #ffffff);
 
-  --color-success: var(--sapPositiveColor, #107e3e);
-  --color-success-bg: var(--sapPositiveBackground, #f1fdf6);
-  --color-success-border: var(--sapPositiveBorderColor, #107e3e);
-  --color-success-text: var(--sapPositiveTextColor, #107e3e);
+  /* Semantic status colours: theme-aware SAP Horizon variables only (no hard-coded hex).
+     *-bg and *-border map to sapSuccess/Warning/Error/Information* (the names both themes define). */
+  --color-success: var(--sapPositiveColor);
+  --color-success-bg: var(--sapSuccessBackground);
+  --color-success-border: var(--sapSuccessBorderColor);
+  --color-success-text: var(--sapPositiveTextColor);
 
-  --color-warning: var(--sapCriticalColor, #e9730c);
-  --color-warning-bg: var(--sapCriticalBackground, #fff8f0);
-  --color-warning-border: var(--sapCriticalBorderColor, #e9730c);
-  --color-warning-text: var(--sapCriticalTextColor, #e9730c);
+  --color-warning: var(--sapCriticalColor);
+  --color-warning-bg: var(--sapWarningBackground);
+  --color-warning-border: var(--sapWarningBorderColor);
+  --color-warning-text: var(--sapCriticalTextColor);
 
-  --color-error: var(--sapNegativeColor, #bb0000);
-  --color-error-bg: var(--sapNegativeBackground, #fff0f0);
-  --color-error-border: var(--sapNegativeBorderColor, #bb0000);
-  --color-error-text: var(--sapNegativeTextColor, #bb0000);
+  --color-error: var(--sapNegativeColor);
+  --color-error-bg: var(--sapErrorBackground);
+  --color-error-border: var(--sapErrorBorderColor);
+  --color-error-text: var(--sapNegativeTextColor);
 
-  --color-info: var(--sapInformativeColor, #0a6ed1);
-  --color-info-bg: var(--sapInformativeBackground, #f5faff);
-  --color-info-border: var(--sapInformativeBorderColor, #0a6ed1);
-  --color-info-text: var(--sapInformativeTextColor, #0a6ed1);
+  --color-info: var(--sapInformativeColor);
+  --color-info-bg: var(--sapInformationBackground);
+  --color-info-border: var(--sapInformationBorderColor);
+  --color-info-text: var(--sapInformativeTextColor);
 
   --color-focus-ring: var(--sapContent_FocusColor, #0070f2);
   --color-focus-ring-offset: var(--sapContent_ContrastFocusColor, #ffffff);

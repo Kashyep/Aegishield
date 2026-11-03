@@ -11,6 +11,11 @@ The same artefacts are verified locally (see "Local check").
 - Node 20+ and Python 3.12 locally.
 
 ## Deploy
+Linux/macOS: after `cf login`, run `ops/btp/deploy.sh` (or `AEGIS_LLM_MODE=live ops/btp/deploy.sh` to keep the LLM on).
+It builds the UI in live mode, aborts if the bundle is not live (a build without `VITE_API_MODE=live`
+silently serves `/stubs/*.json`), pushes, re-applies the LLM mode the manifest resets, and runs `ops/smoke.py`.
+
+Manual steps (PowerShell):
 ```powershell
 # 1. Build the frontend for same-origin live API calls
 cd frontend; npm ci; $env:VITE_API_MODE='live'; $env:VITE_API_BASE_URL='/'; npx vite build; cd ..

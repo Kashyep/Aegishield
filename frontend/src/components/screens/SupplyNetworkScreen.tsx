@@ -111,14 +111,14 @@ export function SupplyNetworkScreen() {
             display: 'inline-flex',
             alignItems: 'center',
             padding: '4px 12px',
-            borderRadius: '16px',
-            fontSize: 'var(--text-xs, 0.75rem)',
+            borderRadius: 'var(--radius-full)',
+            fontSize: 'var(--text-xs)',
             fontWeight: 'var(--weight-bold, 700)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
             background: 'var(--sapNeutralBackground, #e5eaf0)',
             color: 'var(--sapTextColor, #1d2d3e)',
-            border: '1px solid var(--sapTile_BorderColor, #d9d9d9)',
+            border: '1px solid var(--color-border-light, #d9d9d9)',
           }}
           aria-label="Simulation state: Simulated"
         >
@@ -141,7 +141,7 @@ export function SupplyNetworkScreen() {
           <p style={{ margin: 0, fontWeight: 'var(--weight-semibold, 600)', color: 'var(--color-text, #1d2d3e)' }}>
             Simulated supply chain network topology and operational metrics.
           </p>
-          <p style={{ margin: '4px 0 0', fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--color-text-muted, #556b82)' }}>
+          <p style={{ margin: '4px 0 0', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted, #556b82)' }}>
             Zenith is fictional; figures are synthetic; SAP integration is proposed only. Baseline network model for recovery preflight simulation.
           </p>
         </NeuCard>
@@ -178,37 +178,37 @@ export function SupplyNetworkScreen() {
               }}
             >
               <NeuCard style={{ padding: 'var(--space-4, 1rem)' }}>
-                <span style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
                   Total Inventory On Hand
                 </span>
-                <div style={{ fontSize: 'var(--text-2xl, 1.75rem)', fontWeight: 'var(--weight-bold, 700)', marginTop: '4px' }}>
-                  {network.total_on_hand.toLocaleString()} <span style={{ fontSize: 'var(--text-sm, 0.875rem)', fontWeight: 'normal' }}>units</span>
+                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold, 700)', marginTop: '4px' }}>
+                  {network.total_on_hand.toLocaleString()} <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'normal' }}>units</span>
                 </div>
               </NeuCard>
 
               <NeuCard style={{ padding: 'var(--space-4, 1rem)' }}>
-                <span style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
                   Stock In Transit
                 </span>
-                <div style={{ fontSize: 'var(--text-2xl, 1.75rem)', fontWeight: 'var(--weight-bold, 700)', marginTop: '4px' }}>
-                  {network.total_in_transit.toLocaleString()} <span style={{ fontSize: 'var(--text-sm, 0.875rem)', fontWeight: 'normal' }}>units</span>
+                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold, 700)', marginTop: '4px' }}>
+                  {network.total_in_transit.toLocaleString()} <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'normal' }}>units</span>
                 </div>
               </NeuCard>
 
               <NeuCard style={{ padding: 'var(--space-4, 1rem)' }}>
-                <span style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
                   Monitored Network Nodes
                 </span>
-                <div style={{ fontSize: 'var(--text-2xl, 1.75rem)', fontWeight: 'var(--weight-bold, 700)', marginTop: '4px' }}>
-                  {network.nodes.length} <span style={{ fontSize: 'var(--text-sm, 0.875rem)', fontWeight: 'normal' }}>facilities</span>
+                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold, 700)', marginTop: '4px' }}>
+                  {network.nodes.length} <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'normal' }}>facilities</span>
                 </div>
               </NeuCard>
 
               <NeuCard style={{ padding: 'var(--space-4, 1rem)' }}>
-                <span style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase' }}>
                   Network Status
                 </span>
-                <div style={{ fontSize: 'var(--text-md, 1rem)', fontWeight: 'var(--weight-bold, 700)', marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold, 700)', marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <NeuChip variant="error">1 Disrupted</NeuChip>
                   <NeuChip variant="warning">2 Warning</NeuChip>
                   <NeuChip variant="success">7 Operational</NeuChip>
@@ -219,10 +219,10 @@ export function SupplyNetworkScreen() {
             {/* Flowchart of Existing Supply Chains */}
             <section aria-labelledby="flowchart-heading" style={{ marginBottom: 'var(--space-6, 2rem)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3, 0.75rem)' }}>
-                <h2 id="flowchart-heading" style={{ fontSize: 'var(--text-lg, 1.125rem)', margin: 0, fontWeight: 'var(--weight-bold, 700)' }}>
+                <h2 id="flowchart-heading" style={{ fontSize: 'var(--text-lg)', margin: 0, fontWeight: 'var(--weight-bold, 700)' }}>
                   Supply Network Flowchart
                 </h2>
-                <span style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #556b82)' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)' }}>
                   Upstream Tier 3 Wafer Fabs → Tier 2 Materials &amp; Dies → Tier 1 Assembly → Buyer Plant
                 </span>
               </div>
@@ -235,13 +235,13 @@ export function SupplyNetworkScreen() {
                   gap: 'var(--space-5, 1.5rem)',
                   background: 'var(--sapBackgroundColor, #f5f6f7)',
                   padding: 'var(--space-4, 1rem)',
-                  borderRadius: '8px',
-                  border: '1px solid var(--sapTile_BorderColor, #d9d9d9)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-border-light, #d9d9d9)',
                 }}
               >
                 {/* Tier 3: Wafer Fabs */}
                 <div>
-                  <div style={{ fontSize: 'var(--text-xs, 0.75rem)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
                     Tier 3 — Wafer Fabrication
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-3, 0.75rem)' }}>
@@ -252,13 +252,13 @@ export function SupplyNetworkScreen() {
                 </div>
 
                 {/* Flow indicator */}
-                <div style={{ textAlign: 'center', color: 'var(--sapContent_LabelColor, #556b82)', fontSize: '18px', userSelect: 'none' }} aria-hidden="true">
+                <div style={{ textAlign: 'center', color: 'var(--sapContent_LabelColor, #556b82)', fontSize: 'var(--text-lg)', userSelect: 'none' }} aria-hidden="true">
                   ↓
                 </div>
 
                 {/* Tier 2: Material & Die Processing */}
                 <div>
-                  <div style={{ fontSize: 'var(--text-xs, 0.75rem)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
                     Tier 2 — Die Sort, Dicing &amp; Ceramic Substrates
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-3, 0.75rem)' }}>
@@ -269,13 +269,13 @@ export function SupplyNetworkScreen() {
                 </div>
 
                 {/* Flow indicator */}
-                <div style={{ textAlign: 'center', color: 'var(--sapContent_LabelColor, #556b82)', fontSize: '18px', userSelect: 'none' }} aria-hidden="true">
+                <div style={{ textAlign: 'center', color: 'var(--sapContent_LabelColor, #556b82)', fontSize: 'var(--text-lg)', userSelect: 'none' }} aria-hidden="true">
                   ↓
                 </div>
 
                 {/* Tier 1: Module Assembly */}
                 <div>
-                  <div style={{ fontSize: 'var(--text-xs, 0.75rem)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
                     Tier 1 — Module Assembly Suppliers
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-3, 0.75rem)' }}>
@@ -286,13 +286,13 @@ export function SupplyNetworkScreen() {
                 </div>
 
                 {/* Flow indicator */}
-                <div style={{ textAlign: 'center', color: 'var(--sapContent_LabelColor, #556b82)', fontSize: '18px', userSelect: 'none' }} aria-hidden="true">
+                <div style={{ textAlign: 'center', color: 'var(--sapContent_LabelColor, #556b82)', fontSize: 'var(--text-lg)', userSelect: 'none' }} aria-hidden="true">
                   ↓
                 </div>
 
                 {/* Tier 0: Buyer Plant */}
                 <div>
-                  <div style={{ fontSize: 'var(--text-xs, 0.75rem)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold, 700)', color: 'var(--sapContent_LabelColor, #556b82)', textTransform: 'uppercase', marginBottom: '8px' }}>
                     Tier 0 — Buyer Manufacturing Facility
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-3, 0.75rem)' }}>
@@ -310,8 +310,8 @@ export function SupplyNetworkScreen() {
               style={{
                 marginBottom: 'var(--space-6, 2rem)',
                 padding: 'var(--space-3, 0.75rem) var(--space-4, 1rem)',
-                borderRadius: '8px',
-                border: '1px solid var(--sapTile_BorderColor, #d9d9d9)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--color-border-light, #d9d9d9)',
                 background: 'var(--sapTile_Background, #ffffff)',
               }}
             >
@@ -319,7 +319,7 @@ export function SupplyNetworkScreen() {
                 style={{
                   cursor: 'pointer',
                   fontWeight: 'var(--weight-semibold, 600)',
-                  fontSize: 'var(--text-sm, 0.875rem)',
+                  fontSize: 'var(--text-sm)',
                   color: 'var(--color-primary, #0070f2)',
                   padding: '4px 0',
                 }}
@@ -333,12 +333,12 @@ export function SupplyNetworkScreen() {
                   style={{
                     width: '100%',
                     borderCollapse: 'collapse',
-                    fontSize: 'var(--text-xs, 0.75rem)',
+                    fontSize: 'var(--text-sm)',
                   }}
                   aria-label="Supply network node inventory, transit stock, and status summary"
                 >
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--sapTile_BorderColor, #d9d9d9)', textAlign: 'left' }}>
+                    <tr style={{ borderBottom: '1px solid var(--color-border-light, #d9d9d9)', textAlign: 'left' }}>
                       <th style={{ padding: '8px' }} scope="col">Node ID</th>
                       <th style={{ padding: '8px' }} scope="col">Facility Name</th>
                       <th style={{ padding: '8px' }} scope="col">Role</th>
@@ -353,7 +353,7 @@ export function SupplyNetworkScreen() {
                     {network.nodes.map((node) => (
                       <tr
                         key={node.node_id}
-                        style={{ borderBottom: '1px solid var(--sapTile_BorderColor, #e5e5e5)' }}
+                        style={{ borderBottom: '1px solid var(--color-border-light, #e5e5e5)' }}
                       >
                         <td style={{ padding: '8px', fontFamily: 'var(--font-mono, monospace)', fontWeight: 'bold' }}>
                           {node.node_id}
@@ -399,8 +399,8 @@ function NodeCard({ node }: { node: SupplyNetworkNode }) {
       data-node-id={node.node_id}
       style={{
         backgroundColor: 'var(--sapTile_Background, #ffffff)',
-        borderRadius: '6px',
-        border: '1px solid var(--sapTile_BorderColor, #d9d9d9)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-border-light, #d9d9d9)',
         borderLeft: `5px solid ${borderColor}`,
         padding: 'var(--space-3, 0.75rem)',
         boxShadow: 'var(--sapContent_Shadow0, 0 1px 3px rgba(0,0,0,0.06))',
@@ -411,7 +411,7 @@ function NodeCard({ node }: { node: SupplyNetworkNode }) {
           className="mono"
           style={{
             fontFamily: 'var(--font-mono, monospace)',
-            fontSize: 'var(--text-xs, 0.75rem)',
+            fontSize: 'var(--text-xs)',
             fontWeight: 'var(--weight-bold, 700)',
             color: 'var(--sapTextColor, #1d2d3e)',
           }}
@@ -421,7 +421,7 @@ function NodeCard({ node }: { node: SupplyNetworkNode }) {
         {getNodeStatusBadge(node.status)}
       </div>
 
-      <div style={{ fontWeight: 'var(--weight-semibold, 600)', fontSize: 'var(--text-sm, 0.875rem)', marginBottom: '8px' }}>
+      <div style={{ fontWeight: 'var(--weight-semibold, 600)', fontSize: 'var(--text-sm)', marginBottom: '8px' }}>
         {node.label}
       </div>
 
@@ -430,11 +430,11 @@ function NodeCard({ node }: { node: SupplyNetworkNode }) {
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: '8px',
-          fontSize: 'var(--text-xs, 0.75rem)',
+          fontSize: 'var(--text-sm)',
           marginBottom: '8px',
           background: 'var(--sapBackgroundColor, #f8f9fa)',
           padding: '6px 8px',
-          borderRadius: '4px',
+          borderRadius: 'var(--radius-sm)',
         }}
       >
         <div>
@@ -448,13 +448,13 @@ function NodeCard({ node }: { node: SupplyNetworkNode }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <span style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #556b82)' }}>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)' }}>
           Movement over time:
         </span>
         <Sparkline data={node.movement_history} color={sparklineColor} />
       </div>
 
-      <div style={{ fontSize: '0.6875rem', color: 'var(--sapContent_LabelColor, #556b82)', lineHeight: 1.3 }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #556b82)', lineHeight: 1.3 }}>
         {node.status_reason}
       </div>
     </div>

@@ -134,13 +134,13 @@ export function AppShell({
             style={{
               marginBottom: 'var(--space-section, 1rem)',
               background: 'var(--sapTile_Background, #ffffff)',
-              border: '1px solid var(--sapTile_BorderColor, #e5e5e5)',
-              borderRadius: '0.5rem',
+              border: '1px solid var(--color-border-light, #e5e5e5)',
+              borderRadius: 'var(--radius-lg)',
               padding: '0.75rem 1rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-sm)',
               boxShadow: 'var(--sapContent_Shadow0, 0 1px 2px rgba(0, 0, 0, 0.05))',
             }}
             role="note"

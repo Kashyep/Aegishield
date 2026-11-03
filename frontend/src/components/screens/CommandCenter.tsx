@@ -334,7 +334,7 @@ export function CommandCenter({
                   <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border-light)', paddingTop: 'var(--space-3)' }}>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>Allocation</h4>
                     <div className="ae-table-wrap" role="region" aria-label="Allocation table" tabIndex={0} style={{ maxHeight: '200px', overflow: 'auto' }}>
-                      <table className="ae-table" style={{ fontSize: 'var(--text-xs)' }}>
+                      <table className="ae-table" style={{ fontSize: 'var(--text-sm)' }}>
                         <thead>
                           <tr>
                             <th scope="col">Order</th>
@@ -386,18 +386,18 @@ export function CommandCenter({
                         marginTop: 'var(--space-3)',
                         padding: 'var(--space-3)',
                         background: 'var(--sapTile_Background, #ffffff)',
-                        border: '1px solid var(--sapTile_BorderColor, #d1d9cc)',
+                        border: '1px solid var(--color-border-light, #d1d9cc)',
                         borderRadius: 'var(--radius-md)',
                       }}
                     >
                       <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
                         Plan Justification ({justification.wordCount} words)
                       </h4>
-                      <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xs)', lineHeight: 'var(--leading-relaxed)' }}>
+                      <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
                         <strong style={{ color: 'var(--sapPositiveTextColor, #106634)' }}>Why it helps: </strong>
                         {justification.whyItHelps}
                       </p>
-                      <p style={{ margin: 0, fontSize: 'var(--text-xs)', lineHeight: 'var(--leading-relaxed)' }}>
+                      <p style={{ margin: 0, fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
                         <strong style={{ color: 'var(--sapCriticalTextColor, #8a3b00)' }}>What could go wrong: </strong>
                         {justification.whatCouldGoWrong}
                       </p>

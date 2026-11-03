@@ -180,7 +180,7 @@ export function Sidebar({
               style={{
                 fontFamily: "'72', sans-serif",
                 fontWeight: 600,
-                fontSize: '14px',
+                fontSize: 'var(--text-sm)',
                 color: 'var(--sapTextColor, #1d2d3e)',
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',
@@ -192,7 +192,7 @@ export function Sidebar({
             <span
               style={{
                 fontFamily: "'72', sans-serif",
-                fontSize: '12px',
+                fontSize: 'var(--text-xs)',
                 color: 'var(--sapContent_LabelColor, #6a6d70)',
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',

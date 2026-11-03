@@ -26,7 +26,6 @@ input::placeholder, textarea::placeholder { color: var(--color-text-muted); opac
 .supply-graph { display: block; width: 100%; min-width: 760px; height: auto; }
 
 @media (max-width: 700px) {
-  html { font-size: 15px; }
   .page-title-row, .section-heading { align-items: flex-start; flex-direction: column; }
   .supply-graph { min-width: 700px; }
 }

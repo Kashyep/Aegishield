@@ -110,7 +110,7 @@ export function Drawer({
         height: '100vh',
         zIndex: 100,
         background: 'var(--sapTile_Background)',
-        borderLeft: '1px solid var(--sapTile_BorderColor)',
+        borderLeft: '1px solid var(--color-border-light)',
         boxShadow: 'var(--sapContent_Shadow3, -4px 0 16px rgba(0, 0, 0, 0.15))',
         display: 'flex',
         flexDirection: 'column',
@@ -127,7 +127,7 @@ export function Drawer({
           justifyContent: 'space-between',
           gap: 'var(--space-4)',
           padding: 'var(--space-4) var(--space-6)',
-          borderBottom: '1px solid var(--sapGroup_ContentBorderColor, var(--sapTile_BorderColor))',
+          borderBottom: '1px solid var(--color-border-light, var(--color-border-light))',
           background: 'var(--sapTile_Background)',
           flexShrink: 0,
         }}

@@ -8,7 +8,7 @@
    ------------------------------------------------------------------------- */
 .ae-card {
   background: var(--sapTile_Background);
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--sapContent_Shadow0);
   transition:
@@ -22,9 +22,24 @@
 .ae-card.pressed,
 .ae-card.inset {
   background: var(--sapTile_Background);
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--sapContent_Shadow0);
+}
+
+/* ui5-card already draws its own Horizon border, radius and shadow on its
+   internal root. The host must not add a second boundary on top of it. */
+ui5-card.ae-card {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent;
+  border-radius: 0;
+}
+
+/* Card content inside ui5-card: consistent inset from the native border. */
+.ae-card-body {
+  min-width: 0;
+  padding: var(--space-4);
 }
 
 .ae-card.interactive {

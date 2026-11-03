@@ -82,7 +82,7 @@
   --color-focus-ring: var(--sapContent_FocusColor, #0070f2);
   --color-focus-ring-offset: var(--sapContent_ContrastFocusColor, #ffffff);
   --color-border: var(--sapGroup_ContentBorderColor, #d9d9d9);
-  --color-border-light: var(--sapGroup_TitleBorderColor, #a8b2bd);
+  --color-border-light: var(--sapGroup_ContentBorderColor, #d9d9d9);
   --color-border-focus: var(--sapContent_FocusColor, #0070f2);
 
   --shadow-sm: var(--sapContent_Shadow0, 0 1px 2px rgb(0 0 0 / .05));

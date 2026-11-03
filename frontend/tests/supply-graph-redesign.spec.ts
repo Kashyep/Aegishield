@@ -163,14 +163,50 @@ test('empty state renders when the graph has zero facilities', async ({ page }) 
   await expect(page.locator('[data-node-id]')).toHaveCount(0)
 })
 
-test('error state renders a negative message strip with a reload action when the graph request fails', async ({ page }) => {
+test('error state renders a negative message strip with a retry action when the graph request fails', async ({ page }) => {
   await page.route('**/graph_view_*.json', (route) => route.fulfill({ status: 500, contentType: 'text/plain', body: 'server error' }))
   await page.goto('/#supply-graph')
   const state = page.locator('[data-graph-state="error"]')
   await expect(state).toBeVisible()
   await expect(state.locator('ui5-message-strip')).toHaveAttribute('design', 'Negative')
   await expect(state.locator('ui5-message-strip')).toContainText('(500)')
-  await expect(state.getByRole('button', { name: 'Reload page' })).toBeVisible()
+  await expect(state.getByRole('button', { name: 'Retry' })).toBeVisible()
+  await expect(state.getByRole('button', { name: 'Reload page' })).toHaveCount(0)
+})
+
+test('Retry refetches the graph in place after a failed request, without reloading the page', async ({ page }) => {
+  let graphRequests = 0
+  await page.route('**/graph_view_*.json', (route) => {
+    graphRequests += 1
+    if (graphRequests === 1) return route.fulfill({ status: 500, contentType: 'text/plain', body: 'server error' })
+    return route.continue()
+  })
+  await page.goto('/#supply-graph')
+  await expect(page.locator('[data-graph-state="error"]')).toBeVisible()
+  // A full page reload would discard this marker; a refetch keeps it.
+  await page.evaluate(() => { (window as unknown as { __noReload: boolean }).__noReload = true })
+
+  await page.locator('[data-graph-state="error"]').getByRole('button', { name: 'Retry' }).click()
+
+  await expect(page.locator('.dg-canvas svg')).toBeVisible()
+  await expect(page.locator('[data-graph-state="error"]')).toHaveCount(0)
+  expect(graphRequests).toBe(2)
+  expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true)
+})
+
+test('an evaluation that has not completed shows a neutral information strip with no retry action', async ({ page }) => {
+  await page.route('**/evaluation_EVAL-0001.json', async (route) => {
+    const response = await route.fetch()
+    const body = await response.json()
+    await route.fulfill({ response, json: { ...body, status: 'running' } })
+  })
+  await page.goto('/#supply-graph')
+  const state = page.locator('[data-graph-state="pending"]')
+  await expect(state).toBeVisible()
+  await expect(state.locator('ui5-message-strip')).toHaveAttribute('design', 'Information')
+  await expect(state.locator('ui5-message-strip')).toContainText('Run an evaluation to see the dependency graph.')
+  await expect(state.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+  await expect(page.locator('[data-graph-state="error"]')).toHaveCount(0)
 })
 
 test.describe('layout: nothing clipped, pills clear of cards, legend laid out', () => {

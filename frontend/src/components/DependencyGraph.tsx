@@ -412,6 +412,7 @@ export const DependencyGraph = React.memo(function DependencyGraph({ view, resul
               className={`dg-node${selected ? ' is-selected' : ''}${nodeDimmed(node.id) ? ' is-dimmed' : ''}`}
               aria-label={`${node.label}, ${node.id}, ${STATUS_TEXT[node.status] ?? node.status}, ${tier.tier} ${tier.title}`}
               aria-expanded={selected}
+              aria-controls={selected ? 'graph-node-popover' : undefined}
               title={`${node.label}, ${node.org_name}, ${node.role.replace(/_/g, ' ')}`}
               style={{
                 left: box.x,

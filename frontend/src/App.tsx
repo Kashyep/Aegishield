@@ -197,11 +197,12 @@ function App() {
   }, [evaluationId])
 
   const evaluationCompleted = evaluation?.status === 'completed'
+  // A loaded evaluation that has not completed yet is a normal pre-state, not a fetch failure.
+  const graphPending = evaluation !== null && !evaluationCompleted
   const loadGraph = useCallback(async () => {
     setGraphError('')
     if (!evaluationCompleted) {
       setGraphView(null)
-      setGraphError('The dependency graph is available once an evaluation has completed.')
       return
     }
     try {
@@ -645,6 +646,8 @@ const closeApproval = useCallback(() => {
             evaluationId={evaluationId}
             graphView={graphView}
             graphError={graphError}
+            graphPending={graphPending}
+            onRetry={() => setGraphRevision((revision) => revision + 1)}
             setFocusSupplierId={setFocusSupplierId}
             selectedGraphNode={selectedGraphNode}
             setSelectedGraphNode={setSelectedGraphNode}

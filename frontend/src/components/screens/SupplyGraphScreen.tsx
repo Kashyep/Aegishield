@@ -24,6 +24,9 @@ interface SupplyGraphScreenProps {
   evaluationId: string;
   graphView: GraphView | null;
   graphError: string;
+  /** True when an evaluation is loaded but has not completed yet: a neutral state, not an error. */
+  graphPending: boolean;
+  onRetry: () => void;
   setFocusSupplierId: (id: string) => void;
   selectedGraphNode: GraphViewNode | null;
   setSelectedGraphNode: (node: GraphViewNode | null) => void;
@@ -34,6 +37,8 @@ export function SupplyGraphScreen({
   evaluationId,
   graphView,
   graphError,
+  graphPending,
+  onRetry,
   setFocusSupplierId,
   selectedGraphNode,
   setSelectedGraphNode,
@@ -111,13 +116,14 @@ export function SupplyGraphScreen({
             )}
           </>
         ) : (
-          <NeuCard variant="subtle" data-graph-state={graphError ? 'error' : 'loading'} style={{ padding: 'var(--space-5)' }}>
+          <NeuCard variant="subtle" data-graph-state={graphError ? 'error' : graphPending ? 'pending' : 'loading'} style={{ padding: 'var(--space-5)' }}>
             {graphError ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
                 <ui5-message-strip design="Negative" hideCloseButton>{graphError}</ui5-message-strip>
-                {/* The graph data comes from App.tsx props and this screen has no reload callback, so this reloads the whole page. */}
-                <ui5-button design="Emphasized" onClick={() => window.location.reload()}>Reload page</ui5-button>
+                <ui5-button design="Emphasized" onClick={onRetry}>Retry</ui5-button>
               </div>
+            ) : graphPending ? (
+              <ui5-message-strip design="Information" hideCloseButton>Run an evaluation to see the dependency graph.</ui5-message-strip>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', color: 'var(--color-text-muted)' }}>
                 <ui5-busy-indicator active size="S" accessibleName="Loading dependency graph" />

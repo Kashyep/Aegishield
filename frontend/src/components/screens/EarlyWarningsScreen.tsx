@@ -183,7 +183,7 @@ export function EarlyWarningsScreen() {
           }}
         >
           <p style={{ margin: 0, fontWeight: 'var(--weight-semibold)', color: 'var(--sapTextColor)' }}>
-            Heuristic index, not a probability. Advisory only — never changes plans or automated decisions. Claim no prediction accuracy.
+            Heuristic index, not a probability. Advisory only — never changes plans or automated decisions. No prediction accuracy is claimed.
           </p>
           <p style={{ margin: 'var(--space-1) 0 0', fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor)' }}>
             Deterministic heuristic from synthetic team-chosen weights. Signals observed after query time are strictly excluded (no look-ahead).
@@ -233,7 +233,7 @@ export function EarlyWarningsScreen() {
                 Heuristic + Simulated
               </span>
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor)' }}>
-                Claim no prediction accuracy
+                No prediction accuracy is claimed.
               </span>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function EarlyWarningsScreen() {
               Node risk scoring evaluated from structural graph RAG, shared Tier-2/Tier-3 fab concentration (FAC-FABZ), lead-time drift, and inventory cover days.
             </p>
             <p style={{ margin: '4px 0 0', fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor)' }}>
-              Heuristic index, not a probability. Advisory only — never changes plans or automated decisions. Claim no prediction accuracy. Threshold: 14.0 cover days safety boundary.
+              Heuristic index, not a probability. Advisory only — never changes plans or automated decisions. No prediction accuracy is claimed. Threshold: 14.0 cover days safety boundary.
             </p>
           </NeuCard>
 

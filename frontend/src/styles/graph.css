@@ -1,0 +1,112 @@
+/* Supply graph (DependencyGraph). Geometry is set inline by the layout; everything visual lives here. */
+
+.dg { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; color: var(--color-text); font-family: var(--font-body); }
+
+/* KPI strip */
+.dg-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.dg-kpi { position: relative; display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 4px); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
+.dg-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: var(--radius-lg) 0 0 var(--radius-lg); background: var(--kpi-accent, var(--color-border)); }
+.dg-kpi[data-tone="negative"] { --kpi-accent: var(--color-error); }
+.dg-kpi[data-tone="critical"] { --kpi-accent: var(--color-warning); }
+.dg-kpi[data-tone="information"] { --kpi-accent: var(--color-info); }
+.dg-kpi[data-tone="positive"] { --kpi-accent: var(--color-success); }
+.dg-kpi-label { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text-muted); }
+.dg-kpi-value { font-size: var(--text-2xl); font-weight: var(--weight-bold); line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--color-text); }
+.dg-kpi-hint { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+/* Filter bar */
+.dg-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); background: var(--color-bg-subtle); }
+.dg-toolbar-label { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text-muted); }
+
+/* Canvas */
+.dg-canvas { position: relative; width: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); background: var(--color-bg-subtle); }
+.dg-svg { display: block; overflow: visible; }
+.dg-lane-bg { fill: var(--color-bg); stroke: var(--color-border-light); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg-lane-head { position: absolute; display: flex; flex-direction: column; gap: 2px; min-width: 0; pointer-events: none; }
+.dg-lane-head.is-stacked { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-3); }
+.dg-lane-kicker { font-family: var(--font-accent); font-size: var(--text-xs); font-weight: var(--weight-bold); line-height: 16px; letter-spacing: 0.06em; color: var(--color-text-muted); white-space: nowrap; }
+.dg-lane-title { font-size: var(--text-sm); font-weight: var(--weight-semibold); line-height: 18px; color: var(--color-text); }
+.dg-toolbar-hint, .dg-note { font-size: var(--text-xs); color: var(--color-text-muted); margin: 0; }
+.dg-toolbar-hint { flex-basis: 100%; }
+.dg-toolbar-label { white-space: nowrap; }
+.dg-candidate { font-family: var(--font-body); }
+
+/* Edges */
+.dg-edge path { fill: none; stroke: var(--color-border); stroke-width: 2; }
+.dg-edge[data-kind="path"] path { stroke: var(--color-error); stroke-width: 3.5; stroke-dasharray: 7 4; }
+.dg-edge[data-kind="focus"] path { stroke: var(--color-primary); stroke-width: 3; stroke-dasharray: 7 4; }
+.dg-edge[data-kind="candidate"] path { stroke: var(--color-success); stroke-width: 3; stroke-dasharray: 2 5; stroke-linecap: round; }
+.dg-edge.is-dimmed, .dg-node.is-dimmed { opacity: 0.3; }
+.dg-arrow-default path { fill: var(--color-border); }
+.dg-arrow-path path { fill: var(--color-error); }
+.dg-arrow-focus path { fill: var(--color-primary); }
+.dg-arrow-candidate path { fill: var(--color-success); }
+.dg-pill rect { fill: var(--color-bg-elevated); stroke: var(--color-border); stroke-width: 1; }
+.dg-edge[data-kind="path"] .dg-pill rect { stroke: var(--color-error); }
+.dg-edge[data-kind="candidate"] .dg-pill rect { stroke: var(--color-success); }
+.dg-pill text { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: var(--weight-semibold); fill: var(--color-text-muted); }
+.dg-edge[data-kind="path"] .dg-pill text { fill: var(--color-error-text); }
+.dg-edge[data-kind="candidate"] .dg-pill text { fill: var(--color-success-text); }
+.dg-edge[data-kind="focus"] .dg-pill text { fill: var(--color-primary-text); }
+@media (prefers-reduced-motion: no-preference) {
+  .dg-edge[data-kind="path"] path, .dg-edge[data-kind="focus"] path, .dg-edge[data-kind="candidate"] path { animation: dg-flow 1.4s linear infinite; }
+}
+@keyframes dg-flow { from { stroke-dashoffset: 18; } to { stroke-dashoffset: 0; } }
+
+/* Node cards (HTML buttons positioned over the SVG) */
+.dg-node {
+  position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; gap: 4px;
+  margin: 0; padding: 12px 12px 10px 16px; overflow: hidden; text-align: left; cursor: pointer;
+  font: inherit; color: var(--color-text); background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+.dg-node::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--dg-accent, var(--color-border)); }
+.dg-node[data-status="disrupted"], .dg-node[data-status="blocked"] { border-color: var(--color-error); }
+.dg-node[data-status="candidate_passed"] { border-color: var(--color-success); }
+.dg-node[data-status="affected_primary"] { border-color: var(--color-warning); }
+.dg-node.is-selected { box-shadow: 0 0 0 2px var(--color-primary); }
+.dg-node:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.dg-node-tag { font-family: var(--font-accent); font-size: var(--text-xs); font-weight: var(--weight-bold); line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dg-text, var(--color-text-muted)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dg-node-label { font-size: var(--text-sm); font-weight: var(--weight-semibold); line-height: 18px; color: var(--color-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.dg-node-id { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: var(--weight-semibold); line-height: 16px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dg-node-meta { font-size: var(--text-xs); line-height: 16px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Legend */
+.dg-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); color: var(--color-text-muted); }
+.dg-legend li, .dg-legend > span { display: inline-flex; align-items: center; gap: 8px; }
+.dg-legend-group { font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); font-family: var(--font-accent); }
+.dg-swatch { display: inline-block; flex: none; width: 12px; height: 12px; border-radius: 3px; background: var(--dg-accent, var(--color-border)); }
+.dg-line { display: inline-block; flex: none; width: 24px; height: 0; border-top: 2px solid var(--color-border); }
+.dg-line[data-line="path"] { border-top: 3.5px dashed var(--color-error); }
+.dg-line[data-line="focus"] { border-top: 3px dashed var(--color-primary); }
+.dg-line[data-line="candidate"] { border-top: 3px dotted var(--color-success); }
+
+/* Path filter: a button group with toggle state (aria-pressed), styled like a Horizon segmented control */
+.dg-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg-elevated); }
+.dg-seg-btn { min-height: 36px; padding: 6px 14px; font: inherit; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text); background: transparent; border: 0; border-inline-start: 1px solid var(--color-border); cursor: pointer; }
+.dg-seg-btn:first-child { border-inline-start: 0; }
+.dg-seg-btn[aria-pressed="true"] { color: var(--color-text); background: var(--color-info-bg); box-shadow: inset 0 -2px 0 var(--color-primary); }
+.dg-seg-btn:disabled { color: var(--color-text-muted); cursor: not-allowed; opacity: 0.6; }
+.dg-seg-btn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+/* Candidate selector */
+.dg-candidates { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.dg-candidate { min-height: 44px; min-width: 44px; padding: 10px 16px; font: inherit; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text); background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; }
+.dg-candidate.is-active { color: var(--color-primary-text); border-color: var(--color-primary); box-shadow: inset 0 0 0 1px var(--color-primary); }
+.dg-candidate:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+/* Empty state */
+.dg-empty { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5); text-align: center; color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); }
+.dg-empty strong { font-size: var(--text-md); color: var(--color-text); }
+
+/* Popover body */
+.dg-popover-body { padding: var(--space-3); }
+.dg-popover-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
+.dg-popover-dl dt { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--color-text-muted); }
+.dg-popover-dl dd { margin: 0; font-size: var(--text-sm); font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+
+@media (max-width: 719px) {
+  .dg-kpi-value { font-size: var(--text-xl); }
+}

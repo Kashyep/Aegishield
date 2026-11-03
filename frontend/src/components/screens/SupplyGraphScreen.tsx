@@ -5,7 +5,20 @@ import { DependencyGraph } from '../../components/DependencyGraph';
 import "@ui5/webcomponents/dist/Button.js";
 import "@ui5/webcomponents/dist/Title.js";
 import "@ui5/webcomponents/dist/Popover.js";
+import "@ui5/webcomponents/dist/BusyIndicator.js";
+import "@ui5/webcomponents/dist/MessageStrip.js";
 import type { Evaluation, GraphView, GraphViewNode } from '../../api/types';
+
+// UI5 elements used here that the shared typings in src/ui5.d.ts do not declare yet.
+declare module 'react' {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- JSX augmentation is the only way to type these tags
+  namespace JSX {
+    interface IntrinsicElements {
+      'ui5-busy-indicator': React.HTMLAttributes<HTMLElement> & { active?: boolean; size?: 'S' | 'M' | 'L'; text?: string; accessibleName?: string };
+      'ui5-message-strip': React.HTMLAttributes<HTMLElement> & { design?: 'Information' | 'Positive' | 'Negative' | 'Warning'; hideCloseButton?: boolean };
+    }
+  }
+}
 
 interface SupplyGraphScreenProps {
   evaluationId: string;
@@ -50,7 +63,7 @@ export function SupplyGraphScreen({
               {graphView.nodes.length} facilities · {graphView.edges.length} links · Direction: {graphView.edge_direction.replace(/_/g, ' ')}
             </p>
 
-            <NeuCard variant="raised" style={{ padding: 'var(--space-4)' }}>
+            <NeuCard variant="raised" data-graph-state={graphView.nodes.length > 0 ? 'ready' : 'empty'} style={{ padding: 'var(--space-4)' }}>
               <DependencyGraph
                 view={graphView}
                 result={evaluation?.dependency_results?.find((result) => result.supplier_id === graphView.focus_supplier_id)}
@@ -98,8 +111,19 @@ export function SupplyGraphScreen({
             )}
           </>
         ) : (
-          <NeuCard variant="subtle" style={{ padding: 'var(--space-5)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            {graphError || 'Loading dependency graph…'}
+          <NeuCard variant="subtle" data-graph-state={graphError ? 'error' : 'loading'} style={{ padding: 'var(--space-5)' }}>
+            {graphError ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+                <ui5-message-strip design="Negative" hideCloseButton>{graphError}</ui5-message-strip>
+                {/* The graph data comes from App.tsx props and this screen has no reload callback, so this reloads the whole page. */}
+                <ui5-button design="Emphasized" onClick={() => window.location.reload()}>Reload page</ui5-button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', color: 'var(--color-text-muted)' }}>
+                <ui5-busy-indicator active size="S" accessibleName="Loading dependency graph" />
+                <span>Loading dependency graph…</span>
+              </div>
+            )}
           </NeuCard>
         )}
       </PageBody>

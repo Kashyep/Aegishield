@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DependencyResult, GraphView, GraphViewNode } from '../api/types'
 import { STATUS_TEXT, STATUS_ACCENT_VAR, STATUS_TAG_DESIGN, SWIMLANE_TIERS } from './graphStatus'
 import '@ui5/webcomponents/dist/Popover.js'
@@ -64,6 +64,10 @@ export const DependencyGraph = React.memo(function DependencyGraph({ view, resul
   const blockedPath = view.paths.find((path) => path.kind === 'shared_disrupted_dependency')
   const focusLabel = candidates.find((c) => c.supplierId === view.focus_supplier_id)?.label ?? view.focus_supplier_id
   const selectedNode = selectedNodeId ? nodeById[selectedNodeId] : null
+  // Latest selection, read by the popover's close handler. A popover closing for a
+  // previous node must not clear the node that has since been selected.
+  const latestSelectedIdRef = useRef(selectedNodeId)
+  useEffect(() => { latestSelectedIdRef.current = selectedNodeId }, [selectedNodeId])
 
   return (
     <section className="dependency-graph" aria-label="Dependency evidence graph">
@@ -184,12 +188,18 @@ export const DependencyGraph = React.memo(function DependencyGraph({ view, resul
 
       {selectedNode && (
         <ui5-popover
+          key={selectedNode.id}
           id="graph-node-popover"
           opener={`node-${selectedNode.id}`}
           open={true}
           headerText={selectedNode.label}
           placement="Bottom"
-          onclose={() => onSelectNode(null)}
+          onclose={() => {
+            // UI5 also closes the popover when its opener scrolls out of view; that must not deselect the node.
+            const opener = document.getElementById(`node-${selectedNode.id}`)?.getBoundingClientRect()
+            const openerInView = !!opener && opener.bottom > 0 && opener.right > 0 && opener.top < window.innerHeight && opener.left < window.innerWidth
+            if (openerInView && latestSelectedIdRef.current === selectedNode.id) onSelectNode(null)
+          }}
           style={{ minWidth: '320px', maxWidth: '400px' }}
         >
           <div style={{ padding: 'var(--space-3)' }}>

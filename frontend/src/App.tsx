@@ -1,7 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="./ui5.d.ts" />
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { AppShell } from './components/layout'
 import { CommandCenter } from './components/screens/CommandCenter'
 import { EvaluationsScreen } from './components/screens/EvaluationsScreen'
@@ -12,7 +11,7 @@ import { AuditTrailScreen } from './components/screens/AuditTrailScreen'
 import { EarlyWarningsScreen } from './components/screens/EarlyWarningsScreen'
 import { SupplyNetworkScreen } from './components/screens/SupplyNetworkScreen'
 import { AlertTriangle } from 'lucide-react'
-import { ConfirmDialog, NeuButton, NeuCard, Drawer, NeuChip } from './components/ui'
+import { ConfirmDialog, Modal, NeuButton, NeuCard, Drawer, NeuChip } from './components/ui'
 import { DependencyGraph } from './components/DependencyGraph'
 import {
   ApiError, createEvaluation, getApiMode, getAuditEvents, getEvaluation, getEvaluationById,
@@ -89,144 +88,6 @@ const getErrorMessage = (error: ApiError): string => {
   if (error.status === 422) return 'Please check the form for errors.'
   return error.problem?.title ?? 'Decision not recorded'
 }
-function ApprovalModal({
-  isOpen,
-  onClose,
-  title,
-  children,
-  maxWidth,
-  restoreFocusTo,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-  maxWidth?: string;
-  restoreFocusTo?: HTMLElement | null;
-}) {
-  const dialogRef = useRef<HTMLElement>(null);
-  const previouslyFocused = useRef<HTMLElement | null>(null);
-  const isClosingRef = useRef(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      isClosingRef.current = false;
-      previouslyFocused.current = restoreFocusTo ?? (document.activeElement as HTMLElement);
-      requestAnimationFrame(() => {
-        dialogRef.current?.focus();
-      });
-    }
-  }, [isOpen, restoreFocusTo]);
-
-  const handleClose = useCallback(() => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    onClose();
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        handleClose();
-        return;
-      }
-      if (event.key !== 'Tab' || !dialogRef.current) return;
-
-      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex="0"], ui5-button:not([disabled])'
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (active === dialogRef.current || !dialogRef.current.contains(active)) {
-        event.preventDefault();
-        if (event.shiftKey) {
-          last.focus();
-        } else {
-          first.focus();
-        }
-      } else if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      const trigger = restoreFocusTo ?? previouslyFocused.current;
-      if (trigger?.isConnected) {
-        requestAnimationFrame(() => {
-          if (trigger.isConnected) {
-            trigger.focus();
-          }
-        });
-      }
-    };
-  }, [isOpen, handleClose, restoreFocusTo]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const onUi5Close = () => {
-      handleClose();
-    };
-
-    dialog.addEventListener('close', onUi5Close);
-    return () => {
-      dialog.removeEventListener('close', onUi5Close);
-    };
-  }, [isOpen, handleClose]);
-
-  if (!isOpen) return null;
-
-  const modalContent = (
-    <ui5-dialog
-      ref={dialogRef}
-      open={true}
-      headerText={title}
-      accessibleName={title}
-      accessibleRole="None"
-      role="dialog"
-      aria-label={title}
-      aria-modal="true"
-      tabIndex={-1}
-      className="ae-modal neu-modal"
-      style={{
-        maxWidth: maxWidth || 'var(--modal-max-width, 680px)',
-        width: '92vw',
-      }}
-      onclose={handleClose}
-    >
-      <div
-        className="ae-dialog-content"
-        style={{
-          padding: 'var(--space-2) var(--space-4)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-3)',
-          color: 'var(--sapTextColor)',
-          fontFamily: "'72', sans-serif",
-        }}
-      >
-        {children}
-      </div>
-    </ui5-dialog>
-  );
-
-  return createPortal(modalContent, document.body);
-}
 
 
 function App() {
@@ -242,18 +103,6 @@ function App() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null)
   const [selectedGraphNode, setSelectedGraphNode] = useState<GraphViewNode | null>(null)
-  const lastSelectTimeRef = useRef<number>(0)
-  const handleSelectGraphNode = useCallback((node: GraphViewNode | null) => {
-    if (node) {
-      lastSelectTimeRef.current = Date.now()
-      setSelectedGraphNode(node)
-    } else {
-      if (Date.now() - lastSelectTimeRef.current < 200) {
-        return
-      }
-      setSelectedGraphNode(null)
-    }
-  }, [])
   const [approvalPlan, setApprovalPlan] = useState<Plan | null>(null)
   const approvalFocusTargetRef = useRef<HTMLElement | null>(null)
   const [earlyWarnings, setEarlyWarnings] = useState<EarlyWarningResult | null>(null)
@@ -781,7 +630,7 @@ const closeApproval = useCallback(() => {
             graphError={graphError}
             setFocusSupplierId={setFocusSupplierId}
             selectedGraphNode={selectedGraphNode}
-            setSelectedGraphNode={handleSelectGraphNode}
+            setSelectedGraphNode={setSelectedGraphNode}
             evaluation={evaluation}
           />
         )
@@ -830,12 +679,54 @@ const closeApproval = useCallback(() => {
 
       {/* Approval Modal */}
       {approvalPlan && (
-        <ApprovalModal
+        <Modal
           isOpen={!!approvalPlan}
           onClose={closeApproval}
           title={`Review ${approvalPlan.label}`}
           maxWidth="680px"
           restoreFocusTo={approvalFocusTargetRef.current}
+          hostRoleDialog
+          actions={
+            <>
+              <ui5-button
+                design="Transparent"
+                disabled={decisionSubmitting}
+                onClick={() => setApprovalPlan(null)}
+                accessibleName="Cancel"
+              >
+                Cancel
+              </ui5-button>
+              {isBlockedPlan ? (
+                <>
+                  <ui5-button
+                    design="Positive"
+                    disabled={true}
+                    title="Plan is blocked by fixture checks"
+                    accessibleName="Approve plan"
+                  >
+                    Approve plan
+                  </ui5-button>
+                  <ui5-button
+                    design="Negative"
+                    disabled={decisionSubmitting || !actorCanApprove}
+                    onClick={submitApproval}
+                    accessibleName="Attempt approval (blocked)"
+                  >
+                    {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
+                  </ui5-button>
+                </>
+              ) : (
+                <ui5-button
+                  design="Positive"
+                  disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
+                  onClick={submitApproval}
+                  accessibleName="Approve plan"
+                >
+                  {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
+                </ui5-button>
+              )}
+            </>
+          }
         >
           <dl className="finding-details" style={{ margin: 0 }}>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>
@@ -1024,46 +915,7 @@ const closeApproval = useCallback(() => {
             </div>
           )}
 
-          <div className="ae-dialog-actions">
-            <ui5-button
-              design="Transparent"
-              disabled={decisionSubmitting}
-              onClick={() => setApprovalPlan(null)}
-              accessibleName="Cancel"
-            >
-              Cancel
-            </ui5-button>
-            {isBlockedPlan ? (
-              <>
-                <ui5-button
-                  design="Positive"
-                  disabled={true}
-                  title="Plan is blocked by fixture checks"
-                  accessibleName="Approve plan"
-                >
-                  Approve plan
-                </ui5-button>
-                <ui5-button
-                  design="Negative"
-                  disabled={decisionSubmitting || !actorCanApprove}
-                  onClick={submitApproval}
-                  accessibleName="Attempt approval (blocked)"
-                >
-                  {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
-                </ui5-button>
-              </>
-            ) : (
-              <ui5-button
-                design="Positive"
-                disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
-                onClick={submitApproval}
-                accessibleName="Approve plan"
-              >
-                {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
-              </ui5-button>
-            )}
-          </div>
-        </ApprovalModal>
+        </Modal>
       )}
 
       {/* Evidence Drawer */}

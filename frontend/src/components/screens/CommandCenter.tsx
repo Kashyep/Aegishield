@@ -7,6 +7,8 @@ import { NeuChip } from '../ui/NeuChip';
 import { type Screen } from '../../app/navigation';
 import type { EarlyWarning, Evaluation, Finding, Plan, PlanComparisonItem } from '../../api/types';
 
+import { getPlanJustification, type PlanJustification } from './justifications';
+export type { PlanJustification };
 interface CommandCenterProps {
   evaluation: Evaluation | null;
   evaluationError: string;
@@ -22,12 +24,15 @@ interface CommandCenterProps {
   money: (amount: number) => string;
   formatPlanId: (id: string) => string;
   getWorstCaseExposure: (plan: PlanComparisonItem, fullPlan?: Plan) => number;
-  openApproval: (planId: string, triggerElement?: HTMLElement | null) => void;
+  openApproval: (planId: string, triggerElement?: HTMLElement | null, mode?: 'approve' | 'amend') => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
   startPlanExecution: (plan: Plan) => void;
   executionSubmitting: boolean;
   planWarnings?: Record<string, EarlyWarning[]>;
+  evaluationRun?: boolean;
+  inspectedPlanIds?: string[];
+  onInspectPlan?: (planId: string) => void;
 }
 
 export function CommandCenter({
@@ -51,6 +56,9 @@ export function CommandCenter({
   startPlanExecution,
   executionSubmitting,
   planWarnings,
+  evaluationRun = true,
+  inspectedPlanIds = [],
+  onInspectPlan,
 }: CommandCenterProps) {
   const plans = evaluation?.comparison?.plans ?? [];
   const recommendedPlanId = evaluation?.comparison?.recommended_plan_id;
@@ -210,9 +218,17 @@ export function CommandCenter({
           title="Recovery plan comparison"
           subtitle="Financial attractiveness alone does not establish executability."
         >
-          {recommendedPlanId && <NeuChip variant="success" className="recommendation-label">{formatPlanId(recommendedPlanId)} · Recommended</NeuChip>}
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+            {!evaluationRun && (
+              <NeuButton variant="primary" disabled={!!demoBusy} onClick={runEvaluation}>
+                {demoBusy === 'evaluate' ? 'Evaluating…' : 'Run evaluation'}
+              </NeuButton>
+            )}
+            {recommendedPlanId && (evaluationRun || inspectedPlanIds.includes(recommendedPlanId)) && (
+              <NeuChip variant="success" className="recommendation-label">{formatPlanId(recommendedPlanId)} · Recommended</NeuChip>
+            )}
+          </div>
         </PageHeader>
-
         {evaluationError && <p className="load-error" role="alert" style={{ color: 'var(--color-error-text)' }}>{evaluationError}</p>}
 
         {plans.length === 0 && (
@@ -224,34 +240,50 @@ export function CommandCenter({
         <div className="plans-grid" style={{ marginTop: 'var(--space-4)' }} aria-live="polite">
           {plans.map((plan) => {
             const fullPlan = evaluation?.plans?.find((candidate) => candidate.plan_id === plan.plan_id);
-            const isBlocked = fullPlan?.status === 'blocked' || plan.outcome === 'blocked';
-            const planStatus = fullPlan?.status ?? plan.outcome;
+            const isVerdictVisible = Boolean(evaluationRun || inspectedPlanIds.includes(plan.plan_id));
+            const isBlocked = isVerdictVisible && (fullPlan?.status === 'blocked' || plan.outcome === 'blocked');
+            const planStatus = isVerdictVisible ? (fullPlan?.status ?? plan.outcome) : 'pending_analysis';
             const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-');
             const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
+            const baselineLoss = evaluation?.assessment?.baseline_loss_inr ?? evaluation?.comparison?.baseline_loss_inr ?? 1160000;
             const planExposures = fullPlan?.financials?.exposures?.filter((e) => e.amount_inr !== null) ?? [];
+
+            // FB-03: Priority colour coding (MAX 2 recommended)
+            const isHighlyRecommended = plan.plan_id === recommendedPlanId || (recommendedPlanId === null && plan.outcome === 'passed');
+            const priorityDesign = isHighlyRecommended ? 'Positive' : 'Critical';
+            const priorityLabel = isHighlyRecommended ? 'Highly Recommended' : 'Alternate';
+            const cardLeftAccent = isHighlyRecommended
+              ? '4px solid var(--sapPositiveColor, #107e3e)'
+              : '4px solid var(--sapCriticalColor, #e9730c)';
 
             return (
              <ui5-card
   key={plan.plan_id}
   className="plan-card interactive"
-  style={{ width: '100%' }}
+  style={{ width: '100%', borderLeft: cardLeftAccent }}
 >
                 <div className="plan-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--color-info)', background: 'var(--color-info-bg)', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
+                  <div className="plan-id" style={{ width: 35, height: 35, borderRadius: 'var(--radius-md)', color: 'var(--sapInformativeTextColor, #00386b)', background: 'var(--color-info-bg)', fontWeight: 'var(--weight-extrabold)', fontFamily: 'var(--font-heading)', display: 'grid', placeItems: 'center' }}>
                     {formatPlanId(plan.plan_id)}
                   </div>
-                  <NeuChip
-                    variant={
-                      planStatusClass === 'passed' || planStatusClass === 'approved' || planStatusClass === 'completed' ? 'success' :
-                      planStatusClass === 'blocked' || planStatusClass === 'rejected' || planStatusClass === 'failed' ? 'error' :
-                      'warning'
-                    }
-                  >
-                    {planStatus.replace(/_/g, ' ')}
-                  </NeuChip>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <ui5-tag design={priorityDesign} className="priority-tag">{priorityLabel}</ui5-tag>
+                    <NeuChip
+                      variant={
+                        !isVerdictVisible ? 'neutral' :
+                        planStatusClass === 'passed' || planStatusClass === 'approved' || planStatusClass === 'completed' ? 'success' :
+                        planStatusClass === 'blocked' || planStatusClass === 'rejected' || planStatusClass === 'failed' ? 'error' :
+                        'warning'
+                      }
+                    >
+                      {!isVerdictVisible ? 'Pending analysis' : planStatus.replace(/_/g, ' ')}
+                    </NeuChip>
+                  </div>
                 </div>
                 <h3 style={{ margin: 'var(--space-4) 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>{plan.label}</h3>
-                <p className="plan-detail" style={{ minHeight: 36, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>Recovery plan from evaluation {evaluation?.evaluation_id}.</p>
+                <p className="plan-detail" style={{ minHeight: 36, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
+                  {!isVerdictVisible ? `Analysis workspace alternate · Feasibility model vs ${money(baselineLoss)} baseline.` : `Recovery plan from evaluation ${evaluation?.evaluation_id}.`}
+                </p>
 
                 <div className="financial-block" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', padding: 'var(--space-4) 0', borderTop: '1px solid var(--color-border-light)', borderBottom: '1px solid var(--color-border-light)' }}>
                   <div className="financial-row-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
@@ -273,7 +305,11 @@ export function CommandCenter({
                     </div>
                     <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                       <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Outcome</span>
-                      <strong className={`outcome-val ${plan.outcome}`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)', color: plan.outcome === 'blocked' ? 'var(--color-error)' : plan.outcome === 'passed' ? 'var(--color-success)' : 'var(--color-text)' }}>{plan.outcome.toUpperCase()}</strong>
+                      {isVerdictVisible ? (
+                        <strong className={`outcome-val ${plan.outcome}`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)', color: plan.outcome === 'blocked' ? 'var(--color-error)' : plan.outcome === 'passed' ? 'var(--color-success)' : 'var(--color-text)' }}>{plan.outcome.toUpperCase()}</strong>
+                      ) : (
+                        <strong className="outcome-val pending" style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)', color: 'var(--color-text-muted)' }}>PENDING</strong>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -282,8 +318,8 @@ export function CommandCenter({
                 {fullPlan && fullPlan.lines.length > 0 && (
                   <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border-light)', paddingTop: 'var(--space-3)' }}>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>Allocation</h4>
-                    <div className="neu-table-wrap" role="region" aria-label="Allocation table" tabIndex={0} style={{ maxHeight: '200px', overflow: 'auto' }}>
-                      <table className="neu-table" style={{ fontSize: 'var(--text-xs)' }}>
+                    <div className="ae-table-wrap" role="region" aria-label="Allocation table" tabIndex={0} style={{ maxHeight: '200px', overflow: 'auto' }}>
+                      <table className="ae-table" style={{ fontSize: 'var(--text-xs)' }}>
                         <thead>
                           <tr>
                             <th scope="col">Order</th>
@@ -324,44 +360,102 @@ export function CommandCenter({
                   </div>
                 )}
 
+                {/* 60-80 Word Justification (FB-04) */}
+                {(() => {
+                  const justification = getPlanJustification(plan.plan_id);
+                  return (
+                    <div
+                      className="ae-justification"
+                      data-testid={`plan-justification-${plan.plan_id}`}
+                      style={{
+                        marginTop: 'var(--space-3)',
+                        padding: 'var(--space-3)',
+                        background: 'var(--sapTile_Background, #ffffff)',
+                        border: '1px solid var(--sapTile_BorderColor, #d1d9cc)',
+                        borderRadius: 'var(--radius-md)',
+                      }}
+                    >
+                      <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                        Plan Justification ({justification.wordCount} words)
+                      </h4>
+                      <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xs)', lineHeight: 'var(--leading-relaxed)' }}>
+                        <strong style={{ color: 'var(--sapPositiveTextColor, #106634)' }}>Why it helps: </strong>
+                        {justification.whyItHelps}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 'var(--text-xs)', lineHeight: 'var(--leading-relaxed)' }}>
+                        <strong style={{ color: 'var(--sapCriticalTextColor, #8a3b00)' }}>What could go wrong: </strong>
+                        {justification.whatCouldGoWrong}
+                      </p>
+                    </div>
+                  );
+                })()}
+
                 <div className="checks-row" style={{ margin: 'var(--space-3) 0', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
-                  {plan.check_outcome_counts.passed} passed · {plan.check_outcome_counts.needs_review} need review · {plan.check_outcome_counts.blocked} blocked
+                  {isVerdictVisible
+                    ? `${plan.check_outcome_counts.passed} passed · ${plan.check_outcome_counts.needs_review} need review · ${plan.check_outcome_counts.blocked} blocked`
+                    : `Feasibility & profitability model vs ${money(baselineLoss)} baseline · Run evaluation or inspect plan for verification checks`}
                 </div>
 
                 <div className="plan-actions" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                  <NeuButton variant="secondary" onClick={() => fullPlan && setSelectedPlan(fullPlan)} style={{ flex: 1 }}>
+                  <NeuButton design="Default" variant="secondary" onClick={() => { if (fullPlan) setSelectedPlan(fullPlan); onInspectPlan?.(plan.plan_id); }} style={{ flex: 1 }}>
                     Review evidence
                   </NeuButton>
-                  {(fullPlan?.status === 'approved' || fullPlan?.status === 'completed') ? (
+                  {!isVerdictVisible ? (
+                    <NeuButton variant="primary" onClick={() => onInspectPlan?.(plan.plan_id)} style={{ flex: 1 }}>
+                      Inspect plan
+                    </NeuButton>
+                  ) : (fullPlan?.status === 'approved' || fullPlan?.status === 'completed') ? (
                     <NeuButton variant="primary" disabled={executionSubmitting || apiMode === 'stub'} onClick={() => { if (fullPlan) void startPlanExecution(fullPlan) }} style={{ flex: 1 }}>
                       {fullPlan.status === 'completed' ? 'View execution' : 'Start simulated execution'}
                     </NeuButton>
                   ) : isBlocked ? (
                     <>
-                      <NeuButton variant="secondary" disabled={true} aria-describedby={`blocked-reason-${plan.plan_id}`} style={{ flex: 1 }}>
+                      <NeuButton
+                        design="Positive"
+                        disabled={true}
+                        aria-describedby={`blocked-reason-${plan.plan_id}`}
+                        style={{ flex: 1 }}
+                      >
                         Approve
                       </NeuButton>
-                      <NeuButton variant="secondary" disabled={!fullPlan || !actorCanApprove} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
+                      <NeuButton
+                        design="Default"
+                        disabled={!fullPlan || !actorCanApprove}
+                        onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
+                        style={{ flex: 1 }}
+                      >
                         Attempt approval
                       </NeuButton>
                     </>
                   ) : (
-                    <NeuButton variant="primary" disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'} onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)} style={{ flex: 1 }}>
+                    <NeuButton
+                      design="Positive"
+                      disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'}
+                      onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
+                      style={{ flex: 1 }}
+                    >
                       Approve
                     </NeuButton>
                   )}
-                  {isBlocked && fullPlan && evaluation?.findings.some((finding) => fullPlan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked' && finding.check_code.startsWith('LC.')) && (
-                    <NeuButton variant="secondary" disabled={!actorCanAmend} title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'} onClick={() => openApproval(plan.plan_id)} style={{ flex: 1 }}>
+                  {isVerdictVisible && isBlocked && fullPlan && evaluation?.findings.some((finding) => fullPlan.finding_ids.includes(finding.finding_id) && finding.outcome === 'blocked' && finding.check_code.startsWith('LC.')) && (
+                    <NeuButton
+                      design="Default"
+                      disabled={!actorCanAmend}
+                      title={actorCanAmend ? undefined : 'Switch to the trade compliance officer to request an LC amendment.'}
+                      onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement, 'amend')}
+                      style={{ flex: 1 }}
+                    >
                       Request LC amendment
                     </NeuButton>
                   )}
                 </div>
 
-                {isBlocked && (
+                {isVerdictVisible && isBlocked && (
                   <p className="blocked-reason" id={`blocked-reason-${plan.plan_id}`} style={{ margin: 'var(--space-3) 0 0', color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
                     Cannot be approved: {plan.check_outcome_counts.blocked} blocking findings. {formatPlanId(plan.plan_id)} remains blocked.
                   </p>
                 )}
+
                 {(planWarnings?.[plan.plan_id] ?? []).map((w) => (
                   <p key={w.warning_id} className="plan-warning" role="note" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-start', margin: 'var(--space-3) 0 0', fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>
                     <AlertTriangle size={16} aria-hidden="true" style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
@@ -374,7 +468,7 @@ export function CommandCenter({
         </div>
 
         {/* Paper advantage callout */}
-        {evaluation?.comparison && (evaluation.comparison.paper_advantage_of_best_blocked_plan_inr ?? 0) > 0 && (
+        {evaluationRun && evaluation?.comparison && (evaluation.comparison.paper_advantage_of_best_blocked_plan_inr ?? 0) > 0 && (
           <NeuCard variant="subtle" style={{ marginTop: 'var(--space-section)', padding: 'var(--space-4)', borderColor: 'var(--color-warning-border)', background: 'var(--color-warning-bg)', borderWidth: 2 }}>
             <strong style={{ color: 'var(--color-warning-text)' }}>
               P1 looks {money(evaluation.comparison.paper_advantage_of_best_blocked_plan_inr ?? 0)} better on paper

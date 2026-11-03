@@ -1,30 +1,42 @@
 import { forwardRef } from 'react';
 
-interface NeuCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'raised' | 'raised-lg' | 'pressed' | 'subtle' | 'inset' | 'interactive';
+interface NeuCardProps extends React.HTMLAttributes<HTMLElement> {
+  variant?: 'raised' | 'raised-lg' | 'pressed' | 'subtle' | 'inset' | 'interactive' | string;
   as?: React.ElementType;
+  title?: string;
+  subtitle?: string;
+  titleText?: string;
+  subtitleText?: string;
 }
 
-export const NeuCard = forwardRef<HTMLDivElement, NeuCardProps>(
-  ({ variant = 'raised', as: Component = 'div', className = '', children, style, ...props }, ref) => {
-    const variantClasses = {
-      raised: 'neu-card raised',
-      'raised-lg': 'neu-card raised-lg',
-      pressed: 'neu-card pressed',
-      subtle: 'neu-card subtle',
-      inset: 'neu-card inset',
-      interactive: 'neu-card interactive raised',
-    };
+export const NeuCard = forwardRef<HTMLElement, NeuCardProps>(
+  ({ variant = 'raised', as: _as, title, subtitle, titleText, subtitleText, className = '', children, style, role, ...props }, ref) => {
+    const computedRole = role || (_as === 'section' ? 'region' : (_as === 'article' ? 'article' : undefined));
+    const finalTitle = titleText ?? title;
+    const finalSubtitle = subtitleText ?? subtitle;
+    const hasHeader = Boolean(finalTitle || finalSubtitle);
+
+    const cardClasses = ['ae-card', variant === 'interactive' ? 'interactive' : '', className]
+      .filter(Boolean)
+      .join(' ');
 
     return (
-      <Component
+      <ui5-card
         ref={ref}
-        className={`${variantClasses[variant]} ${className}`}
+        className={cardClasses}
         style={style}
+        role={computedRole}
         {...props}
       >
+        {hasHeader && (
+          <ui5-card-header
+            slot="header"
+            titleText={finalTitle}
+            subtitleText={finalSubtitle}
+          />
+        )}
         {children}
-      </Component>
+      </ui5-card>
     );
   }
 );

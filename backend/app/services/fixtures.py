@@ -21,7 +21,10 @@ FIXTURE_SCHEMAS = {
     "sources": "fixtures.schema.json#/$defs/SourcesFile",
 }
 # Validated on load but never part of the plan inputs or input_snapshot_id (contracts 1.1.0, docs/00 §10.9).
-NON_PLAN_FIXTURES = {"external_signals": "signals.schema.json#/$defs/SignalsFile"}
+NON_PLAN_FIXTURES = {
+    "external_signals": "signals.schema.json#/$defs/SignalsFile",
+    "supply_network": "supply_network.schema.json#/$defs/SupplyNetwork",
+}
 
 
 def canonical_json(value: Any) -> str:
@@ -71,3 +74,7 @@ def snapshot_id(fixtures: dict[str, Any]) -> str:
 
 def load_signals(root: Path) -> dict[str, Any]:
     return load_fixtures(root, include_non_plan=True)["external_signals"]
+
+
+def load_supply_network(root: Path) -> dict[str, Any]:
+    return load_fixtures(root, include_non_plan=True)["supply_network"]

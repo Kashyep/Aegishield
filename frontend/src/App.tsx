@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./ui5.d.ts" />
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AppShell } from './components/layout'
 import { CommandCenter } from './components/screens/CommandCenter'
@@ -7,8 +9,9 @@ import { ExecutionScreen } from './components/screens/ExecutionScreen'
 import { SupplyGraphScreen } from './components/screens/SupplyGraphScreen'
 import { AuditTrailScreen } from './components/screens/AuditTrailScreen'
 import { EarlyWarningsScreen } from './components/screens/EarlyWarningsScreen'
+import { SupplyNetworkScreen } from './components/screens/SupplyNetworkScreen'
 import { AlertTriangle } from 'lucide-react'
-import { Modal, ConfirmDialog, NeuButton, NeuCard, Drawer, NeuChip } from './components/ui'
+import { ConfirmDialog, Modal, NeuButton, NeuCard, Drawer, NeuChip } from './components/ui'
 import { DependencyGraph } from './components/DependencyGraph'
 import {
   ApiError, createEvaluation, getApiMode, getAuditEvents, getEvaluation, getEvaluationById,
@@ -86,8 +89,9 @@ const getErrorMessage = (error: ApiError): string => {
   return error.problem?.title ?? 'Decision not recorded'
 }
 
+
 function App() {
-  const [activeScreen, setActiveScreen] = useState<Screen>(readScreenFromHash)
+  const [activeScreen, setActiveScreen] = useState<Screen>(() => readScreenFromHash())
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [graphView, setGraphView] = useState<GraphView | null>(null)
   const [focusSupplierId, setFocusSupplierId] = useState('SUP-B')
@@ -102,7 +106,23 @@ function App() {
   const [approvalPlan, setApprovalPlan] = useState<Plan | null>(null)
   const approvalFocusTargetRef = useRef<HTMLElement | null>(null)
   const [earlyWarnings, setEarlyWarnings] = useState<EarlyWarningResult | null>(null)
+  const [evaluationRun, setEvaluationRun] = useState(true)
+  const [inspectedPlanIds, setInspectedPlanIds] = useState<string[]>([])
+  const [amendmentShipmentDate, setAmendmentShipmentDate] = useState('2026-11-15')
+  const toastRef = useRef<HTMLElement & { show?: () => void; open?: boolean }>(null)
 
+  useEffect(() => {
+    if (demoMessage && toastRef.current) {
+      if (typeof toastRef.current.show === 'function') {
+        toastRef.current.show()
+      } else {
+        toastRef.current.open = true
+      }
+    }
+  }, [demoMessage])
+  const handleInspectPlan = useCallback((planId: string) => {
+    setInspectedPlanIds((prev) => (prev.includes(planId) ? prev : [...prev, planId]))
+  }, [])
   useEffect(() => {
     let active = true
     getEarlyWarnings()
@@ -218,13 +238,21 @@ function App() {
     setDemoMessage('')
     try {
       const reset = await resetDemo(actorId)
-      setEvaluation(null)
+      // FB-01: After demo reset, land in analysis workspace without premature verdicts
+      try {
+        const baselineEval = await getEvaluation()
+        setEvaluation(baselineEval)
+      } catch {
+        // Retain prior evaluation if available
+      }
+      setEvaluationRun(false)
+      setInspectedPlanIds([])
       setGraphView(null)
       setExecution(null)
       setApprovedDecision(null)
       setAmendmentResult(null)
-      setEvaluationState('error')
-      setEvaluationError('No evaluation yet. Run the evaluation to assess the disruption.')
+      setEvaluationState('ready')
+      setEvaluationError('')
       setDemoMessage(`Demo reset at ${formatLocalTimestamp(reset.reset_at)}. Audit chain restarted (${reset.audit_event_id}).`)
       setShowResetConfirm(false)
     } catch (error) {
@@ -248,6 +276,7 @@ function App() {
       navigate('evaluation-progress')
       setEvaluationState('ready')
       const done = await pollEvaluation(accepted.evaluation_id)
+      setEvaluationRun(true)
       setDemoMessage(`Evaluation ${done.evaluation_id} ${done.status}.${accepted.superseded_plan_ids.length ? ` Superseded: ${accepted.superseded_plan_ids.join(', ')}.` : ''}`)
     } catch (error) {
       setDemoMessage(error instanceof Error ? error.message : 'Evaluation could not be started.')
@@ -271,7 +300,9 @@ function App() {
   }, [loadEvaluation])
 
   useEffect(() => {
-    const syncScreenFromHistory = () => setActiveScreen(readScreenFromHash())
+    const syncScreenFromHistory = () => {
+      setActiveScreen(readScreenFromHash())
+    }
     window.addEventListener('popstate', syncScreenFromHistory)
     window.addEventListener('hashchange', syncScreenFromHistory)
     return () => {
@@ -314,21 +345,55 @@ function App() {
   const amendmentChanges = [...new Map(amendmentEvidence
     .map((item) => [String(item.locator.field_tag), item] as const)
     .filter(([tag]) => tag in LC_AMENDMENT_TARGETS)).values()]
-    .map((item) => { const tag = String(item.locator.field_tag); return { field_tag: tag, from: fieldValue(item.excerpt, tag), to: LC_AMENDMENT_TARGETS[tag] } })
+    .map((item) => {
+      const tag = String(item.locator.field_tag)
+      return { field_tag: tag, from: fieldValue(item.excerpt, tag), to: LC_AMENDMENT_TARGETS[tag] }
+    })
   const actorCanAmend = Boolean(currentActor && policies?.approval_policy.amendment_request_roles?.includes(currentActor.role))
   const amendmentDisabledReason = !actorCanAmend
     ? 'Switch to the trade compliance officer to request an LC amendment.'
     : decisionJustification.trim().length < 10 ? 'Enter a justification of at least 10 characters.'
-    : getApiMode() === 'stub' ? 'Fixture mode has no decision endpoint response.' : ''
+    : ''
 
   const submitAmendment = async () => {
     if (!approvalPlan || !amendmentLcId || amendmentDisabledReason) return
-    const body: DecisionRequest = { action: 'request_amendment', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim(), acknowledgements: [], amendment: { lc_id: amendmentLcId, requested_changes: amendmentChanges } }
+    const allChanges = [
+      ...amendmentChanges,
+      { field_tag: '44C', from: '2026-11-05', to: amendmentShipmentDate },
+    ]
+    const body: DecisionRequest = { action: 'request_amendment', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim(), acknowledgements: [], amendment: { lc_id: amendmentLcId, requested_changes: allChanges } }
     const serializedBody = JSON.stringify(body)
     if (pendingDecisionRef.current?.body !== serializedBody) pendingDecisionRef.current = { body: serializedBody, key: crypto.randomUUID() }
     setDecisionSubmitting(true)
     setDecisionError(null)
     try {
+      if (getApiMode() === 'stub') {
+        const mockResult: Decision = {
+          schema_version: '1.0.0',
+          decision_id: `DEC-AMD-${Date.now()}`,
+          plan_id: approvalPlan.plan_id,
+          plan_version: approvalPlan.version,
+          plan_hash: approvalPlan.plan_hash,
+          action: 'request_amendment',
+          actor: currentActor
+            ? { ...currentActor, kind: ('kind' in currentActor && typeof currentActor.kind === 'string' ? currentActor.kind : 'simulated') }
+            : { actor_id: actorId, role: 'trade_compliance_officer', kind: 'simulated', display_name: 'Arjun M. (Trade Compliance Officer, synthetic)' },
+          justification: decisionJustification.trim(),
+          resulting_plan_status: 'blocked',
+          decided_at: new Date().toISOString(),
+          amendment_request_id: 'AMD-0001',
+          acknowledgements: [],
+          idempotency_key: pendingDecisionRef.current.key,
+        }
+        setAmendmentResult(mockResult)
+        setEvaluation((previous) => previous && ({
+          ...previous,
+          plans: previous.plans.map((p) => p.plan_id === mockResult.plan_id
+            ? { ...p, status: mockResult.resulting_plan_status, decision_ids: [...(p.decision_ids ?? []), mockResult.decision_id] }
+            : p),
+        }))
+        return
+      }
       const result = await submitDecision(approvalPlan.plan_id, actorId, pendingDecisionRef.current.key, body)
       setAmendmentResult(result.data)
       setEvaluation((previous) => previous && ({ ...previous, plans: previous.plans.map((plan) => plan.plan_id === result.data.plan_id ? { ...plan, status: result.data.resulting_plan_status, decision_ids: [...(plan.decision_ids ?? []), result.data.decision_id] } : plan) }))
@@ -336,6 +401,7 @@ function App() {
       setDecisionError(error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : 'Amendment request could not be submitted.'))
     } finally { setDecisionSubmitting(false) }
   }
+
 
   const linkedEvidence = selectedFinding && evaluation ? evaluation.evidence.filter((item) => selectedFinding.evidence_ids.includes(item.evidence_id)) : []
   const missingEvidenceIds = selectedFinding ? selectedFinding.evidence_ids.filter((id) => !linkedEvidence.some((item) => item.evidence_id === id)) : []
@@ -386,18 +452,18 @@ function App() {
     setFocusSupplierId(supplierId)
   }, [])
 
-  const openApproval = (planId: string, triggerElement?: HTMLElement | null) => {
-  const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
-  if (!plan) return
+  const openApproval = (planId: string, triggerElement?: HTMLElement | null, mode: 'approve' | 'amend' = 'approve') => {
+    const plan = evaluation?.plans.find((candidate) => candidate.plan_id === planId)
+    if (!plan) return
 
-  approvalFocusTargetRef.current = triggerElement ?? null
-  setApprovalPlan(plan)
-  setAcknowledgements({})
-  setDecisionError(null)
-  setDecisionJustification('')
-  setAmendmentResult(null)
-  pendingDecisionRef.current = null
-}
+    approvalFocusTargetRef.current = triggerElement ?? null
+    setApprovalPlan(plan)
+    setAcknowledgements({})
+    setDecisionError(null)
+    setDecisionJustification(mode === 'amend' ? 'Request MT707 LC amendment: allow transhipment on 43T, delete 47A container exclusion, and extend 44C shipment date.' : '')
+    setAmendmentResult(null)
+    pendingDecisionRef.current = null
+  }
 const closeApproval = useCallback(() => {
   setApprovalPlan(null)
 }, [])
@@ -501,7 +567,10 @@ const closeApproval = useCallback(() => {
             availableDisruptionId={availableDisruptionId}
             navigate={navigate}
             selectedPlan={selectedPlan}
-            setSelectedPlan={setSelectedPlan}
+            setSelectedPlan={(plan) => {
+              setSelectedPlan(plan);
+              if (plan) handleInspectPlan(plan.plan_id);
+            }}
             setSelectedFinding={setSelectedFinding}
             apiMode={apiMode}
             money={money}
@@ -513,6 +582,9 @@ const closeApproval = useCallback(() => {
             startPlanExecution={startPlanExecution}
             executionSubmitting={executionSubmitting}
             planWarnings={planWarnings}
+            evaluationRun={evaluationRun}
+            inspectedPlanIds={inspectedPlanIds}
+            onInspectPlan={handleInspectPlan}
           />
         )
       case 'evaluations':
@@ -581,6 +653,8 @@ const closeApproval = useCallback(() => {
             formatLocalTimestamp={formatLocalTimestamp}
           />
         )
+      case 'supply-network':
+        return <SupplyNetworkScreen />
       default:
         return null
     }
@@ -611,6 +685,48 @@ const closeApproval = useCallback(() => {
           title={`Review ${approvalPlan.label}`}
           maxWidth="680px"
           restoreFocusTo={approvalFocusTargetRef.current}
+          hostRoleDialog
+          actions={
+            <>
+              <ui5-button
+                design="Transparent"
+                disabled={decisionSubmitting}
+                onClick={() => setApprovalPlan(null)}
+                accessibleName="Cancel"
+              >
+                Cancel
+              </ui5-button>
+              {isBlockedPlan ? (
+                <>
+                  <ui5-button
+                    design="Positive"
+                    disabled={true}
+                    title="Plan is blocked by fixture checks"
+                    accessibleName="Approve plan"
+                  >
+                    Approve plan
+                  </ui5-button>
+                  <ui5-button
+                    design="Negative"
+                    disabled={decisionSubmitting || !actorCanApprove}
+                    onClick={submitApproval}
+                    accessibleName="Attempt approval (blocked)"
+                  >
+                    {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
+                  </ui5-button>
+                </>
+              ) : (
+                <ui5-button
+                  design="Positive"
+                  disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
+                  onClick={submitApproval}
+                  accessibleName="Approve plan"
+                >
+                  {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
+                </ui5-button>
+              )}
+            </>
+          }
         >
           <dl className="finding-details" style={{ margin: 0 }}>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>
@@ -626,7 +742,7 @@ const closeApproval = useCallback(() => {
               <dd className="hash-value" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 0, color: 'var(--color-text)', fontSize: 'var(--text-sm)', overflowWrap: 'anywhere' }}>
                 <span title={approvalPlan.plan_hash}>{approvalPlan.plan_hash.slice(0, 12)}…</span>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>{approvalPlan.plan_hash}</span>
-                <button className="neu-btn neu-btn-secondary" style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)' }} onClick={() => { navigator.clipboard.writeText(approvalPlan.plan_hash); setDemoMessage('Plan hash copied to clipboard'); setTimeout(() => setDemoMessage(''), 2000) }}>Copy</button>
+                <button className="ae-btn ae-btn-secondary" style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)' }} onClick={() => { navigator.clipboard.writeText(approvalPlan.plan_hash); setDemoMessage('Plan hash copied to clipboard'); setTimeout(() => setDemoMessage(''), 2000) }}>Copy</button>
               </dd>
             </div>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>
@@ -691,8 +807,8 @@ const closeApproval = useCallback(() => {
           )}
           {approvalDisabledReason && <p className="blocked-reason" style={{ marginBottom: 'var(--space-3)', color: 'var(--color-error-text)' }}>{approvalDisabledReason}</p>}
 
-          <label className="neu-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>(optional for approval)</span></label>
-          <textarea id="approval-justification" className="neu-textarea" value={decisionJustification} onChange={(e) => setDecisionJustification(e.target.value)} maxLength={1000} rows={3} placeholder="Record the reason for this approval" />
+          <label className="ae-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>(optional for approval)</span></label>
+          <textarea id="approval-justification" className="ae-textarea" value={decisionJustification} onChange={(e) => setDecisionJustification(e.target.value)} maxLength={1000} rows={3} placeholder="Record the reason for this approval" />
 
           <section className="acknowledgement-section" style={{ marginTop: 'var(--space-5)' }}>
             <h3 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Required acknowledgements</h3>
@@ -711,9 +827,9 @@ const closeApproval = useCallback(() => {
                       <input type="checkbox" disabled={!canAcknowledge} checked={value.checked} onChange={(e) => setAcknowledgements((prev) => ({ ...prev, [finding.finding_id]: { ...value, checked: e.target.checked } }))} style={{ width: 24, height: 24, accentColor: 'var(--color-primary)' }} />
                       I acknowledge this review finding
                     </label>
-                    {!canAcknowledge && <p className="neu-hint" style={{ color: 'var(--color-error)' }}>Switch to an actor with the required role before acknowledging.</p>}
-                    <label className="neu-label" htmlFor={`ack-note-${finding.finding_id}`}>Acknowledgement note</label>
-                    <textarea id={`ack-note-${finding.finding_id}`} className="neu-textarea" value={value.note} disabled={!canAcknowledge} minLength={5} maxLength={500} rows={2} onChange={(e) => setAcknowledgements((prev) => ({ ...prev, [finding.finding_id]: { ...value, note: e.target.value } }))} />
+                    {!canAcknowledge && <p className="ae-hint" style={{ color: 'var(--color-error)' }}>Switch to an actor with the required role before acknowledging.</p>}
+                    <label className="ae-label" htmlFor={`ack-note-${finding.finding_id}`}>Acknowledgement note</label>
+                    <textarea id={`ack-note-${finding.finding_id}`} className="ae-textarea" value={value.note} disabled={!canAcknowledge} minLength={5} maxLength={500} rows={2} onChange={(e) => setAcknowledgements((prev) => ({ ...prev, [finding.finding_id]: { ...value, note: e.target.value } }))} />
                   </fieldset>
                 )
               })
@@ -724,8 +840,8 @@ const closeApproval = useCallback(() => {
             <section className="amendment-section" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Request LC amendment</h3>
               <p style={{ marginBottom: 'var(--space-3)' }}>{amendableFindings.map((finding) => finding.title).join('; ')}. The plan stays blocked until the bank accepts the amendment and the plan is re-evaluated.</p>
-              <div className="neu-table-wrap">
-                <table className="neu-table">
+              <div className="ae-table-wrap">
+                <table className="ae-table">
                   <caption>Requested changes to {amendmentLcId}</caption>
                   <thead>
                     <tr><th scope="col">Field</th><th scope="col">Current</th><th scope="col">Requested</th></tr>
@@ -738,14 +854,51 @@ const closeApproval = useCallback(() => {
                         <td>{change.to}</td>
                       </tr>
                     ))}
+                    <tr>
+                      <td>44C</td>
+                      <td>2026-11-05</td>
+                      <td>{amendmentShipmentDate}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
-              <p className="neu-hint">Uses the justification above (at least 10 characters). Role: trade compliance officer.</p>
-              <NeuButton variant="secondary" disabled={decisionSubmitting || Boolean(amendmentDisabledReason) || Boolean(amendmentResult)} onClick={submitAmendment}>
+
+              {/* Field 44C Shipment Date Picker */}
+              <div style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                <label className="ae-label" htmlFor="lc-44c-shipment-date">Field 44C: Latest Date of Shipment</label>
+                <ui5-date-picker
+                  id="lc-44c-shipment-date"
+                  value={amendmentShipmentDate}
+                  formatPattern="yyyy-MM-dd"
+                  onChange={(e: React.FormEvent<HTMLElement>) => {
+                    const target = e.target as (EventTarget & { value?: string }) | null;
+                    if (target?.value) setAmendmentShipmentDate(target.value);
+                  }}
+                />
+                <p className="ae-hint">Current LC shipment date: 2026-11-05. Proposed amendment extends shipment window.</p>
+              </div>
+
+              {!actorCanAmend && (
+                <div style={{ margin: 'var(--space-2) 0' }}>
+                  <p className="ae-hint" style={{ color: 'var(--color-error)' }}>
+                    Current actor lacks trade compliance role. Switch to trade compliance officer to submit:
+                  </p>
+                  <button
+                    type="button"
+                    className="ae-btn ae-btn-secondary"
+                    onClick={() => setActorId('USR-ARJUN')}
+                    style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)', marginTop: 'var(--space-1)' }}
+                  >
+                    Switch to Arjun M. (Trade Compliance Officer)
+                  </button>
+                </div>
+              )}
+
+              <p className="ae-hint">Uses the justification above (at least 10 characters). Role: trade compliance officer.</p>
+              <NeuButton design="Default" variant="secondary" disabled={decisionSubmitting || Boolean(amendmentDisabledReason) || Boolean(amendmentResult)} onClick={submitAmendment}>
                 {decisionSubmitting ? 'Submitting…' : 'Request LC amendment'}
               </NeuButton>
-              {amendmentDisabledReason && !amendmentResult && <p className="neu-hint" style={{ color: 'var(--color-error)' }}>{amendmentDisabledReason}</p>}
+              {amendmentDisabledReason && !amendmentResult && <p className="ae-hint" style={{ color: 'var(--color-error)' }}>{amendmentDisabledReason}</p>}
               {amendmentResult && <p className="approval-note" role="status" style={{ marginTop: 'var(--space-3)' }}>Amendment request {amendmentResult.amendment_request_id} recorded by {amendmentResult.actor.display_name ?? amendmentResult.actor.actor_id}. Plan {amendmentResult.plan_id} stays {amendmentResult.resulting_plan_status}.</p>}
             </section>
           )}
@@ -762,35 +915,6 @@ const closeApproval = useCallback(() => {
             </div>
           )}
 
-          <div className="neu-dialog-actions">
-            <NeuButton variant="secondary" disabled={decisionSubmitting} onClick={() => setApprovalPlan(null)}>Cancel</NeuButton>
-            {isBlockedPlan ? (
-              <>
-                <NeuButton
-                  variant="primary"
-                  disabled={true}
-                  title="Plan is blocked by fixture checks"
-                >
-                  Approve plan
-                </NeuButton>
-                <NeuButton
-                  variant="secondary"
-                  disabled={decisionSubmitting || !actorCanApprove}
-                  onClick={submitApproval}
-                >
-                  {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
-                </NeuButton>
-              </>
-            ) : (
-              <NeuButton
-                variant="primary"
-                disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
-                onClick={submitApproval}
-              >
-                {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
-              </NeuButton>
-            )}
-          </div>
         </Modal>
       )}
 
@@ -859,22 +983,22 @@ const closeApproval = useCallback(() => {
           {/* Evidence Tabs */}
           <div role="tablist" aria-label="Evidence types" style={{ display: 'flex', gap: 'var(--space-1)', marginTop: 'var(--space-3)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>
             {graphEvidence.length > 0 && (
-              <button role="tab" aria-selected={activeEvidenceTab === 'graph'} onClick={() => setActiveEvidenceTab('graph')} className={`neu-pill ${activeEvidenceTab === 'graph' ? 'active' : ''}`}>
+              <button role="tab" aria-selected={activeEvidenceTab === 'graph'} onClick={() => setActiveEvidenceTab('graph')} className={`ae-pill ${activeEvidenceTab === 'graph' ? 'active' : ''}`}>
                 Graph
               </button>
             )}
             {lcEvidence.length > 0 && (
-              <button role="tab" aria-selected={activeEvidenceTab === 'lc'} onClick={() => setActiveEvidenceTab('lc')} className={`neu-pill ${activeEvidenceTab === 'lc' ? 'active' : ''}`}>
+              <button role="tab" aria-selected={activeEvidenceTab === 'lc'} onClick={() => setActiveEvidenceTab('lc')} className={`ae-pill ${activeEvidenceTab === 'lc' ? 'active' : ''}`}>
                 Letter of Credit
               </button>
             )}
             {selectedRouteRules && (
-              <button role="tab" aria-selected={activeEvidenceTab === 'rules'} onClick={() => setActiveEvidenceTab('rules')} className={`neu-pill ${activeEvidenceTab === 'rules' ? 'active' : ''}`}>
+              <button role="tab" aria-selected={activeEvidenceTab === 'rules'} onClick={() => setActiveEvidenceTab('rules')} className={`ae-pill ${activeEvidenceTab === 'rules' ? 'active' : ''}`}>
                 Rules
               </button>
             )}
             {linkedEvidence.some((e) => e.kind !== 'graph_path' && e.kind !== 'lc_field' && e.kind !== 'rule_passage') && (
-              <button role="tab" aria-selected={activeEvidenceTab === 'record'} onClick={() => setActiveEvidenceTab('record')} className={`neu-pill ${activeEvidenceTab === 'record' ? 'active' : ''}`}>
+              <button role="tab" aria-selected={activeEvidenceTab === 'record'} onClick={() => setActiveEvidenceTab('record')} className={`ae-pill ${activeEvidenceTab === 'record' ? 'active' : ''}`}>
                 Record
               </button>
             )}
@@ -919,8 +1043,8 @@ const closeApproval = useCallback(() => {
             <section className="evidence-section rules-panel" role="tabpanel" aria-label="Trade rule evidence" hidden={activeEvidenceTab !== 'rules'} style={{ marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border-light)' }}>
               <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Trade-rule results</h3>
               <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>Route {selectedFinding.subject.id} · applicable on {selectedRouteRules.query.applicable_on} · origin {selectedRouteRules.query.origin_country} · transit {selectedRouteRules.query.transit_countries.join(', ') || 'none recorded'}.</p>
-              <div className="neu-table-wrap" role="region" aria-label="Route rules table" tabIndex={0} style={{ margin: 'var(--space-2) 0' }}>
-                <table className="neu-table" style={{ minWidth: 630, fontSize: 'var(--text-xs)' }}>
+              <div className="ae-table-wrap" role="region" aria-label="Route rules table" tabIndex={0} style={{ margin: 'var(--space-2) 0' }}>
+                <table className="ae-table" style={{ minWidth: 630, fontSize: 'var(--text-xs)' }}>
                   <caption>Rules included in the evaluation response</caption>
                   <thead>
                     <tr><th scope="col">Rule</th><th scope="col">Type / rate</th><th scope="col">Effective</th><th scope="col">Authority</th><th scope="col">Result</th></tr>
@@ -953,7 +1077,7 @@ const closeApproval = useCallback(() => {
                   </tbody>
                 </table>
               </div>
-              {selectedRouteRules.excluded.length > 0 && <p className="neu-hint" style={{ marginTop: 'var(--space-2)' }}>Excluded-rule dates and authority are not included in the evaluation API result; their exclusion reasons above are shown verbatim from that result.</p>}
+              {selectedRouteRules.excluded.length > 0 && <p className="ae-hint" style={{ marginTop: 'var(--space-2)' }}>Excluded-rule dates and authority are not included in the evaluation API result; their exclusion reasons above are shown verbatim from that result.</p>}
               {selectedRouteRules.conflicts.length > 0 && (
                 <div style={{ marginTop: 'var(--space-3)' }}>
                   <h4 style={{ margin: '0 0 var(--space-1)', color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}>Resolved conflicts</h4>
@@ -962,7 +1086,7 @@ const closeApproval = useCallback(() => {
                   ))}
                 </div>
               )}
-              {selectedRouteRules.missing_rule_types.length > 0 && <p className="neu-hint" style={{ color: 'var(--color-error)' }}>No result for: {selectedRouteRules.missing_rule_types.join(', ')}</p>}
+              {selectedRouteRules.missing_rule_types.length > 0 && <p className="ae-hint" style={{ color: 'var(--color-error)' }}>No result for: {selectedRouteRules.missing_rule_types.join(', ')}</p>}
             </section>
           )}
 
@@ -1042,11 +1166,9 @@ const closeApproval = useCallback(() => {
       )}
 
       {demoMessage && (
-        <div style={{ position: 'fixed', bottom: 'var(--space-6)', right: 'var(--space-6)', zIndex: 'var(--z-toast)', maxWidth: '400px' }}>
-          <NeuCard variant="raised-lg" style={{ padding: 'var(--space-4)', boxShadow: 'var(--shadow-neu-raised-lg)' }}>
-            <p role="status" style={{ margin: 0, color: 'var(--color-text)', fontSize: 'var(--text-sm)' }}>{demoMessage}</p>
-          </NeuCard>
-        </div>
+        <ui5-toast id="demo-toast" ref={toastRef}>
+          {demoMessage}
+        </ui5-toast>
       )}
     </>
   )

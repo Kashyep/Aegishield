@@ -1,7 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import '@ui5/webcomponents/dist/Dialog.js';
+import '@ui5/webcomponents/dist/Bar.js';
+import '@ui5/webcomponents/dist/Button.js';
+import '@ui5/webcomponents/dist/DatePicker.js';
+import '@ui5/webcomponents/dist/Title.js';
 
-interface ModalProps {
+// A ui5-bar with a label but no role fails axe (aria-prohibited-attr), so give the footer a toolbar role and name.
+// Passed as a spread because ui5.d.ts does not type accessibleRole on ui5-bar.
+const footerBarA11y = { accessibleRole: 'Toolbar', accessibleName: 'Dialog actions' };
+
+export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -9,27 +18,57 @@ interface ModalProps {
   actions?: React.ReactNode;
   maxWidth?: string;
   className?: string;
-  restoreFocusTo?: HTMLElement | null
+  restoreFocusTo?: HTMLElement | null;
+  /** Put role="dialog" on the ui5-dialog host so the footer is inside the dialog's accessible tree. */
+  hostRoleDialog?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, actions, maxWidth, restoreFocusTo, className = '' }: ModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  actions,
+  maxWidth,
+  restoreFocusTo,
+  className = '',
+  hostRoleDialog = false,
+}: ModalProps) {
+  const dialogRef = useRef<HTMLElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const isClosingRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      isClosingRef.current = false;
+      previouslyFocused.current = restoreFocusTo ?? (document.activeElement as HTMLElement);
+      const frame = requestAnimationFrame(() => {
+        dialogRef.current?.focus();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [isOpen, restoreFocusTo]);
+
+  const handleClose = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
-    previouslyFocused.current = restoreFocusTo ?? (document.activeElement as HTMLElement);
-    dialogRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        event.stopPropagation();
+        handleClose();
         return;
       }
       if (event.key !== 'Tab' || !dialogRef.current) return;
 
+      // Keep Tab focus cycling inside the dialog.
       const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex="0"]'
+        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex="0"], ui5-button:not([disabled])'
       );
       if (focusable.length === 0) return;
 
@@ -39,7 +78,11 @@ export function Modal({ isOpen, onClose, title, children, actions, maxWidth, res
 
       if (active === dialogRef.current || !dialogRef.current.contains(active)) {
         event.preventDefault();
-        first.focus();
+        if (event.shiftKey) {
+          last.focus();
+        } else {
+          first.focus();
+        }
       } else if (event.shiftKey && active === first) {
         event.preventDefault();
         last.focus();
@@ -50,57 +93,88 @@ export function Modal({ isOpen, onClose, title, children, actions, maxWidth, res
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
       const trigger = restoreFocusTo ?? previouslyFocused.current;
-
-if (trigger?.isConnected) {
-  requestAnimationFrame(() => {
-    if (trigger.isConnected) {
-      trigger.focus();
-    }
-  });
-}
+      if (trigger?.isConnected) {
+        requestAnimationFrame(() => {
+          if (trigger.isConnected) {
+            trigger.focus();
+          }
+        });
+      }
     };
-  }, [isOpen, onClose, restoreFocusTo])
+  }, [isOpen, handleClose, restoreFocusTo]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const onUi5Close = () => {
+      handleClose();
+    };
+
+    dialog.addEventListener('close', onUi5Close);
+    return () => {
+      dialog.removeEventListener('close', onUi5Close);
+    };
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="neu-backdrop" onClick={onClose} role="presentation">
-      <section
-        ref={dialogRef}
-        className={`neu-modal ${className}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        tabIndex={-1}
-        style={{ maxWidth: maxWidth || 'var(--modal-max-width)' }}
-        onClick={(e) => e.stopPropagation()}
+    <ui5-dialog
+      ref={dialogRef}
+      open={true}
+      headerText={title}
+      accessibleName={title}
+      accessibleRole={hostRoleDialog ? 'None' : 'Dialog'}
+      role={hostRoleDialog ? 'dialog' : undefined}
+      aria-label={hostRoleDialog ? title : undefined}
+      aria-modal={hostRoleDialog ? 'true' : undefined}
+      className={`ae-modal neu-modal ${className}`}
+      style={{
+        maxWidth: maxWidth || 'var(--modal-max-width, 680px)',
+        width: '92vw',
+      }}
+      onclose={handleClose}
+    >
+      <div
+        className="ae-dialog-content"
+        style={{
+          padding: 'var(--space-2) var(--space-4)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-3)',
+          color: 'var(--sapTextColor)',
+          fontFamily: "'72', sans-serif",
+        }}
       >
-        <header className="neu-dialog-header">
-          <div>
-            <h2 id="modal-title">{title}</h2>
+        {children}
+      </div>
+      {actions && (
+        <ui5-bar slot="footer" design="Footer" {...footerBarA11y}>
+          <div
+            slot="endContent"
+            style={{
+              display: 'flex',
+              gap: 'var(--space-2)',
+              alignItems: 'center',
+            }}
+          >
+            {actions}
           </div>
-          <button className="neu-dialog-close" onClick={onClose} aria-label="Close dialog">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </header>
-        <section aria-label={title}>{children}</section>
-        {actions && <footer className="neu-dialog-actions">{actions}</footer>}
-      </section>
-    </div>
+        </ui5-bar>
+      )}
+    </ui5-dialog>
   );
 
   return createPortal(modalContent, document.body);
 }
 
-interface ConfirmDialogProps {
+export interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -123,27 +197,48 @@ export function ConfirmDialog({
   variant = 'primary',
   isLoading = false,
 }: ConfirmDialogProps) {
+  const confirmDesign = variant === 'danger' ? 'Negative' : 'Emphasized';
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      maxWidth="400px"
+      maxWidth="420px"
+      hostRoleDialog
+      actions={
+        <>
+          <ui5-button
+            design="Transparent"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            {cancelLabel}
+          </ui5-button>
+          <ui5-button
+            design={confirmDesign}
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing…' : confirmLabel}
+          </ui5-button>
+        </>
+      }
     >
-      <p className="approval-note" style={{ marginBottom: 'var(--space-4)' }}>{message}</p>
-      <div className="neu-dialog-actions">
-        <button className="neu-btn neu-btn-secondary" onClick={onClose} disabled={isLoading}>
-          {cancelLabel}
-        </button>
-        <button
-          className={`neu-btn ${variant === 'danger' ? 'neu-btn-primary' : 'neu-btn-primary'}`}
-          onClick={() => { onConfirm(); onClose(); }}
-          disabled={isLoading}
-          style={variant === 'danger' ? { background: 'var(--color-error)', borderColor: 'var(--color-error)' } : {}}
-        >
-          {isLoading ? 'Processing…' : confirmLabel}
-        </button>
-      </div>
+      <p
+        className="approval-note"
+        style={{
+          margin: 'var(--space-2) 0',
+          color: 'var(--sapTextColor)',
+          fontSize: 'var(--text-sm)',
+          lineHeight: 'var(--leading-relaxed)',
+        }}
+      >
+        {message}
+      </p>
     </Modal>
   );
 }

@@ -1,0 +1,231 @@
+{
+  "schema_version": "1.1.0",
+  "dataset_id": "SCN-DEMO-001",
+  "synthetic": true,
+  "as_of": "2026-10-26T09:00:00+05:30",
+  "disclaimer": "Simulated: Synthetic supply chain network topology and operational metrics. For recovery preflight simulation only.",
+  "total_on_hand": 4020,
+  "total_in_transit": 900,
+  "nodes": [
+    {
+      "node_id": "FAC-KAV-BLR",
+      "label": "Kaveri Bengaluru plant",
+      "role": "buyer_plant",
+      "country": "IN",
+      "supplier_id": null,
+      "status": "operational",
+      "status_reason": "Primary assembly facility operational; inventory buffer active",
+      "inventory_on_hand": 250,
+      "stock_in_transit": 900,
+      "movement_history": [220, 240, 260, 250, 270, 260, 250],
+      "inventory_cover_days": 12.0
+    },
+    {
+      "node_id": "FAC-A-PEN",
+      "label": "Penang module assembly",
+      "role": "module_assembly",
+      "country": "MY",
+      "supplier_id": "SUP-A",
+      "status": "warning",
+      "status_reason": "Primary supplier facing upstream wafer fab disruption at Kulim (FAC-FABZ)",
+      "inventory_on_hand": 450,
+      "stock_in_transit": 0,
+      "movement_history": [300, 320, 310, 280, 250, 180, 120],
+      "inventory_cover_days": 6.0
+    },
+    {
+      "node_id": "FAC-B-CHB",
+      "label": "Chonburi module assembly",
+      "role": "module_assembly",
+      "country": "TH",
+      "supplier_id": "SUP-B",
+      "status": "operational",
+      "status_reason": "Alternate candidate P1 ready; LC amendment required for non-AIFTA routing",
+      "inventory_on_hand": 600,
+      "stock_in_transit": 0,
+      "movement_history": [150, 180, 200, 210, 220, 230, 240],
+      "inventory_cover_days": 18.0
+    },
+    {
+      "node_id": "FAC-C-BDG",
+      "label": "Binh Duong module assembly",
+      "role": "module_assembly",
+      "country": "VN",
+      "supplier_id": "SUP-C",
+      "status": "operational",
+      "status_reason": "AIFTA compliant candidate P2; unimpacted by Kulim fab disruption",
+      "inventory_on_hand": 520,
+      "stock_in_transit": 0,
+      "movement_history": [180, 190, 210, 200, 220, 240, 250],
+      "inventory_cover_days": 22.0
+    },
+    {
+      "node_id": "FAC-Q-KDH",
+      "label": "Kedah die sort and dicing",
+      "role": "die_processing",
+      "country": "MY",
+      "supplier_id": null,
+      "status": "warning",
+      "status_reason": "Dependent on Kulim fab die output; inventory cover thinning",
+      "inventory_on_hand": 180,
+      "stock_in_transit": 0,
+      "movement_history": [140, 150, 130, 120, 100, 80, 60],
+      "inventory_cover_days": 4.0
+    },
+    {
+      "node_id": "FAC-VDIE",
+      "label": "Hanoi die distribution",
+      "role": "die_processing",
+      "country": "VN",
+      "supplier_id": null,
+      "status": "operational",
+      "status_reason": "Sourced from Kumgang Gumi fab; operations normal",
+      "inventory_on_hand": 340,
+      "stock_in_transit": 0,
+      "movement_history": [110, 120, 115, 125, 130, 128, 135],
+      "inventory_cover_days": 20.0
+    },
+    {
+      "node_id": "FAC-FABZ",
+      "label": "Zenith Kulim wafer fab",
+      "role": "wafer_fab",
+      "country": "MY",
+      "supplier_id": null,
+      "status": "disrupted",
+      "status_reason": "DIS-2026-0042 flash flood in Kulim Hi-Tech Park; cleanroom shutdown",
+      "inventory_on_hand": 50,
+      "stock_in_transit": 0,
+      "movement_history": [500, 520, 510, 480, 300, 100, 0],
+      "inventory_cover_days": 1.0
+    },
+    {
+      "node_id": "FAC-FABK",
+      "label": "Kumgang Gumi wafer fab",
+      "role": "wafer_fab",
+      "country": "KR",
+      "supplier_id": null,
+      "status": "operational",
+      "status_reason": "Independent wafer fab in Gumi, South Korea; full capacity",
+      "inventory_on_hand": 850,
+      "stock_in_transit": 0,
+      "movement_history": [400, 420, 410, 430, 440, 450, 460],
+      "inventory_cover_days": 35.0
+    },
+    {
+      "node_id": "FAC-SUBS",
+      "label": "Shah Alam ceramic substrates",
+      "role": "material_supplier",
+      "country": "MY",
+      "supplier_id": null,
+      "status": "operational",
+      "status_reason": "Substrate production normal; supplying Penang and Binh Duong",
+      "inventory_on_hand": 400,
+      "stock_in_transit": 0,
+      "movement_history": [200, 210, 205, 215, 220, 210, 225],
+      "inventory_cover_days": 25.0
+    },
+    {
+      "node_id": "FAC-TSUB",
+      "label": "Rayong substrate works",
+      "role": "material_supplier",
+      "country": "TH",
+      "supplier_id": null,
+      "status": "operational",
+      "status_reason": "Substrate supplier for Chonburi assembly; normal operations",
+      "inventory_on_hand": 380,
+      "stock_in_transit": 0,
+      "movement_history": [180, 190, 185, 195, 200, 190, 205],
+      "inventory_cover_days": 24.0
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "E-001",
+      "source": "FAC-A-PEN",
+      "target": "FAC-KAV-BLR",
+      "part_id": "PRT-PM750",
+      "in_transit_qty": 900,
+      "status": "delayed"
+    },
+    {
+      "edge_id": "E-002",
+      "source": "FAC-FABZ",
+      "target": "FAC-A-PEN",
+      "part_id": "PRT-IGBT-DIE",
+      "in_transit_qty": 0,
+      "status": "disrupted"
+    },
+    {
+      "edge_id": "E-003",
+      "source": "FAC-SUBS",
+      "target": "FAC-A-PEN",
+      "part_id": "PRT-DBC-SUB",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-004",
+      "source": "FAC-Q-KDH",
+      "target": "FAC-B-CHB",
+      "part_id": "PRT-IGBT-DIE",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-005",
+      "source": "FAC-FABZ",
+      "target": "FAC-Q-KDH",
+      "part_id": "PRT-IGBT-DIE",
+      "in_transit_qty": 0,
+      "status": "disrupted"
+    },
+    {
+      "edge_id": "E-006",
+      "source": "FAC-TSUB",
+      "target": "FAC-B-CHB",
+      "part_id": "PRT-DBC-SUB",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-007",
+      "source": "FAC-VDIE",
+      "target": "FAC-C-BDG",
+      "part_id": "PRT-IGBT-DIE",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-008",
+      "source": "FAC-FABK",
+      "target": "FAC-VDIE",
+      "part_id": "PRT-IGBT-DIE",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-009",
+      "source": "FAC-SUBS",
+      "target": "FAC-C-BDG",
+      "part_id": "PRT-DBC-SUB",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-010",
+      "source": "FAC-B-CHB",
+      "target": "FAC-KAV-BLR",
+      "part_id": "PRT-PM750",
+      "in_transit_qty": 0,
+      "status": "active"
+    },
+    {
+      "edge_id": "E-011",
+      "source": "FAC-C-BDG",
+      "target": "FAC-KAV-BLR",
+      "part_id": "PRT-PM750",
+      "in_transit_qty": 0,
+      "status": "active"
+    }
+  ]
+}

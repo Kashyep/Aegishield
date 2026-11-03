@@ -489,3 +489,41 @@ export type EarlyWarningResult = {
   excluded_signals: EarlyWarningExcludedSignal[]
   evidence: Evidence[]
 }
+
+export type SupplyNetworkNodeStatus = 'operational' | 'disrupted' | 'warning' | 'at_risk' | 'monitored'
+export type SupplyNetworkEdgeStatus = 'active' | 'delayed' | 'disrupted'
+
+export type SupplyNetworkNode = {
+  node_id: string
+  label: string
+  role: string
+  country: string
+  supplier_id: string | null
+  status: SupplyNetworkNodeStatus
+  status_reason: string
+  inventory_on_hand: number
+  stock_in_transit: number
+  movement_history: number[]
+  inventory_cover_days?: number
+}
+
+export type SupplyNetworkEdge = {
+  edge_id: string
+  source: string
+  target: string
+  part_id: string
+  in_transit_qty: number
+  status: SupplyNetworkEdgeStatus
+}
+
+export type SupplyNetwork = {
+  schema_version: string
+  dataset_id: string
+  synthetic: boolean
+  as_of: string
+  disclaimer: string
+  total_on_hand: number
+  total_in_transit: number
+  nodes: SupplyNetworkNode[]
+  edges: SupplyNetworkEdge[]
+}

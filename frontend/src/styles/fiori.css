@@ -1,0 +1,689 @@
+/* ==========================================================================
+   Fiori Horizon Component Utilities (AegisShield)
+   Uses SAP Fiori 72 typography and SAP Horizon CSS custom properties
+   ========================================================================== */
+
+/* -------------------------------------------------------------------------
+   Base Card — Fiori Horizon Surface
+   ------------------------------------------------------------------------- */
+.ae-card {
+  background: var(--sapTile_Background);
+  border: 1px solid var(--sapTile_BorderColor);
+  border-radius: .5rem;
+  box-shadow: var(--sapContent_Shadow0);
+  transition:
+    border-color var(--duration-fast) var(--easing-standard),
+    box-shadow var(--duration-fast) var(--easing-standard);
+}
+
+.ae-card.raised,
+.ae-card.raised-lg,
+.ae-card.subtle,
+.ae-card.pressed,
+.ae-card.inset {
+  background: var(--sapTile_Background);
+  border: 1px solid var(--sapTile_BorderColor);
+  border-radius: .5rem;
+  box-shadow: var(--sapContent_Shadow0);
+}
+
+.ae-card.interactive {
+  cursor: pointer;
+}
+
+.ae-card.interactive:hover {
+  border-color: var(--sapBrandColor);
+  box-shadow: var(--sapContent_Shadow1);
+}
+
+.ae-card.interactive:focus-visible {
+  outline: 2px solid var(--sapContent_FocusColor);
+  outline-offset: 2px;
+}
+
+/* 4px Left Accents */
+.ae-card.accent-negative,
+.accent-negative {
+  border-left: 4px solid var(--sapNegativeColor) !important;
+}
+
+.ae-card.accent-positive,
+.accent-positive {
+  border-left: 4px solid var(--sapPositiveColor) !important;
+}
+
+.ae-card.accent-critical,
+.accent-critical {
+  border-left: 4px solid var(--sapCriticalColor) !important;
+}
+
+.ae-card.accent-informative,
+.accent-informative {
+  border-left: 4px solid var(--sapInformativeColor) !important;
+}
+
+/* -------------------------------------------------------------------------
+   Buttons — Fiori Horizon
+   ------------------------------------------------------------------------- */
+.ae-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  font-family: var(--font-body);
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard);
+}
+
+.ae-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ae-btn-primary {
+  background: var(--sapButton_Emphasized_Background, var(--sapBrandColor));
+  color: var(--sapButton_Emphasized_TextColor, var(--sapContent_ContrastTextColor));
+  border-color: var(--sapButton_Emphasized_BorderColor, var(--sapBrandColor));
+}
+
+.ae-btn-primary:hover:not(:disabled) {
+  background: var(--sapButton_Emphasized_Hover_Background, var(--sapBrandColor));
+}
+
+.ae-btn-secondary {
+  background: var(--sapButton_Background, transparent);
+  color: var(--sapButton_TextColor, var(--sapBrandColor));
+  border-color: var(--sapButton_BorderColor, var(--sapTile_BorderColor));
+}
+
+.ae-btn-secondary:hover:not(:disabled) {
+  background: var(--sapButton_Hover_Background, var(--sapHighlightColor));
+  border-color: var(--sapBrandColor);
+}
+
+.ae-btn-ghost {
+  background: transparent;
+  color: var(--sapContent_LabelColor);
+  border-color: transparent;
+  padding: var(--space-1) var(--space-3);
+}
+
+.ae-btn-ghost:hover:not(:disabled) {
+  color: var(--sapTextColor);
+  background: var(--sapGroup_ContentBackground);
+}
+
+.ae-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+
+.ae-btn-icon.sm {
+  width: 28px;
+  height: 28px;
+}
+
+.ae-btn-lg {
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-md);
+}
+
+.ae-btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+/* -------------------------------------------------------------------------
+   Form Inputs — Fiori Horizon
+   ------------------------------------------------------------------------- */
+.ae-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.ae-input {
+  width: 100%;
+  background: var(--sapField_Background, var(--sapTile_Background));
+  border: 1px solid var(--sapField_BorderColor, var(--sapTile_BorderColor));
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  color: var(--sapTextColor);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  transition: border-color var(--duration-fast) var(--easing-standard);
+}
+
+.ae-input::placeholder {
+  color: var(--sapContent_LabelColor);
+}
+
+.ae-input:hover:not(:disabled):not(:focus) {
+  border-color: var(--sapField_Hover_BorderColor, var(--sapBrandColor));
+}
+
+.ae-input:focus {
+  outline: 2px solid var(--sapContent_FocusColor);
+  outline-offset: 1px;
+  border-color: var(--sapBrandColor);
+}
+
+.ae-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ae-input-error {
+  border-color: var(--sapNegativeColor);
+}
+
+.ae-input-error:focus {
+  outline: 2px solid var(--sapNegativeColor);
+}
+
+.ae-textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: var(--font-body);
+}
+
+.ae-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23556b82' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-10);
+}
+
+/* -------------------------------------------------------------------------
+   Labels vs Values (D8 Typography)
+   Label: --sapContent_LabelColor, regular (font-weight: 400)
+   Value: --sapTextColor, semibold (font-weight: 600)
+   ------------------------------------------------------------------------- */
+.ae-label,
+.field-label,
+.form-label,
+.metric-label,
+.section-label,
+.ae-audit-label,
+.facility-details dt,
+.finding-details dt,
+.detail-list dt,
+.ae-finding-details dt,
+dt {
+  color: var(--sapContent_LabelColor);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  font-family: var(--font-body);
+}
+
+.ae-label {
+  display: block;
+  margin-bottom: var(--space-1);
+  letter-spacing: var(--tracking-wide);
+}
+
+.ae-value,
+.field-value,
+.metric-value,
+.facility-details dd,
+.finding-details dd,
+.detail-list dd,
+.ae-finding-details dd,
+dd {
+  color: var(--sapTextColor);
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+.ae-hint {
+  margin-top: var(--space-1);
+  color: var(--sapContent_LabelColor);
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
+}
+
+.ae-checkbox,
+.ae-radio {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--sapBrandColor);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Chips / Pills / Tags
+   ------------------------------------------------------------------------- */
+.ae-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.ae-chip-primary {
+  background: var(--sapHighlightColor);
+  color: var(--sapContent_ContrastTextColor);
+}
+
+.ae-chip-success {
+  background: var(--sapPositiveBackground);
+  color: var(--sapPositiveTextColor);
+}
+
+.ae-chip-warning {
+  background: var(--sapCriticalBackground);
+  color: var(--sapCriticalTextColor);
+}
+
+.ae-chip-error {
+  background: var(--sapNegativeBackground);
+  color: var(--sapNegativeTextColor);
+}
+
+.ae-chip-info {
+  background: var(--sapInformativeBackground);
+  color: var(--sapInformativeTextColor);
+}
+
+.ae-chip-neutral {
+  background: var(--sapGroup_ContentBackground);
+  color: var(--sapContent_LabelColor);
+}
+
+.ae-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--sapTile_BorderColor);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--sapContent_LabelColor);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard);
+}
+
+.ae-pill:hover:not(:disabled) {
+  background: var(--sapGroup_ContentBackground);
+  color: var(--sapTextColor);
+}
+
+.ae-pill.active,
+.ae-pill[aria-selected="true"] {
+  background: var(--sapBrandColor);
+  color: var(--sapContent_ContrastTextColor);
+  border-color: var(--sapBrandColor);
+}
+
+.ae-pill:focus-visible {
+  outline: 2px solid var(--sapContent_FocusColor);
+  outline-offset: 2px;
+}
+
+.ae-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------------------
+   Modal / Drawer / Dialog
+   ------------------------------------------------------------------------- */
+.ae-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: var(--z-modal-backdrop);
+}
+
+.ae-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: var(--z-drawer-backdrop);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ae-modal {
+  position: relative;
+  width: min(var(--modal-max-width), calc(100% - var(--space-6)));
+  max-height: min(90vh, 900px);
+  overflow-y: auto;
+  margin: auto;
+  padding: var(--space-6);
+  background: var(--sapTile_Background);
+  border: 1px solid var(--sapTile_BorderColor);
+  border-radius: .5rem;
+  box-shadow: var(--sapContent_Shadow2);
+  z-index: var(--z-modal);
+}
+
+.ae-drawer {
+  position: relative;
+  width: min(var(--drawer-width), 100%);
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-6);
+  background: var(--sapTile_Background);
+  border-left: 1px solid var(--sapTile_BorderColor);
+  box-shadow: var(--sapContent_Shadow3);
+  z-index: var(--z-drawer);
+}
+
+.ae-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+.ae-dialog-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-family: var(--font-heading);
+  color: var(--sapTextColor);
+}
+
+.ae-dialog-close {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--sapTile_BorderColor);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--sapContent_LabelColor);
+  cursor: pointer;
+}
+
+.ae-dialog-close:hover {
+  background: var(--sapGroup_ContentBackground);
+  color: var(--sapTextColor);
+}
+
+.ae-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+/* -------------------------------------------------------------------------
+   Table Wrapper
+   ------------------------------------------------------------------------- */
+.ae-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--sapTile_BorderColor);
+  border-radius: .5rem;
+  background: var(--sapTile_Background);
+  box-shadow: var(--sapContent_Shadow0);
+}
+
+.ae-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.ae-table caption {
+  padding: var(--space-3);
+  color: var(--sapContent_LabelColor);
+  text-align: left;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+.ae-table th,
+.ae-table td {
+  padding: var(--space-3);
+  border-top: 1px solid var(--sapGroup_ContentBorderColor);
+  vertical-align: top;
+}
+
+.ae-table th {
+  color: var(--sapTextColor);
+  background: var(--sapGroup_ContentBackground);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ae-table td {
+  color: var(--sapTextColor);
+}
+
+.ae-table tbody tr:hover td {
+  background: var(--sapGroup_ContentBackground);
+}
+
+.ae-table td:last-child {
+  font-family: var(--font-mono);
+}
+
+/* -------------------------------------------------------------------------
+   Badge / Status Indicators
+   ------------------------------------------------------------------------- */
+.ae-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.ae-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ae-badge-dot.success { background: var(--sapPositiveColor); }
+.ae-badge-dot.warning { background: var(--sapCriticalColor); }
+.ae-badge-dot.error { background: var(--sapNegativeColor); }
+.ae-badge-dot.info { background: var(--sapInformativeColor); }
+.ae-badge-dot.neutral { background: var(--sapContent_LabelColor); }
+
+/* -------------------------------------------------------------------------
+   Tooltip
+   ------------------------------------------------------------------------- */
+.ae-tooltip {
+  position: relative;
+}
+
+.ae-tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--sapShell_Background);
+  color: var(--sapContent_ContrastTextColor);
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+  box-shadow: var(--sapContent_Shadow2);
+  transition: opacity var(--duration-fast), visibility var(--duration-fast);
+}
+
+.ae-tooltip::after {
+  content: '';
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--sapShell_Background);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+  transition: opacity var(--duration-fast), visibility var(--duration-fast);
+}
+
+.ae-tooltip:hover::before,
+.ae-tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* -------------------------------------------------------------------------
+   Divider / Separator
+   ------------------------------------------------------------------------- */
+.ae-divider {
+  border: none;
+  border-top: 1px solid var(--sapGroup_ContentBorderColor);
+  margin: var(--space-4) 0;
+}
+
+.ae-divider-vertical {
+  width: 1px;
+  height: 100%;
+  background: var(--sapGroup_ContentBorderColor);
+  margin: 0 var(--space-4);
+}
+
+/* -------------------------------------------------------------------------
+   Avatar
+   ------------------------------------------------------------------------- */
+.ae-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--sapBrandColor);
+  color: var(--sapContent_ContrastTextColor);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  font-family: var(--font-heading);
+}
+
+.ae-avatar-sm {
+  width: 32px;
+  height: 32px;
+  font-size: var(--text-sm);
+}
+
+.ae-avatar-lg {
+  width: 48px;
+  height: 48px;
+  font-size: var(--text-xl);
+}
+
+/* ==========================================================================
+   Typography: Fiori Horizon Headings & ui5-title (D8)
+   ========================================================================== */
+ui5-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--sapTextColor);
+}
+
+ui5-title[level="H1"],
+ui5-title[size="H1"] {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+ui5-title[level="H2"],
+ui5-title[size="H2"] {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+ui5-title[level="H3"],
+ui5-title[size="H3"] {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+ui5-title[level="H4"],
+ui5-title[size="H4"] {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+ui5-title[level="H5"],
+ui5-title[size="H5"] {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+ui5-title[level="H6"],
+ui5-title[size="H6"] {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* PageHeader component uses ui5-title with bold styling */
+.page-header ui5-title {
+  display: block;
+  margin: 0;
+  font-weight: 700;
+  color: var(--sapTextColor);
+}
+
+.page-header-content ui5-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--sapTextColor);
+}
+
+/* JetBrains Mono ONLY for PO/LC/rule/node IDs and hashes per D2/D8 */
+.mono,
+.node-id.mono,
+.ae-table td:last-child {
+  font-family: var(--font-mono);
+}

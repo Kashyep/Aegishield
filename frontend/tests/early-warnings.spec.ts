@@ -25,7 +25,7 @@ test('open Early warnings -> sees 97/100, WARNING, heuristic index, not a probab
   // Pre-notice expectations: 97/100, WARNING, and case-insensitive heuristic index disclaimer
   await expect(page.getByText('97/100', { exact: true })).toBeVisible()
   await expect(page.getByText('WARNING', { exact: true })).toBeVisible()
-  await expect(page.getByText(/heuristic index, not a probability/i)).toBeVisible()
+  await expect(page.getByText(/heuristic index, not a probability/i).first()).toBeVisible()
 
   // Accessibility check on pre-notice view
   await expectNoAccessibilityViolations(page)

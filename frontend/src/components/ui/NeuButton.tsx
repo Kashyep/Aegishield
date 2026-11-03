@@ -1,24 +1,32 @@
+import type { ButtonHTMLAttributes } from 'react';
 
-import type { HTMLAttributes } from 'react';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'positive';
+type ButtonDesign = 'Default' | 'Positive' | 'Negative' | 'Transparent' | 'Emphasized' | 'Attention';
 
-interface NeuButtonProps extends HTMLAttributes<HTMLElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+interface NeuButtonProps extends Omit<ButtonHTMLAttributes<HTMLElement>, 'size'> {
+  variant?: ButtonVariant;
+  design?: ButtonDesign;
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   iconOnly?: boolean;
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
+  icon?: string;
+  endIcon?: string;
+  tooltip?: string;
 }
 
-const designs = {
+const variantToDesign: Record<ButtonVariant, ButtonDesign> = {
   primary: 'Emphasized',
   secondary: 'Default',
   ghost: 'Transparent',
   danger: 'Negative',
-} as const;
+  positive: 'Positive',
+};
 
 export function NeuButton({
   variant = 'primary',
+  design,
   loading = false,
   disabled,
   children,
@@ -28,18 +36,26 @@ export function NeuButton({
   type = 'button',
   'aria-label': ariaLabel,
   title,
+  tooltip,
+  icon,
+  endIcon,
   ...props
 }: NeuButtonProps) {
   void _size;
   void _iconOnly;
 
+  const resolvedDesign = design ?? variantToDesign[variant] ?? 'Default';
+
   return (
     <ui5-button
-      design={designs[variant]}
+      design={resolvedDesign}
       disabled={disabled || loading}
       submit={type === 'submit'}
-     accessibleName={ariaLabel || undefined}
+      accessibleName={ariaLabel || undefined}
       title={title}
+      tooltip={tooltip ?? title}
+      icon={icon}
+      endIcon={endIcon}
       aria-busy={loading || undefined}
       className={className}
       {...props}

@@ -1,7 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
-async function expectNoAccessibilityViolations(page: import('@playwright/test').Page) {
+async function expectNoAccessibilityViolations(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze()
@@ -27,7 +28,7 @@ test('keeps P1 blocked and presents a contract-backed P2 approval modal', async 
 
   await expect(p1Approval).toBeDisabled()
   await expect(p1.getByText('Cannot be approved: 2 blocking findings. P1 remains blocked.')).toBeVisible()
-  await expect(p2.getByText('₹6,18,000')).toBeVisible()
+  await expect(p2.getByText('₹6,18,000').first()).toBeVisible()
   await page.getByLabel('Simulated identity').selectOption('USR-VIEW')
   await expect(p2Approval).toBeDisabled()
   await page.getByLabel('Simulated identity').selectOption('USR-PRIYA')
@@ -99,14 +100,18 @@ test('completes Command Center to evaluation findings, evidence, and P2 approval
   )).toBeVisible()
   await expect(page.locator('.plan-card').filter({ hasText: approvedCandidate?.label ?? '' }).getByText(
     `₹${approvedCandidate?.net_avoided_loss_inr.toLocaleString('en-IN') ?? ''}`,
-  )).toBeVisible()
+  ).first()).toBeVisible()
 
   await page.getByRole('button', { name: /View evaluation details/ }).click()
-  await expect(page.getByRole('heading', { name: `${fixture.evaluation_id} · ${fixture.status}` })).toBeVisible()
+  await expect(page.getByRole('heading', { name: new RegExp(`${fixture.evaluation_id}.*${fixture.status}`) })).toBeVisible()
   const targetFinding = fixture.findings.find((finding) => finding.evidence_ids.length > 0)
   expect(targetFinding).toBeDefined()
   await expect(page.getByRole('heading', { name: 'Findings' })).toBeVisible()
-  await expect(page.getByText(`${fixture.findings.length} findings from the evaluation fixture.`)).toBeVisible()
+  const showMoreBtn = page.getByRole('button', { name: /Show more/ })
+  if (await showMoreBtn.isVisible()) {
+    await showMoreBtn.click()
+  }
+  await expect(page.getByText(new RegExp(`${fixture.findings.length} findings`))).toBeVisible()
   const findingButton = page.getByRole('button', { name: new RegExp(targetFinding?.title ?? 'no-finding') })
   await findingButton.click()
   const evidenceDialog = page.getByRole('dialog', { name: 'Finding details' })
@@ -131,8 +136,12 @@ test('completes Command Center to evaluation findings, evidence, and P2 approval
 
 test('provides a keyboard-operable text alternative for the supply graph', async ({ page }) => {
   await page.getByRole('button', { name: /Supply graph/ }).click()
-  await expect(page.getByRole('heading', { name: 'Text alternative: supply links' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Alternative supply links|Text alternative: supply links/ })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Facility records in this graph fixture' })).toBeVisible()
+  const expander = page.getByText(/Text version: all supply links/)
+  if (await expander.isVisible()) {
+    await expander.click()
+  }
   const link = page.getByRole('button', { name: /supplies/ }).first()
   await link.focus()
   await page.keyboard.press('Enter')
@@ -174,7 +183,7 @@ test('F-02, F-03, F-05, DA-02, DA-03, DA-04, DA-07, DA-13: asserts disruption ca
   // Recommended badge on P2 only after evaluation
   const recBadge = page.locator('.recommendation-label')
   await expect(recBadge).toBeVisible()
-  await expect(recBadge).toHaveText('P2 · Recommended')
+  await expect(recBadge).toContainText('P2 · Recommended')
 
   // Plan comparison: P1 334,000 / 826,000 / 510,000 BLOCKED and P2 492,000 / 50,000 / 618,000 PASSED
   const p1 = page.locator('.plan-card').filter({ hasText: 'P1 Fastest-cheapest' })

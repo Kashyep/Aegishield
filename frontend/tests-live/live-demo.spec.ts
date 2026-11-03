@@ -4,7 +4,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await page.goto('/#command')
   await page.getByRole('button', { name: 'Reset demo' }).click()
   await page.getByRole('dialog', { name: 'Reset demo?' }).getByRole('button', { name: 'Reset demo' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Demo reset' })).toBeVisible()
+  await expect(page.locator('#demo-toast').filter({ hasText: 'Demo reset' })).toBeVisible()
 
   await page.getByRole('button', { name: /Early warnings/ }).click()
   await expect(page.getByText('97/100')).toBeVisible()
@@ -13,7 +13,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await expect(page.getByText('100/100').first()).toBeVisible()
   await page.getByRole('button', { name: /Command Center/ }).click()
 
-  await page.getByRole('button', { name: 'Run evaluation' }).click()
+  await page.locator('header').filter({ hasText: 'SUPPLY CHAIN RESILIENCE' }).getByRole('button', { name: 'Run evaluation' }).click()
   await expect(page.getByText('Evaluation EVAL-0001 is completed.')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByLabel('LLM mode')).toHaveText('LLM: recorded')
 
@@ -51,7 +51,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
 
   await page.getByRole('button', { name: /Audit trail/ }).click()
   await page.getByRole('button', { name: 'Verify chain' }).click()
-  await expect(page.getByText(/Chain valid/)).toBeVisible()
+  await expect(page.locator('.audit-verified')).toContainText(/Chain valid/)
 })
 
 test('getPolicies in live mode returns live policies from the backend', async ({ page }) => {

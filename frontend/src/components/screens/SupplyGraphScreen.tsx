@@ -3,6 +3,8 @@ import { PageHeader, PageBody } from '../layout';
 import { NeuCard } from '../ui/NeuCard';
 import { DependencyGraph } from '../../components/DependencyGraph';
 import "@ui5/webcomponents/dist/Button.js";
+import "@ui5/webcomponents/dist/Title.js";
+import "@ui5/webcomponents/dist/Popover.js";
 import type { Evaluation, GraphView, GraphViewNode } from '../../api/types';
 
 interface SupplyGraphScreenProps {
@@ -32,8 +34,11 @@ export function SupplyGraphScreen({
 
   return (
     <>
+      <div className="workspace-heading" style={{ marginBottom: 'var(--space-2)' }}>
+        <ui5-title level="H3" style={{ fontWeight: 'bold' }}>Workspace</ui5-title>
+      </div>
       <PageHeader
-        eyebrow="WORKSPACE / SUPPLY GRAPH"
+        eyebrow="SUPPLY GRAPH"
         title="Supply graph"
         subtitle={`Why a candidate supplier is or is not independent of the disruption: upstream evidence from evaluation ${evaluationId}.`}
       />

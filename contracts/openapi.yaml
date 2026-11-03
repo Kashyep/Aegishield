@@ -522,6 +522,21 @@ paths:
               schema: {$ref: '#/components/schemas/RuleApplicabilityResult'}
         '422':
           $ref: '#/components/responses/Unprocessable'
+  /api/v1/supply-network:
+    get:
+      tags: [network]
+      operationId: getSupplyNetwork
+      summary: Existing supply chains with inventory on hand, stock in transit, movement over time and node status (FB-18)
+      description: Returns supply network overview with node statuses, inventory levels, transit stocks, and movement history. Synthetic data.
+      responses:
+        '200':
+          description: Supply network overview
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SupplyNetwork'}
+              examples:
+                demo:
+                  externalValue: ../fixtures/demo/supply_network.json
 components:
   parameters:
     XActorId:
@@ -624,3 +639,4 @@ components:
     RuleQuery: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleQuery'}
     RuleApplicabilityResult: {$ref: './schemas/trade-rules.schema.json#/$defs/RuleApplicabilityResult'}
     EarlyWarningResult: {$ref: './schemas/signals.schema.json#/$defs/EarlyWarningResult'}
+    SupplyNetwork: {$ref: './schemas/supply_network.json#/$defs/SupplyNetwork'}

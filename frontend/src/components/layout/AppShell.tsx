@@ -3,7 +3,18 @@ import { Topbar } from './Topbar';
 import { Sidebar } from './Sidebar';
 import { useSidebar } from '../../hooks/useSidebar';
 import type { Screen } from '../../app/navigation';
+import { screenLabel } from '../../app/navigation';
 import type { Policies } from '../../api/types';
+
+import '@ui5/webcomponents-fiori/dist/NavigationLayout.js';
+import '@ui5/webcomponents-fiori/dist/ShellBar.js';
+import '@ui5/webcomponents-fiori/dist/SideNavigation.js';
+import '@ui5/webcomponents-fiori/dist/SideNavigationItem.js';
+import '@ui5/webcomponents/dist/SegmentedButton.js';
+import '@ui5/webcomponents/dist/SegmentedButtonItem.js';
+import '@ui5/webcomponents/dist/Avatar.js';
+import '@ui5/webcomponents/dist/Select.js';
+import '@ui5/webcomponents/dist/Input.js';
 
 interface AppShellProps {
   activeScreen: Screen;
@@ -35,17 +46,19 @@ export function AppShell({
     navigation(screen);
   }, [navigation]);
 
-  // Don't render until mounted to avoid hydration mismatch - but keep hook order
+  // Don't render until mounted to avoid hydration mismatch
   if (!mounted) {
     return (
-      <div className="app-shell" style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-        <div style={{ padding: 'var(--space-page)' }}>Loading…</div>
+      <div className="app-shell" style={{ minHeight: '100vh', background: 'var(--sapBackgroundColor, #f5f6f7)' }}>
+        <div style={{ padding: 'var(--space-page, 1.5rem)', fontFamily: "'72', sans-serif" }}>Loading…</div>
       </div>
     );
   }
 
+  const layoutMode = isMobileOpen ? 'Expanded' : (isCollapsed ? 'Collapsed' : 'Expanded');
+
   return (
-    <div className="app-shell" style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+    <div className="app-shell" style={{ minHeight: '100vh', width: '100%', background: 'var(--sapBackgroundColor, #f5f6f7)' }}>
       {/* Mobile backdrop */}
       {isMobileOpen && (
         <div
@@ -54,46 +67,78 @@ export function AppShell({
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(8, 11, 4, 0.38)',
-            zIndex: 'var(--z-drawer-backdrop)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            zIndex: 100,
             display: isMobile ? 'block' : 'none',
           }}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
-      <Sidebar
-        state={state}
-        activeScreen={activeScreen}
-        onNavigate={handleNavigate}
-        onCloseMobile={closeMobile}
-        llmBadgeFull={llmBadgeFull}
-        isMobile={isMobile}
-      />
-
-      {/* Main Content */}
-      <main className="main-content" style={{ marginLeft: isMobile ? 0 : (isCollapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width-expanded)') }}>
-        {/* Topbar */}
+      {/* Fiori Navigation Layout with ShellBar and SideNavigation */}
+      <ui5-navigation-layout
+        mode={layoutMode}
+        style={{ minHeight: '100vh', width: '100%' }}
+      >
+        {/* Topbar in header slot */}
         <Topbar
+          slot="header"
           onMenuClick={toggle}
-          screenLabel={['command', 'evaluations', 'execution', 'supply-graph', 'audit-trail', 'evaluation-progress', 'early-warnings'].includes(activeScreen) ? activeScreen : 'Command Center'}
+          screenLabel={screenLabel(activeScreen)}
           actorId={actorId}
           onActorChange={setActorId}
           policies={policies}
           apiMode={apiMode}
         />
 
-        {/* Page Content */}
-        <div className="page-content" style={{ padding: 'var(--space-page)', maxWidth: 'var(--content-max-width)', margin: '0 auto' }}>
-          <div className="synthetic-banner neu-card subtle" style={{ marginBottom: 'var(--space-section)' }} role="note">
-            <strong>SYNTHETIC DATA</strong>
-            <span>All companies, prices, schedules and outcomes in this demo are fictional.</span>
+        {/* Sidebar in sideContent slot */}
+        <Sidebar
+          slot="sideContent"
+          state={state}
+          activeScreen={activeScreen}
+          onNavigate={handleNavigate}
+          onCloseMobile={closeMobile}
+          llmBadgeFull={llmBadgeFull}
+          isMobile={isMobile}
+          actorId={actorId}
+          policies={policies}
+        />
+
+        {/* Main Content Area */}
+        <main
+          className="main-content"
+          style={{
+            padding: 'var(--space-page, 1.5rem)',
+            maxWidth: 'var(--content-max-width, 1400px)',
+            margin: '0 auto',
+            boxSizing: 'border-box',
+            width: '100%',
+          }}
+        >
+          {/* Synthetic Data Banner */}
+          <div
+            className="synthetic-banner"
+            style={{
+              marginBottom: 'var(--space-section, 1rem)',
+              background: 'var(--sapTile_Background, #ffffff)',
+              border: '1px solid var(--sapTile_BorderColor, #e5e5e5)',
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              fontSize: '0.875rem',
+              boxShadow: 'var(--sapContent_Shadow0, 0 1px 2px rgba(0, 0, 0, 0.05))',
+            }}
+            role="note"
+          >
+            <strong style={{ color: 'var(--sapInformativeTextColor, #0854a0)', letterSpacing: '0.04em' }}>SYNTHETIC DATA</strong>
+            <span style={{ color: 'var(--sapTextColor, #1d2d3e)' }}>All companies, prices, schedules and outcomes in this demo are fictional.</span>
           </div>
 
           {children}
-        </div>
-      </main>
+        </main>
+      </ui5-navigation-layout>
     </div>
   );
 }

@@ -713,74 +713,9 @@ const closeApproval = useCallback(() => {
     }
   }
 
-  return (
+  // Approval dialog body pieces. The render below orders them: for a blocked plan the override comes first.
+  const approvalFacts = approvalPlan ? (
     <>
-      <AppShell
-        activeScreen={activeScreen}
-        actorId={actorId}
-        setActorId={setActorId}
-        policies={policies}
-        apiMode={apiMode}
-        llmBadgeFull={llmBadgeFull}
-        navigation={navigate}
-      >
-        <div className="screen-region" data-screen={activeScreen}>
-          {renderScreen()}
-        </div>
-      </AppShell>
-
-
-      {/* Approval Modal */}
-      {approvalPlan && (
-        <Modal
-          isOpen={!!approvalPlan}
-          onClose={closeApproval}
-          title={`Review ${approvalPlan.label}`}
-          maxWidth="680px"
-          restoreFocusTo={approvalFocusTargetRef.current}
-          hostRoleDialog
-          actions={
-            <>
-              <ui5-button
-                design="Transparent"
-                disabled={decisionSubmitting}
-                onClick={() => setApprovalPlan(null)}
-                accessibleName="Cancel"
-              >
-                Cancel
-              </ui5-button>
-              {isBlockedPlan ? (
-                <>
-                  <ui5-button
-                    design="Positive"
-                    disabled={true}
-                    title="Plan is blocked by fixture checks"
-                    accessibleName="Approve plan"
-                  >
-                    Approve plan
-                  </ui5-button>
-                  <ui5-button
-                    design="Negative"
-                    disabled={decisionSubmitting || !actorCanApprove}
-                    onClick={() => void submitApproval(false)}
-                    accessibleName="Attempt approval (blocked)"
-                  >
-                    {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
-                  </ui5-button>
-                </>
-              ) : (
-                <ui5-button
-                  design="Positive"
-                  disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
-                  onClick={() => void submitApproval(false)}
-                  accessibleName="Approve plan"
-                >
-                  {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
-                </ui5-button>
-              )}
-            </>
-          }
-        >
           <dl className="finding-details" style={{ margin: 0 }}>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>
               <dt style={{ marginBottom: 'var(--space-1)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase', fontFamily: 'var(--font-accent)' }}>Plan status</dt>
@@ -859,8 +794,16 @@ const closeApproval = useCallback(() => {
             </section>
           )}
           {approvalDisabledReason && <p className="blocked-reason" style={{ marginBottom: 'var(--space-3)', color: 'var(--color-error-text)' }}>{approvalDisabledReason}</p>}
-
-          {isBlockedPlan && (
+    </>
+  ) : null
+  const approvalJustification = (
+    <>
+          <label className="ae-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>{isBlockedPlan ? '(required for override, at least 20 characters)' : '(optional for approval)'}</span></label>
+          <textarea id="approval-justification" className="ae-textarea" value={decisionJustification} onChange={(e) => setDecisionJustification(e.target.value)} maxLength={1000} rows={3} placeholder={isBlockedPlan ? 'Explain why the risks are acceptable for this override' : 'Record the reason for this approval'} />
+    </>
+  )
+  const approvalOverride = isBlockedPlan ? (
+    <>
             <section className="override-section" aria-label="Blocked plan override" style={{ margin: 'var(--space-3) 0', padding: 'var(--space-3)', border: '1px solid var(--color-error-border)', borderRadius: 'var(--radius-md)', background: 'var(--color-error-bg)' }}>
               <ui5-message-strip design="Negative" hideCloseButton>
                 <strong>This plan is blocked.</strong> Standard approval is refused. It can be approved only as an explicit, recorded override.
@@ -903,18 +846,10 @@ const closeApproval = useCallback(() => {
                 </ul>
               </div>
             </section>
-          )}
-          <label className="ae-label" htmlFor="approval-justification">Justification <span style={{ fontWeight: 'var(--weight-normal)', color: 'var(--color-text-muted)' }}>{isBlockedPlan ? '(required for override, at least 20 characters)' : '(optional for approval)'}</span></label>
-          <textarea id="approval-justification" className="ae-textarea" value={decisionJustification} onChange={(e) => setDecisionJustification(e.target.value)} maxLength={1000} rows={3} placeholder={isBlockedPlan ? 'Explain why the risks are acceptable for this override' : 'Record the reason for this approval'} />
-          {isBlockedPlan && (
-            <div className="override-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)', margin: 'var(--space-3) 0' }}>
-              <ui5-button design="Negative" disabled={decisionSubmitting || Boolean(overrideDisabledReason)} onClick={() => void submitApproval(true)} accessibleName="Approve anyway (override)">
-                {decisionSubmitting ? 'Submitting…' : 'Approve anyway (override)'}
-              </ui5-button>
-              {overrideDisabledReason && <p className="ae-hint" style={{ margin: 0, color: 'var(--color-error)' }}>{overrideDisabledReason}</p>}
-            </div>
-          )}
-
+    </>
+  ) : null
+  const approvalAcks = (
+    <>
           <section className="acknowledgement-section" style={{ marginTop: 'var(--space-5)' }}>
             <h3 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Required acknowledgements</h3>
             {reviewFindings.length === 0 ? (
@@ -924,10 +859,14 @@ const closeApproval = useCallback(() => {
                 const requiredRoles = policies?.approval_policy.acknowledgement_roles[finding.agent] ?? []
                 const canAcknowledge = Boolean(currentActor && requiredRoles.includes(currentActor.role))
                 const value = acknowledgements[finding.finding_id] ?? { checked: false, note: '' }
+                const rowDone = canAcknowledge && value.checked && value.note.trim().length >= 5
                 return (
                   <fieldset className="acknowledgement-item" key={finding.finding_id} style={{ margin: 'var(--space-3) 0', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
                     <legend style={{ padding: '0 var(--space-1)', color: 'var(--color-text)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)' }}>{finding.title}</legend>
                     <p style={{ margin: 'var(--space-1) 0 var(--space-2)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>{finding.finding_id} · acknowledgement role: {requiredRoles.join(' or ') || 'not specified'}</p>
+                    <p className={rowDone ? 'requirement-met' : 'requirement-open'} style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', color: rowDone ? 'var(--color-text)' : 'var(--color-error-text)' }}>
+                      {!canAcknowledge ? 'Needed from an actor with the acknowledgement role.' : rowDone ? 'Done.' : `Needed: tick the box and write a note of at least 5 characters (${Math.min(value.note.trim().length, 5)}/5).`}
+                    </p>
                     <label className={canAcknowledge ? '' : 'disabled-label'} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minHeight: 28, fontSize: 'var(--text-sm)', fontFamily: 'var(--font-body)', color: canAcknowledge ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                       <input type="checkbox" disabled={!canAcknowledge} checked={value.checked} onChange={(e) => setAcknowledgements((prev) => ({ ...prev, [finding.finding_id]: { ...value, checked: e.target.checked } }))} style={{ width: 24, height: 24, accentColor: 'var(--color-primary)' }} />
                       I acknowledge this review finding
@@ -940,7 +879,100 @@ const closeApproval = useCallback(() => {
               })
             )}
           </section>
+    </>
+  )
 
+  return (
+    <>
+      <AppShell
+        activeScreen={activeScreen}
+        actorId={actorId}
+        setActorId={setActorId}
+        policies={policies}
+        apiMode={apiMode}
+        llmBadgeFull={llmBadgeFull}
+        navigation={navigate}
+      >
+        <div className="screen-region" data-screen={activeScreen}>
+          {renderScreen()}
+        </div>
+      </AppShell>
+
+
+      {/* Approval Modal */}
+      {approvalPlan && (
+        <Modal
+          isOpen={!!approvalPlan}
+          onClose={closeApproval}
+          title={`Review ${approvalPlan.label}`}
+          maxWidth="680px"
+          restoreFocusTo={approvalFocusTargetRef.current}
+          hostRoleDialog
+          actions={
+            <>
+              <ui5-button
+                design="Transparent"
+                disabled={decisionSubmitting}
+                onClick={() => setApprovalPlan(null)}
+                accessibleName="Cancel"
+              >
+                Cancel
+              </ui5-button>
+              {isBlockedPlan ? (
+                <>
+                  <ui5-button
+                    design="Positive"
+                    disabled={true}
+                    title="Plan is blocked by fixture checks"
+                    accessibleName="Approve plan"
+                  >
+                    Approve plan
+                  </ui5-button>
+                  <ui5-button
+                    design="Transparent"
+                    disabled={decisionSubmitting || !actorCanApprove}
+                    onClick={() => void submitApproval(false)}
+                    accessibleName="Attempt approval (blocked)"
+                  >
+                    {decisionSubmitting ? 'Submitting…' : 'Attempt approval (blocked)'}
+                  </ui5-button>
+                  <ui5-button
+                    design="Negative"
+                    disabled={decisionSubmitting || Boolean(overrideDisabledReason)}
+                    title={overrideDisabledReason || undefined}
+                    onClick={() => void submitApproval(true)}
+                    accessibleName="Approve anyway (override)"
+                  >
+                    {decisionSubmitting ? 'Submitting…' : 'Approve anyway (override)'}
+                  </ui5-button>
+                </>
+              ) : (
+                <ui5-button
+                  design="Positive"
+                  disabled={decisionSubmitting || Boolean(approvalDisabledReason) || apiMode === 'stub'}
+                  onClick={() => void submitApproval(false)}
+                  accessibleName="Approve plan"
+                >
+                  {decisionSubmitting ? 'Submitting…' : 'Approve plan'}
+                </ui5-button>
+              )}
+            </>
+          }
+        >
+          {isBlockedPlan ? (
+            <>
+              {approvalOverride}
+              {approvalJustification}
+              {approvalAcks}
+              {approvalFacts}
+            </>
+          ) : (
+            <>
+              {approvalFacts}
+              {approvalJustification}
+              {approvalAcks}
+            </>
+          )}
           {approvalPlan.status === 'blocked' && amendableFindings.length > 0 && amendmentLcId && (
             <section className="amendment-section" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Request LC amendment</h3>
@@ -1020,6 +1052,11 @@ const closeApproval = useCallback(() => {
             </div>
           )}
 
+          {isBlockedPlan && (
+            <p className="override-sticky-hint" style={{ position: 'sticky', bottom: 0, zIndex: 1, margin: 'var(--space-3) calc(-1 * var(--space-4)) calc(-1 * var(--space-2))', padding: 'var(--space-2) var(--space-4)', background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)', fontSize: 'var(--text-sm)', color: overrideDisabledReason ? 'var(--color-error-text)' : 'var(--color-text)' }}>
+              {overrideDisabledReason ? <><strong>Override not yet available:</strong> {overrideDisabledReason}</> : <><strong>Ready:</strong> press &quot;Approve anyway (override)&quot; in the footer to record the override.</>}
+            </p>
+          )}
         </Modal>
       )}
 

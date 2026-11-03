@@ -51,8 +51,13 @@ test('blocked P1 can be approved only as a recorded override, and the override p
   await p1Card(page).getByRole('button', { name: 'Review & override…' }).click()
   const dialog = page.getByRole('dialog', { name: P1_REVIEW })
   await expect(dialog).toBeVisible()
-  const override = dialog.getByRole('button', { name: OVERRIDE_BUTTON })
+  // The override is in the footer, and the reason it is still disabled is pinned above the footer, in view without scrolling.
+  const footer = dialog.locator('ui5-bar[slot="footer"]')
+  const override = footer.getByRole('button', { name: OVERRIDE_BUTTON })
   await expect(override).toBeDisabled()
+  const hint = dialog.locator('.override-sticky-hint')
+  await expect(hint).toContainText('Acknowledge every review finding with a note of at least 5 characters.')
+  await expect(hint).toBeInViewport()
 
   await dialog.getByLabel('I acknowledge this review finding').check()
   await dialog.getByLabel('Acknowledgement note').fill('Certificate of origin reviewed.')
@@ -64,8 +69,11 @@ test('blocked P1 can be approved only as a recorded override, and the override p
 
   await dialog.getByLabel(/Justification/).fill(LONG_JUSTIFICATION)
   await expect(override).toBeEnabled()
+  await expect(hint).toContainText('Ready:')
+  await expect(hint).toBeInViewport()
 
-  await override.click()
+  // The enabled override is the footer action; click that one.
+  await footer.getByRole('button', { name: OVERRIDE_BUTTON }).click()
   await expect(page.locator('#demo-toast').filter({ hasText: 'Plan PLN-0001 approved with override by USR-ARJUN.' })).toBeVisible()
   await expect(dialog).toBeHidden()
   await expect(p1Card(page)).toContainText('approved')

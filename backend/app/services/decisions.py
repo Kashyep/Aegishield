@@ -112,14 +112,24 @@ def decide_plan(
 
     amendment_request_id = None
     amendment_data = None
+    is_override = False
+    blocked_reasons: list[str] = []
     if action == "approve":
         if actor["role"] not in policy["approver_roles"]:
             append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "ROLE_FORBIDDEN"})
             return 403, problem_response(403, "ROLE_FORBIDDEN", f"Role {actor['role']} cannot approve plans", instance=path), None
 
-        if plan["status"] == "blocked":
+        is_override = plan["status"] == "blocked" and body.get("override_blocked") is True
+        if plan["status"] == "blocked" and not is_override:
             append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "PLAN_BLOCKED"})
             return 422, problem_response(422, "PLAN_BLOCKED", f"Plan {plan_id} is blocked and cannot be approved", instance=path), None
+
+        if is_override:
+            # Explicit, recorded override of a blocked plan: same role, version, hash and idempotency rules as any approval.
+            blocked_reasons = [fid for fid in plan.get("finding_ids", []) if findings_map.get(fid, {}).get("outcome") == "blocked"]
+            if len(re.sub(r"\s", "", body.get("justification") or "")) < 20:
+                append_event(con, "DECISION_REFUSED", actor_obj, {"type": "plan", "id": plan_id, "version": plan_version}, {"action": action, "code": "VALIDATION_ERROR"})
+                return 422, problem_response(422, "VALIDATION_ERROR", "Override justification must be at least 20 characters", instance=path), None
 
         needs_review_findings = [f_id for f_id in plan.get("finding_ids", []) if findings_map.get(f_id, {}).get("outcome") == "needs_review"]
         acks_by_fnd = {a["finding_id"]: a for a in body.get("acknowledgements", [])}
@@ -215,9 +225,13 @@ def decide_plan(
         "amendment_request_id": amendment_request_id,
         "idempotency_key": idempotency_key,
     }
+    if is_override:
+        decision_record["override_blocked"] = True
 
     # Update plan
     plan["status"] = resulting_status
+    if is_override:
+        plan["approved_with_override"] = True
     if "decision_ids" not in plan:
         plan["decision_ids"] = []
     plan["decision_ids"].append(decision_id)
@@ -267,12 +281,15 @@ def decide_plan(
             {"plan_id": plan_id, "amendment_request_id": amendment_request_id, "lc_id": amd_data["lc_id"]},
         )
 
+    recorded_payload = {"plan_id": plan_id, "action": action, "plan_version": plan_version, "resulting_plan_status": resulting_status}
+    if is_override:
+        recorded_payload |= {"override_blocked": True, "blocked_reasons": blocked_reasons}
     append_event(
         con,
         "DECISION_RECORDED",
         actor_obj,
         {"type": "decision", "id": decision_id},
-        {"plan_id": plan_id, "action": action, "plan_version": plan_version, "resulting_plan_status": resulting_status},
+        recorded_payload,
     )
 
     con.execute(

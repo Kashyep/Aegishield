@@ -45,6 +45,7 @@ export type Plan = {
   amendment_request_ids: string[]
   plan_hash: string
   decision_ids?: string[]
+  approved_with_override?: boolean
   execution_id?: string | null
 }
 
@@ -240,6 +241,7 @@ export type DecisionRequest = {
   plan_hash: string
   justification: string | null
   acknowledgements: Acknowledgement[]
+  override_blocked?: boolean
   amendment?: {
     lc_id: string
     requested_changes: { field_tag: string; from: string; to: string }[]
@@ -256,6 +258,7 @@ export type Decision = {
   actor: { actor_id: string; role: string; kind: string; display_name?: string | null }
   justification: string | null
   acknowledgements: Acknowledgement[]
+  override_blocked?: boolean
   decided_at: string
   resulting_plan_status: string
   amendment_request_id: string | null

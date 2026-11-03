@@ -89,6 +89,10 @@
             "$ref": "#/$defs/Acknowledgement"
           }
         },
+        "override_blocked": {
+          "type": "boolean",
+          "description": "Optional, additive (see contracts CHANGELOG Unreleased). true on action approve for a blocked plan: an explicit, recorded override. Requires justification of at least 20 non-space characters and an approver role. Ignored for plans that are not blocked. Absent or false keeps the normal rule: blocked plans are refused with 422 PLAN_BLOCKED."
+        },
         "amendment": {
           "oneOf": [
             {
@@ -176,6 +180,10 @@
           "items": {
             "$ref": "#/$defs/Acknowledgement"
           }
+        },
+        "override_blocked": {
+          "type": "boolean",
+          "description": "Optional, additive (see contracts CHANGELOG Unreleased). Present and true only when a blocked plan was approved with an override. Its audit event is DECISION_RECORDED with payload.override_blocked and payload.blocked_reasons."
         },
         "decided_at": {
           "$ref": "common.schema.json#/$defs/DateTime"

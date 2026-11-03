@@ -218,7 +218,7 @@ export async function submitDecision(
     } catch {
       // ignore
     }
-    if (decision.action === 'approve' && isBlocked) {
+    if (decision.action === 'approve' && isBlocked && decision.override_blocked !== true) {
       const problem: ApiProblem = {
         title: 'Plan is blocked',
         status: 422,

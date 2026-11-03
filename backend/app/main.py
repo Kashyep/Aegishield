@@ -509,7 +509,7 @@ def _overlay_current_plan_state(con, evaluation_id: str, payload: dict) -> dict:
         merged = dict(plan)
         if stored is not None:
             merged["status"] = stored["status"]
-            for key in ("decision_ids", "execution_id", "amendment_request_ids"):
+            for key in ("decision_ids", "execution_id", "amendment_request_ids", "approved_with_override"):
                 if key in stored and (key in plan or stored[key] not in (None, [])):
                     merged[key] = stored[key]
         merged_plans.append(merged)

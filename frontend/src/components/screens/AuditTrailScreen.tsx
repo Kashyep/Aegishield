@@ -435,6 +435,12 @@ export function AuditTrailScreen({
                             <strong>Subject:</strong> {event.subject.type}: <span className="mono">{event.subject.id}</span>
                             {event.subject.version != null && <span> (v{event.subject.version})</span>}
                           </div>
+                          {event.payload.override_blocked === true && (
+                            <div className="audit-override" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <ui5-tag design="Negative">Override of blocked plan</ui5-tag>
+                              <span style={{ fontSize: 'var(--text-xs)' }}>Blocking checks: {Array.isArray(event.payload.blocked_reasons) ? event.payload.blocked_reasons.join(', ') : 'not recorded'}</span>
+                            </div>
+                          )}
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                             <span><strong>Seq:</strong> #{event.seq}</span>
                             <span><strong>Role:</strong> {event.actor.role}</span>

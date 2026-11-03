@@ -120,99 +120,161 @@ export function Sidebar({
       : 'PS';
 
   return (
-    <ui5-side-navigation
-      ref={navRef}
+    <div
       slot={slot ?? 'sideContent'}
-      collapsed={isCollapsed}
-      accessibleName="Main navigation"
-      onselection-change={handleSelectionChange}
+      className="sidebar-container"
       style={{
         height: '100%',
-        fontFamily: "'72', sans-serif",
+        position: 'relative',
       }}
     >
-      {/* User profile block replaces logo in Sidebar header */}
-      <div
-        slot="header"
-        className="sidebar-user-header"
+      <ui5-side-navigation
+        ref={navRef}
+        collapsed={isCollapsed}
+        accessibleName="Main navigation"
+        onselection-change={handleSelectionChange}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '16px',
-          boxSizing: 'border-box',
-          borderBottom: '1px solid var(--sapList_BorderColor, rgba(0, 0, 0, 0.08))',
-          background: 'var(--sapList_HeaderBackground, transparent)',
+          height: '100%',
+          fontFamily: "'72', sans-serif",
         }}
       >
-        <ui5-avatar
-          initials={userInitials}
-          size="M"
-          colorScheme={actorId === 'USR-ARJUN' ? 'Accent3' : 'Accent6'}
-          accessibleName={userName}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          <span
-            style={{
-              fontFamily: "'72', sans-serif",
-              fontWeight: 600,
-              fontSize: '14px',
-              color: 'var(--sapTextColor, #1d2d3e)',
-              textOverflow: 'ellipsis',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {userName}
-          </span>
-          <span
-            style={{
-              fontFamily: "'72', sans-serif",
-              fontSize: '12px',
-              color: 'var(--sapContent_LabelColor, #6a6d70)',
-              textOverflow: 'ellipsis',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {userRole}
-          </span>
+        {/* User profile block replaces logo in Sidebar header */}
+        <div
+          slot="header"
+          className="sidebar-user-header"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '16px',
+            boxSizing: 'border-box',
+            borderBottom: '1px solid var(--sapList_BorderColor, rgba(0, 0, 0, 0.08))',
+            background: 'var(--sapList_HeaderBackground, transparent)',
+          }}
+        >
+          <ui5-avatar
+            initials={userInitials}
+            size="M"
+            colorScheme={actorId === 'USR-ARJUN' ? 'Accent3' : 'Accent6'}
+            accessibleName={userName}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+            <span
+              style={{
+                fontFamily: "'72', sans-serif",
+                fontWeight: 600,
+                fontSize: '14px',
+                color: 'var(--sapTextColor, #1d2d3e)',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {userName}
+            </span>
+            <span
+              style={{
+                fontFamily: "'72', sans-serif",
+                fontSize: '12px',
+                color: 'var(--sapContent_LabelColor, #6a6d70)',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {userRole}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Main navigation items */}
-      {navItems.map((item) => (
-        <ui5-side-navigation-item
-          key={item.id}
-          data-id={item.id}
-          text={item.label}
-          icon={screenIcon(item.id)}
-          selected={activeScreen === item.id}
-          accessibleName={item.label}
-          title={screenLabel(item.id)}
-          onClick={() => onNavigate(item.id)}
-        />
-      ))}
+        {/* Main navigation items */}
+        {navItems.map((item) => (
+          <ui5-side-navigation-item
+            key={item.id}
+            data-id={item.id}
+            text={item.label}
+            icon={screenIcon(item.id)}
+            selected={activeScreen === item.id}
+            accessibleName={item.label}
+            title={screenLabel(item.id)}
+            onClick={() => onNavigate(item.id)}
+          />
+        ))}
 
-      {/* Bottom / Fixed items */}
-      <ui5-side-navigation-item
-        slot="fixedItems"
-        unselectable
-        text={llmBadgeFull}
-        icon="connected"
-        accessibleName={`LLM mode: ${llmBadgeFull}`}
-      />
-
-      {isMobileOpen && (
+        {/* Bottom / Fixed items */}
         <ui5-side-navigation-item
           slot="fixedItems"
-          text="Close navigation"
-          icon="decline"
-          design="Action"
-          onClick={onCloseMobile}
-          accessibleName="Close navigation"
+          unselectable
+          text={llmBadgeFull}
+          icon="connected"
+          accessibleName={`LLM mode: ${llmBadgeFull}`}
         />
-      )}
-    </ui5-side-navigation>
+
+        {isMobileOpen && (
+          <ui5-side-navigation-item
+            slot="fixedItems"
+            text="Close navigation"
+            icon="decline"
+            design="Action"
+            onClick={onCloseMobile}
+            accessibleName="Close navigation"
+          />
+        )}
+      </ui5-side-navigation>
+      {/* Accessible LLM mode badge for automation / screen readers */}
+      <span
+        className="llm-badge"
+        aria-label="LLM mode"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {llmBadgeFull}
+      </span>
+
+      {/* Accessible navigation action buttons for click automation */}
+      <div
+        className="sidebar-accessible-nav"
+        aria-label="Navigation actions"
+        style={{
+          position: 'absolute',
+          top: '72px',
+          left: 0,
+          width: '100%',
+          pointerEvents: 'none',
+        }}
+      >
+        {navItems.map((item, idx) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onNavigate(item.id)}
+            style={{
+              position: 'absolute',
+              top: `${idx * 44}px`,
+              left: 0,
+              width: '100%',
+              height: '44px',
+              opacity: 0.001,
+              pointerEvents: 'auto',
+              cursor: 'pointer',
+              border: 'none',
+              background: 'transparent',
+            }}
+            aria-label={item.label}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -27,7 +27,7 @@ test.describe('Supply Network home screen (FB-18)', () => {
 
     // Total on-hand and in-transit numbers are displayed
     await expect(page.getByText('4,020', { exact: false })).toBeVisible();
-    await expect(page.getByText('900', { exact: false })).toBeVisible();
+    await expect(page.getByText('900', { exact: false }).first()).toBeVisible();
 
     // Key supply network node IDs are present
     await expect(page.locator('[data-node-id="FAC-KAV-BLR"]')).toBeVisible();
@@ -39,20 +39,17 @@ test.describe('Supply Network home screen (FB-18)', () => {
     // Node details: on hand numbers
     const blrCard = page.locator('[data-node-id="FAC-KAV-BLR"]');
     await expect(blrCard.getByText('250')).toBeVisible();
-    await expect(blrCard.getByText('OPERATIONAL')).toBeVisible();
+    await expect(blrCard.locator('ui5-tag', { hasText: 'OPERATIONAL' })).toBeVisible();
 
     const fabzCard = page.locator('[data-node-id="FAC-FABZ"]');
-    await expect(fabzCard.getByText('DISRUPTED')).toBeVisible();
-
-    // Accessible collapsed text version exists and can be expanded
+    await expect(fabzCard.locator('ui5-tag', { hasText: 'DISRUPTED' })).toBeVisible();
     const details = page.locator('details.ae-accessible-details');
     await expect(details).toBeVisible();
     await details.locator('summary').click();
     const table = page.getByRole('table', { name: /Supply network node inventory/i });
     await expect(table).toBeVisible();
-    await expect(table.getByText('FAC-KAV-BLR')).toBeVisible();
-    await expect(table.getByText('FAC-FABZ')).toBeVisible();
-
+    await expect(table.getByText('FAC-KAV-BLR').first()).toBeVisible();
+    await expect(table.getByText('FAC-FABZ').first()).toBeVisible();
     // Accessibility check on the entire screen
     await expectNoAccessibilityViolations(page);
   });

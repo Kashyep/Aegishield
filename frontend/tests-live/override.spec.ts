@@ -14,6 +14,13 @@ const LONG_JUSTIFICATION = 'Shipper accepts the transhipment risk under the bank
 
 const p1Card = (page: Page) => page.locator('.plan-card').filter({ hasText: P1_NAME })
 
+// Switch identity the way the user does: the topbar role switcher. The simulated-identity select is kept in sync by the
+// same actorId state, so it is asserted too.
+async function switchIdentity(page: Page, actorId: 'USR-PRIYA' | 'USR-ARJUN') {
+  await page.locator(`ui5-segmented-button-item[data-actor="${actorId}"]`).click()
+  await expect(page.getByLabel('Simulated identity')).toHaveValue(actorId)
+}
+
 async function openCommandCenterWithEvaluation(page: Page) {
   await page.goto('/#command')
   await page.getByRole('button', { name: 'Reset demo' }).click()
@@ -29,7 +36,7 @@ test('blocked P1 can be approved only as a recorded override, and the override p
   await openCommandCenterWithEvaluation(page)
 
   // As the supply planner, the override is refused client-side and the reason is shown.
-  await page.getByLabel('Simulated identity').selectOption('USR-PRIYA')
+  await switchIdentity(page, 'USR-PRIYA')
   await p1Card(page).getByRole('button', { name: 'Attempt approval' }).click()
   const priyaDialog = page.getByRole('dialog', { name: P1_REVIEW })
   await expect(priyaDialog).toBeVisible()
@@ -40,8 +47,8 @@ test('blocked P1 can be approved only as a recorded override, and the override p
   await expect(priyaDialog).toBeHidden()
 
   // As the trade compliance officer: acknowledge the review finding, then build up the override step by step.
-  await page.getByLabel('Simulated identity').selectOption('USR-ARJUN')
-  await p1Card(page).getByRole('button', { name: 'Attempt approval' }).click()
+  await switchIdentity(page, 'USR-ARJUN')
+  await p1Card(page).getByRole('button', { name: 'Review & override…' }).click()
   const dialog = page.getByRole('dialog', { name: P1_REVIEW })
   await expect(dialog).toBeVisible()
   const override = dialog.getByRole('button', { name: OVERRIDE_BUTTON })

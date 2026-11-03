@@ -27,6 +27,8 @@ interface CommandCenterProps {
   openApproval: (planId: string, triggerElement?: HTMLElement | null, mode?: 'approve' | 'amend') => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
+  /** True when the current identity may override this blocked plan (approver who can acknowledge its review findings). */
+  actorCanOverridePlan?: (plan: Plan) => boolean;
   decisionSubmitting?: boolean;
   startPlanExecution: (plan: Plan) => void;
   executionSubmitting: boolean;
@@ -54,6 +56,7 @@ export function CommandCenter({
   openApproval,
   actorCanApprove,
   actorCanAmend,
+  actorCanOverridePlan,
   decisionSubmitting = false,
   startPlanExecution,
   executionSubmitting,
@@ -443,7 +446,7 @@ export function CommandCenter({
                         onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
                         style={{ flex: 1 }}
                       >
-                        Attempt approval
+                        {fullPlan && actorCanOverridePlan?.(fullPlan) ? 'Review & override…' : 'Attempt approval'}
                       </NeuButton>
                     </>
                   ) : (

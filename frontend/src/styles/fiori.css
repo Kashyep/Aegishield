@@ -705,3 +705,29 @@ ui5-title[size="H6"] {
 
 /* Card header titles: 16px bold, one step under section headings (ui5-title size H3). */
 ui5-card-header::part(title) { font-size: var(--text-md); font-weight: var(--weight-bold); }
+
+/* -------------------------------------------------------------------------
+   Evaluation progress step cards
+   NeuCard renders children inside .ae-card-body, so the step grid must be set
+   on that body, not on the ui5-card host (which squeezed every row into the
+   first grid track). Tracks: icon | title/status | mode | time.
+   ------------------------------------------------------------------------- */
+.ae-progress-step { display: block; width: 100%; min-width: 0; }
+.ae-progress-step > .ae-card-body {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.ae-progress-step .ae-step-main { min-width: 0; overflow-wrap: anywhere; }
+.ae-progress-step .ae-step-time { text-align: right; white-space: nowrap; }
+.ae-progress-step .mode-chip { white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .ae-progress-step > .ae-card-body { grid-template-columns: 28px minmax(0, 1fr); }
+  .ae-progress-step .mode-chip,
+  .ae-progress-step .ae-step-time { grid-column: 2; justify-self: start; text-align: left; }
+}

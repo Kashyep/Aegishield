@@ -132,7 +132,7 @@ export function AppShell({
             }}
             role="note"
           >
-            <strong style={{ color: 'var(--sapCriticalColor, #e9730c)', letterSpacing: '0.04em' }}>SYNTHETIC DATA</strong>
+            <strong style={{ color: 'var(--sapInformativeTextColor, #0854a0)', letterSpacing: '0.04em' }}>SYNTHETIC DATA</strong>
             <span style={{ color: 'var(--sapTextColor, #1d2d3e)' }}>All companies, prices, schedules and outcomes in this demo are fictional.</span>
           </div>
 

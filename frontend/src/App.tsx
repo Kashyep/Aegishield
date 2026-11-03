@@ -158,6 +158,7 @@ function App() {
   const [executionSubmitting, setExecutionSubmitting] = useState(false)
   const executionKeyRef = useRef<{ planId: string; decisionId: string; key: string } | null>(null)
   const pendingDecisionRef = useRef<{ body: string; key: string } | null>(null)
+  const decisionInFlightRef = useRef(false)
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
   const [auditState, setAuditState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'unavailable'>('idle')
   const [auditError, setAuditError] = useState('')
@@ -468,7 +469,12 @@ const closeApproval = useCallback(() => {
   setApprovalPlan(null)
 }, [])
   const submitApproval = async () => {
-    if (!approvalPlan || approvalDisabledReason) return
+    if (!approvalPlan || approvalDisabledReason || decisionInFlightRef.current) return
+    // Blocked plans stay submittable on purpose ("Attempt approval (blocked)"); the server refuses them with PLAN_BLOCKED.
+    if (!['pending_approval', 'blocked'].includes(approvalPlan.status)) {
+      setDecisionError(new ApiError(`Plan ${approvalPlan.plan_id} is ${approvalPlan.status.replace(/_/g, ' ')} and cannot be approved. Reload the current plan.`))
+      return
+    }
     const validAcks: Acknowledgement[] = reviewFindings
       .filter((finding) => acknowledgements[finding.finding_id]?.checked && (acknowledgements[finding.finding_id]?.note.trim().length ?? 0) >= 5)
       .map((finding) => ({
@@ -479,6 +485,7 @@ const closeApproval = useCallback(() => {
     const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: validAcks }
     const serializedBody = JSON.stringify(body)
     if (pendingDecisionRef.current?.body !== serializedBody) pendingDecisionRef.current = { body: serializedBody, key: crypto.randomUUID() }
+    decisionInFlightRef.current = true
     setDecisionSubmitting(true)
     setDecisionError(null)
     try {
@@ -486,9 +493,13 @@ const closeApproval = useCallback(() => {
       setEvaluation((previous) => previous && ({ ...previous, plans: previous.plans.map((plan) => plan.plan_id === result.data.plan_id ? { ...plan, status: result.data.resulting_plan_status, decision_ids: [result.data.decision_id] } : plan) }))
       setApprovedDecision(result.data)
       setApprovalPlan(null)
+      setDemoMessage(`Plan ${result.data.plan_id} approved by ${result.data.actor.actor_id}.`)
     } catch (error) {
       setDecisionError(error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : 'Decision could not be submitted.'))
-    } finally { setDecisionSubmitting(false) }
+    } finally {
+      decisionInFlightRef.current = false
+      setDecisionSubmitting(false)
+    }
   }
 
   const reloadApprovalPlan = async () => {
@@ -579,6 +590,7 @@ const closeApproval = useCallback(() => {
             openApproval={openApproval}
             actorCanApprove={actorCanApprove}
             actorCanAmend={actorCanAmend}
+            decisionSubmitting={decisionSubmitting}
             startPlanExecution={startPlanExecution}
             executionSubmitting={executionSubmitting}
             planWarnings={planWarnings}

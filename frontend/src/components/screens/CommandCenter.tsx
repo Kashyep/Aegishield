@@ -27,6 +27,7 @@ interface CommandCenterProps {
   openApproval: (planId: string, triggerElement?: HTMLElement | null, mode?: 'approve' | 'amend') => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
+  decisionSubmitting?: boolean;
   startPlanExecution: (plan: Plan) => void;
   executionSubmitting: boolean;
   planWarnings?: Record<string, EarlyWarning[]>;
@@ -53,6 +54,7 @@ export function CommandCenter({
   openApproval,
   actorCanApprove,
   actorCanAmend,
+  decisionSubmitting = false,
   startPlanExecution,
   executionSubmitting,
   planWarnings,
@@ -242,6 +244,19 @@ export function CommandCenter({
             const fullPlan = evaluation?.plans?.find((candidate) => candidate.plan_id === plan.plan_id);
             const isVerdictVisible = Boolean(evaluationRun || inspectedPlanIds.includes(plan.plan_id));
             const isBlocked = isVerdictVisible && (fullPlan?.status === 'blocked' || plan.outcome === 'blocked');
+            const approveDisabledReason = !fullPlan
+              ? 'Plan details are still loading.'
+              : decisionSubmitting
+                ? 'Approval in progress.'
+                : !actorCanApprove
+                  ? 'Only Supply Planner or Trade Compliance Officer can approve.'
+                  : ['approved', 'executing', 'completed'].includes(fullPlan.status)
+                    ? 'Already approved.'
+                    : isBlocked || fullPlan.status === 'blocked'
+                      ? 'Plan is blocked.'
+                      : fullPlan.status !== 'pending_approval'
+                        ? `Plan is ${fullPlan.status.replace(/_/g, ' ')}, not pending approval.`
+                        : '';
             const planStatus = isVerdictVisible ? (fullPlan?.status ?? plan.outcome) : 'pending_analysis';
             const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-');
             const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
@@ -413,7 +428,8 @@ export function CommandCenter({
                       <NeuButton
                         design="Positive"
                         disabled={true}
-                        aria-describedby={`blocked-reason-${plan.plan_id}`}
+                        title={approveDisabledReason || undefined}
+                        {...{ accessibleDescription: approveDisabledReason || undefined }}
                         style={{ flex: 1 }}
                       >
                         Approve
@@ -430,7 +446,9 @@ export function CommandCenter({
                   ) : (
                     <NeuButton
                       design="Positive"
-                      disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'}
+                      disabled={Boolean(approveDisabledReason)}
+                      title={approveDisabledReason || undefined}
+                      {...{ accessibleDescription: approveDisabledReason || undefined }}
                       onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
                       style={{ flex: 1 }}
                     >

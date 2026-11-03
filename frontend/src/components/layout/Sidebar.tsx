@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { navItems, screenLabel, type Screen } from '../../app/navigation';
 import type { Policies } from '../../api/types';
 
@@ -73,14 +73,20 @@ export function Sidebar({
   // (the layout's transform transition), and turns visible at once when opened.
   const isPhoneDrawerClosed = isMobile && !isMobileOpen;
 
-  // Close the phone drawer only when the screen actually changes. Depending on
-  // isMobileOpen here closed the drawer the moment the menu opened it.
+  // Close the phone drawer when the screen changes by any route (e.g. hash/back).
+  // Depending on isMobileOpen alone closed the drawer the moment the menu opened it.
   const lastScreen = useRef(activeScreen);
   useEffect(() => {
     if (lastScreen.current === activeScreen) return;
     lastScreen.current = activeScreen;
     if (isMobileOpen) onCloseMobile();
   }, [activeScreen, isMobileOpen, onCloseMobile]);
+
+  // Close the drawer when an item is activated, including the current screen.
+  const navigate = useCallback((screen: Screen) => {
+    onNavigate(screen);
+    if (isMobileOpen) onCloseMobile();
+  }, [onNavigate, isMobileOpen, onCloseMobile]);
 
   const navRef = useRef<HTMLElement | null>(null);
 
@@ -92,7 +98,7 @@ export function Sidebar({
       const item = customEvt.detail?.item;
       const screenId = item?.getAttribute('data-id') as Screen | null;
       if (screenId) {
-        onNavigate(screenId);
+        navigate(screenId);
       }
     };
     el.addEventListener('selection-change', listener);
@@ -101,13 +107,13 @@ export function Sidebar({
       el.removeEventListener('selection-change', listener);
       el.removeEventListener('item-click', listener);
     };
-  }, [onNavigate]);
+  }, [navigate]);
 
   const handleSelectionChange = (event: CustomEvent<SideNavEventDetail>) => {
     const item = event.detail?.item;
     const screenId = item?.getAttribute('data-id') as Screen | null;
     if (screenId) {
-      onNavigate(screenId);
+      navigate(screenId);
     }
   };
 
@@ -136,9 +142,10 @@ export function Sidebar({
       slot={slot ?? 'sideContent'}
       className="sidebar-container"
       style={isMobileOpen ? {
-        // Phone drawer: fixed to the viewport. Stacking is decided by the
-        // layout's aside, which sits above the AppShell backdrop.
-        position: 'fixed',
+        // Phone drawer: positioned inside the layout's aside, which UI5 places
+        // below the header (ui5-navigation-layout header height). A viewport-fixed
+        // drawer started under the header and its items were covered by it.
+        position: 'absolute',
         top: 0,
         bottom: 0,
         left: 0,
@@ -225,7 +232,7 @@ export function Sidebar({
             selected={activeScreen === item.id}
             accessibleName={item.label}
             title={screenLabel(item.id)}
-            onClick={() => onNavigate(item.id)}
+            onClick={() => navigate(item.id)}
           />
         ))}
 
@@ -267,7 +274,6 @@ export function Sidebar({
       >
         {llmBadgeFull}
       </span>
-
     </div>
   );
 }

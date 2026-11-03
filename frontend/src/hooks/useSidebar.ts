@@ -63,7 +63,9 @@ export function useSidebar() {
   const toggle = useCallback(() => {
     setState(prev => {
       if (isMobile) return prev === 'mobile-open' ? 'collapsed' : 'mobile-open';
-      return prev === 'collapsed' ? 'expanded' : 'collapsed';
+      if (prev === 'expanded') return 'collapsed';
+      if (prev === 'collapsed') return 'expanded';
+      return 'expanded'; // mobile-open -> expanded
     });
   }, [isMobile]);
 

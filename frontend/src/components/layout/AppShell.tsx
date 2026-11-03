@@ -97,6 +97,7 @@ export function AppShell({
         <Topbar
           slot="header"
           onMenuClick={toggle}
+          isMobile={isMobile}
           screenLabel={screenLabel(activeScreen)}
           actorId={actorId}
           onActorChange={setActorId}

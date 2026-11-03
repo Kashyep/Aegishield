@@ -47,6 +47,8 @@ jobs:
         run: npm test
       - name: Full-stack test (live backend, recorded LLM mode)
         run: npm run test:live
+      - name: Production build served same-origin by the backend (as on BTP)
+        run: npm run test:prod
       - name: Graph stubs match the backend builder
         working-directory: .
         run: |

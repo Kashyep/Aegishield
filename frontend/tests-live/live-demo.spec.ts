@@ -51,7 +51,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
 
   await page.getByRole('button', { name: /Audit trail/ }).click()
   await page.getByRole('button', { name: 'Verify chain' }).click()
-  await expect(page.getByText(/Chain valid/)).toBeVisible()
+  await expect(page.locator('.audit-verified')).toContainText(/Chain valid/)
 })
 
 test('getPolicies in live mode returns live policies from the backend', async ({ page }) => {

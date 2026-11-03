@@ -42,9 +42,20 @@ export function AppShell({
 
   useEffect(() => setMounted(true), []);
 
+  // Escape dismisses the phone drawer.
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMobile();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMobileOpen, closeMobile]);
+
   const handleNavigate = useCallback((screen: Screen) => {
     navigation(screen);
-  }, [navigation]);
+    if (isMobile) closeMobile();
+  }, [navigation, isMobile, closeMobile]);
 
   // Don't render until mounted to avoid hydration mismatch
   if (!mounted) {
@@ -68,7 +79,9 @@ export function AppShell({
             position: 'fixed',
             inset: 0,
             background: 'rgba(0, 0, 0, 0.4)',
-            zIndex: 100,
+            // Must sit below the navigation aside (z-index 2 inside ui5-navigation-layout's
+            // stacking context) so the drawer is above it, and above the page content.
+            zIndex: 1,
             display: isMobile ? 'block' : 'none',
           }}
           aria-hidden="true"

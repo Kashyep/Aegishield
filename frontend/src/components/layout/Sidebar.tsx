@@ -69,7 +69,12 @@ export function Sidebar({
   const isMobileOpen = state === 'mobile-open' && isMobile;
   const isCollapsed = !isExpanded && !isMobileOpen;
 
+  // Close the phone drawer only when the screen actually changes. Depending on
+  // isMobileOpen here closed the drawer the moment the menu opened it.
+  const lastScreen = useRef(activeScreen);
   useEffect(() => {
+    if (lastScreen.current === activeScreen) return;
+    lastScreen.current = activeScreen;
     if (isMobileOpen) onCloseMobile();
   }, [activeScreen, isMobileOpen, onCloseMobile]);
 
@@ -126,7 +131,16 @@ export function Sidebar({
     <div
       slot={slot ?? 'sideContent'}
       className="sidebar-container"
-      style={{
+      style={isMobileOpen ? {
+        // Phone drawer: fixed to the viewport. Stacking is decided by the
+        // layout's aside, which sits above the AppShell backdrop.
+        position: 'fixed',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: 'min(300px, 88vw)',
+        height: '100%',
+      } : {
         height: '100%',
         position: 'relative',
       }}
@@ -243,41 +257,6 @@ export function Sidebar({
         {llmBadgeFull}
       </span>
 
-      {/* Accessible navigation action buttons for click automation */}
-      <div
-        className="sidebar-accessible-nav"
-        aria-label="Navigation actions"
-        style={{
-          position: 'absolute',
-          top: '72px',
-          left: 0,
-          width: '100%',
-          pointerEvents: 'none',
-        }}
-      >
-        {navItems.map((item, idx) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onNavigate(item.id)}
-            style={{
-              position: 'absolute',
-              top: `${idx * 44}px`,
-              left: 0,
-              width: '100%',
-              height: '44px',
-              opacity: 0.001,
-              pointerEvents: 'auto',
-              cursor: 'pointer',
-              border: 'none',
-              background: 'transparent',
-            }}
-            aria-label={item.label}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

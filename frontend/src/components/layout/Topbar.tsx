@@ -55,6 +55,19 @@ export function Topbar({
     setCurrentTheme(nextTheme);
   };
 
+  // On narrow viewports the expanded search field spans the whole shellbar and
+  // covers the menu start button, so it collapses to the search button instead.
+  const [isNarrow, setIsNarrow] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 1023px)');
+    const onChange = (event: MediaQueryListEvent) => setIsNarrow(event.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
   const segmentedRef = useRef<HTMLElement | null>(null);
   const shellbarRef = useRef<HTMLElement | null>(null);
 
@@ -102,7 +115,7 @@ export function Topbar({
         ref={shellbarRef}
         primaryTitle="AegisShield AI"
         secondaryTitle="Supply-Chain Recovery Preflight"
-        showSearchField
+        showSearchField={!isNarrow}
         accessibleName={`AegisShield AI - ${screenLabel}`}
         {...({ showCoPilot: false })}
         accessibilityAttributes={{

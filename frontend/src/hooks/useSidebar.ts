@@ -6,15 +6,17 @@ const STORAGE_KEY = 'aegisshield:sidebar-state';
 const DEFAULT_STATE: SidebarState = 'expanded';
 const MOBILE_BREAKPOINT = 768;
 
+function readStoredState(): SidebarState {
+  if (typeof window === 'undefined') return DEFAULT_STATE;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'expanded' || stored === 'collapsed') return stored;
+  } catch { /* ignore */ }
+  return DEFAULT_STATE;
+}
+
 export function useSidebar() {
-  const [state, setState] = useState<SidebarState>(() => {
-    if (typeof window === 'undefined') return DEFAULT_STATE;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === 'expanded' || stored === 'collapsed') return stored;
-    } catch { /* ignore */ }
-    return DEFAULT_STATE;
-  });
+  const [state, setState] = useState<SidebarState>(readStoredState);
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -26,29 +28,36 @@ export function useSidebar() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Persist state (except mobile-open)
+  // Persist desktop state only. Phone state is ephemeral: a drawer that is
+  // open or closed must not leak into the desktop preference.
   useEffect(() => {
-    if (state !== 'mobile-open') {
+    if (!isMobile) {
       try {
         localStorage.setItem(STORAGE_KEY, state);
       } catch { /* ignore */ }
     }
-  }, [state]);
+  }, [state, isMobile]);
 
-  // Auto-collapse on mobile
+  // Returning to desktop restores the stored desktop preference.
+  useEffect(() => {
+    if (!isMobile) setState(readStoredState());
+  }, [isMobile]);
+
+  // On phones the navigation starts closed (collapsed = drawer hidden).
   useEffect(() => {
     if (isMobile && state === 'expanded') {
-      setState('mobile-open');
+      setState('collapsed');
     }
   }, [isMobile, state]);
 
+  // On phones the menu button flips the drawer open/closed. On desktop it
+  // flips expanded/collapsed.
   const toggle = useCallback(() => {
     setState(prev => {
-      if (prev === 'expanded') return 'collapsed';
-      if (prev === 'collapsed') return 'expanded';
-      return 'expanded'; // mobile-open -> expanded
+      if (isMobile) return prev === 'mobile-open' ? 'collapsed' : 'mobile-open';
+      return prev === 'collapsed' ? 'expanded' : 'collapsed';
     });
-  }, []);
+  }, [isMobile]);
 
   const open = useCallback(() => setState('expanded'), []);
   const close = useCallback(() => setState('collapsed'), []);

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { navTo } from './helpers/nav'
 
 async function expectNoAccessibilityViolations(page: Page) {
   const results = await new AxeBuilder({ page })
@@ -123,7 +124,7 @@ test('completes Command Center to evaluation findings, evidence, and P2 approval
   }
   await evidenceDialog.getByRole('button', { name: 'Close finding details' }).click()
 
-  await page.locator('ui5-side-navigation-item[data-id="command"]').click()
+  await navTo(page, 'Command Center')
   const p2Card = page.locator('.plan-card').filter({ hasText: approvedCandidate?.label ?? '' })
   await p2Card.getByRole('button', { name: 'Approve' }).click()
   const approvalDialog = page.getByRole('dialog', { name: `Review ${planRecord?.label}` })
@@ -135,7 +136,7 @@ test('completes Command Center to evaluation findings, evidence, and P2 approval
 })
 
 test('provides a keyboard-operable text alternative for the supply graph', async ({ page }) => {
-  await page.locator('ui5-side-navigation-item[data-id="supply-graph"]').click()
+  await navTo(page, 'Supply graph')
   await expect(page.getByRole('heading', { name: /Alternative supply links|Text alternative: supply links/ })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Facility records in this graph fixture' })).toBeVisible()
   const expander = page.getByText(/Text version: all supply links/)
@@ -155,11 +156,11 @@ test('does not present evaluation steps as audit events or claim fixture verific
   page.on('request', (request) => {
     if (request.url().includes('/api/v1/')) apiRequests.push(request.url())
   })
-  await page.locator('ui5-side-navigation-item[data-id="execution"]').click()
+  await navTo(page, 'Execution')
   await expect(page.getByText(/No execution record is included in the fixtures/)).toBeVisible()
   await expect(page.getByText('The API reports this simulated execution as completed.')).toHaveCount(0)
 
-  await page.locator('ui5-side-navigation-item[data-id="audit-trail"]').click()
+  await navTo(page, 'Audit trail')
   await expect(page.getByText(/Fixture mode contains no audit-event records/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Verify chain' })).toBeDisabled()
   await expect(page.getByText('1. disruption sensing')).toHaveCount(0)

@@ -490,13 +490,39 @@ def create_evaluation(
     return accepted
 
 
+def _overlay_current_plan_state(con, evaluation_id: str, payload: dict) -> dict:
+    """Read-time overlay: decisions and executions update the `plans` table, not the stored evaluation payload.
+
+    Only mutable lifecycle fields are copied, and only when the Plan schema allows them (decision_ids, execution_id,
+    amendment_request_ids). plan_hash and the rest of the stored payload are never touched.
+    """
+    plans = payload.get("plans") or []
+    if not plans:
+        return payload
+    current = {
+        r["plan_id"]: json.loads(r["payload_json"])
+        for r in con.execute("SELECT plan_id, payload_json FROM plans WHERE evaluation_id=?", (evaluation_id,)).fetchall()
+    }
+    merged_plans = []
+    for plan in plans:
+        stored = current.get(plan["plan_id"])
+        merged = dict(plan)
+        if stored is not None:
+            merged["status"] = stored["status"]
+            for key in ("decision_ids", "execution_id", "amendment_request_ids"):
+                if key in stored and (key in plan or stored[key] not in (None, [])):
+                    merged[key] = stored[key]
+        merged_plans.append(merged)
+    return {**payload, "plans": merged_plans}
+
+
 @app.get("/api/v1/evaluations/{evaluation_id}")
 def get_evaluation(evaluation_id: str):
     with read_connection() as con:
         row = con.execute("SELECT payload_json FROM evaluations WHERE evaluation_id=?", (evaluation_id,)).fetchone()
-    if not row:
-        return problem_response(404, "NOT_FOUND", f"Evaluation {evaluation_id} not found", instance=f"/api/v1/evaluations/{evaluation_id}")
-    return json.loads(row["payload_json"])
+        if not row:
+            return problem_response(404, "NOT_FOUND", f"Evaluation {evaluation_id} not found", instance=f"/api/v1/evaluations/{evaluation_id}")
+        return _overlay_current_plan_state(con, evaluation_id, json.loads(row["payload_json"]))
 
 
 @app.get("/api/v1/evaluations/{evaluation_id}/graph")

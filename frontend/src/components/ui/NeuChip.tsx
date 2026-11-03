@@ -115,7 +115,7 @@ export function NeuPills({
                 marginLeft: 'var(--space-1)',
                 padding: '0 var(--space-2)',
                 borderRadius: 'var(--radius-full)',
-                fontSize: 'var(--text-xs)',
+                fontSize: 'var(--text-sm)',
                 background: activeTab === tab.id ? 'rgba(255,255,255,0.2)' : 'var(--sapGroup_ContentBackground)',
               }}
             >

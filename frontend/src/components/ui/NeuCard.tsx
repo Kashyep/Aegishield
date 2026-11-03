@@ -20,11 +20,15 @@ export const NeuCard = forwardRef<HTMLElement, NeuCardProps>(
       .filter(Boolean)
       .join(' ');
 
+    // Padding is applied to an inner body wrapper, not the ui5-card host, so
+    // the content sits inside the card's single native border.
+    const { padding, ...hostStyle } = style ?? {};
+
     return (
       <ui5-card
         ref={ref}
         className={cardClasses}
-        style={style}
+        style={hostStyle}
         role={computedRole}
         {...props}
       >
@@ -35,7 +39,9 @@ export const NeuCard = forwardRef<HTMLElement, NeuCardProps>(
             subtitleText={finalSubtitle}
           />
         )}
-        {children}
+        <div className="ae-card-body" style={{ padding: padding ?? 'var(--space-4)' }}>
+          {children}
+        </div>
       </ui5-card>
     );
   }

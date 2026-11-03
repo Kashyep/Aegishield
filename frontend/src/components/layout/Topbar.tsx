@@ -57,6 +57,19 @@ export function Topbar({
     setCurrentTheme(nextTheme);
   };
 
+  // On narrow viewports the expanded search field spans the whole shellbar and
+  // covers the menu start button, so it collapses to the search button instead.
+  const [isNarrow, setIsNarrow] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 1023px)');
+    const onChange = (event: MediaQueryListEvent) => setIsNarrow(event.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
   const segmentedRef = useRef<HTMLElement | null>(null);
   const shellbarRef = useRef<HTMLElement | null>(null);
 
@@ -104,8 +117,8 @@ export function Topbar({
         ref={shellbarRef}
         primaryTitle="AegisShield AI"
         secondaryTitle="Supply-Chain Recovery Preflight"
-        // On phones a forced-open search goes full-width and covers the menu button.
-        showSearchField={!isMobile}
+        // Below 1024px (and on phones) a forced-open search covers the menu button.
+        showSearchField={!(isNarrow || isMobile)}
         accessibleName={`AegisShield AI - ${screenLabel}`}
         {...({ showCoPilot: false })}
         accessibilityAttributes={{
@@ -128,7 +141,7 @@ export function Topbar({
             justifyContent: 'center',
             width: '32px',
             height: '32px',
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-lg)',
             background: 'var(--sapBrandColor, #0070f2)',
             color: 'var(--sapContent_ContrastTextColor, #ffffff)',
             boxShadow: 'var(--sapContent_Shadow0, 0 1px 3px rgba(0, 0, 0, 0.12))',
@@ -248,7 +261,7 @@ export function Topbar({
               className="eyebrow"
               style={{
                 fontFamily: "'72', sans-serif",
-                fontSize: '11px',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--sapContent_LabelColor, #6a6d70)',
                 textTransform: 'uppercase',
@@ -266,12 +279,12 @@ export function Topbar({
               style={{
                 height: '32px',
                 padding: '0 8px',
-                borderRadius: '4px',
+                borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--sapField_BorderColor, #89919a)',
                 background: 'var(--sapField_Background, #ffffff)',
                 color: 'var(--sapTextColor, #1d2d3e)',
                 fontFamily: "'72', sans-serif",
-                fontSize: '13px',
+                fontSize: 'var(--text-sm)',
                 cursor: 'pointer',
               }}
             >

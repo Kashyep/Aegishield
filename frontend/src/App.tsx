@@ -158,6 +158,7 @@ function App() {
   const [executionSubmitting, setExecutionSubmitting] = useState(false)
   const executionKeyRef = useRef<{ planId: string; decisionId: string; key: string } | null>(null)
   const pendingDecisionRef = useRef<{ body: string; key: string } | null>(null)
+  const decisionInFlightRef = useRef(false)
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
   const [auditState, setAuditState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'unavailable'>('idle')
   const [auditError, setAuditError] = useState('')
@@ -175,6 +176,9 @@ function App() {
   const [evaluationState, setEvaluationState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [evaluationError, setEvaluationError] = useState('')
   const [graphError, setGraphError] = useState('')
+  // Bumped whenever the graph must be fetched again (new evaluation run, demo reset). evaluationCompleted alone
+  // stays true across a reset-then-rerun, so the effect below would otherwise never re-fire.
+  const [graphRevision, setGraphRevision] = useState(0)
   const [stepAnnouncement, setStepAnnouncement] = useState('')
   const [availableDisruptionId, setAvailableDisruptionId] = useState<string | null>(null)
   const [evaluationId, setEvaluationId] = useState('EVAL-0001')
@@ -193,11 +197,12 @@ function App() {
   }, [evaluationId])
 
   const evaluationCompleted = evaluation?.status === 'completed'
+  // A loaded evaluation that has not completed yet is a normal pre-state, not a fetch failure.
+  const graphPending = evaluation !== null && !evaluationCompleted
   const loadGraph = useCallback(async () => {
     setGraphError('')
     if (!evaluationCompleted) {
       setGraphView(null)
-      setGraphError('The dependency graph is available once an evaluation has completed.')
       return
     }
     try {
@@ -208,7 +213,7 @@ function App() {
     }
   }, [evaluationId, focusSupplierId, evaluationCompleted])
 
-  useEffect(() => { void loadGraph() }, [loadGraph])
+  useEffect(() => { void loadGraph() }, [loadGraph, graphRevision])
 
   useEffect(() => {
     if (getApiMode() !== 'live') return
@@ -248,6 +253,7 @@ function App() {
       setEvaluationRun(false)
       setInspectedPlanIds([])
       setGraphView(null)
+      setGraphRevision((revision) => revision + 1)
       setExecution(null)
       setApprovedDecision(null)
       setAmendmentResult(null)
@@ -277,6 +283,7 @@ function App() {
       setEvaluationState('ready')
       const done = await pollEvaluation(accepted.evaluation_id)
       setEvaluationRun(true)
+      setGraphRevision((revision) => revision + 1)
       setDemoMessage(`Evaluation ${done.evaluation_id} ${done.status}.${accepted.superseded_plan_ids.length ? ` Superseded: ${accepted.superseded_plan_ids.join(', ')}.` : ''}`)
     } catch (error) {
       setDemoMessage(error instanceof Error ? error.message : 'Evaluation could not be started.')
@@ -468,7 +475,12 @@ const closeApproval = useCallback(() => {
   setApprovalPlan(null)
 }, [])
   const submitApproval = async () => {
-    if (!approvalPlan || approvalDisabledReason) return
+    if (!approvalPlan || approvalDisabledReason || decisionInFlightRef.current) return
+    // Blocked plans stay submittable on purpose ("Attempt approval (blocked)"); the server refuses them with PLAN_BLOCKED.
+    if (!['pending_approval', 'blocked'].includes(approvalPlan.status)) {
+      setDecisionError(new ApiError(`Plan ${approvalPlan.plan_id} is ${approvalPlan.status.replace(/_/g, ' ')} and cannot be approved. Reload the current plan.`))
+      return
+    }
     const validAcks: Acknowledgement[] = reviewFindings
       .filter((finding) => acknowledgements[finding.finding_id]?.checked && (acknowledgements[finding.finding_id]?.note.trim().length ?? 0) >= 5)
       .map((finding) => ({
@@ -479,6 +491,7 @@ const closeApproval = useCallback(() => {
     const body: DecisionRequest = { action: 'approve', plan_version: approvalPlan.version, plan_hash: approvalPlan.plan_hash, justification: decisionJustification.trim() || null, acknowledgements: validAcks }
     const serializedBody = JSON.stringify(body)
     if (pendingDecisionRef.current?.body !== serializedBody) pendingDecisionRef.current = { body: serializedBody, key: crypto.randomUUID() }
+    decisionInFlightRef.current = true
     setDecisionSubmitting(true)
     setDecisionError(null)
     try {
@@ -486,9 +499,13 @@ const closeApproval = useCallback(() => {
       setEvaluation((previous) => previous && ({ ...previous, plans: previous.plans.map((plan) => plan.plan_id === result.data.plan_id ? { ...plan, status: result.data.resulting_plan_status, decision_ids: [result.data.decision_id] } : plan) }))
       setApprovedDecision(result.data)
       setApprovalPlan(null)
+      setDemoMessage(`Plan ${result.data.plan_id} approved by ${result.data.actor.actor_id}.`)
     } catch (error) {
       setDecisionError(error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : 'Decision could not be submitted.'))
-    } finally { setDecisionSubmitting(false) }
+    } finally {
+      decisionInFlightRef.current = false
+      setDecisionSubmitting(false)
+    }
   }
 
   const reloadApprovalPlan = async () => {
@@ -579,6 +596,7 @@ const closeApproval = useCallback(() => {
             openApproval={openApproval}
             actorCanApprove={actorCanApprove}
             actorCanAmend={actorCanAmend}
+            decisionSubmitting={decisionSubmitting}
             startPlanExecution={startPlanExecution}
             executionSubmitting={executionSubmitting}
             planWarnings={planWarnings}
@@ -628,6 +646,8 @@ const closeApproval = useCallback(() => {
             evaluationId={evaluationId}
             graphView={graphView}
             graphError={graphError}
+            graphPending={graphPending}
+            onRetry={() => setGraphRevision((revision) => revision + 1)}
             setFocusSupplierId={setFocusSupplierId}
             selectedGraphNode={selectedGraphNode}
             setSelectedGraphNode={setSelectedGraphNode}
@@ -742,7 +762,7 @@ const closeApproval = useCallback(() => {
               <dd className="hash-value" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 0, color: 'var(--color-text)', fontSize: 'var(--text-sm)', overflowWrap: 'anywhere' }}>
                 <span title={approvalPlan.plan_hash}>{approvalPlan.plan_hash.slice(0, 12)}…</span>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>{approvalPlan.plan_hash}</span>
-                <button className="ae-btn ae-btn-secondary" style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)' }} onClick={() => { navigator.clipboard.writeText(approvalPlan.plan_hash); setDemoMessage('Plan hash copied to clipboard'); setTimeout(() => setDemoMessage(''), 2000) }}>Copy</button>
+                <button className="ae-btn ae-btn-secondary" style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-sm)' }} onClick={() => { navigator.clipboard.writeText(approvalPlan.plan_hash); setDemoMessage('Plan hash copied to clipboard'); setTimeout(() => setDemoMessage(''), 2000) }}>Copy</button>
               </dd>
             </div>
             <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light)' }}>
@@ -785,7 +805,7 @@ const closeApproval = useCallback(() => {
                   Active early warnings (advisory)
                 </h3>
               </div>
-              <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+              <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
                 Heuristic index, not a probability. Advisory only — never changes plans.
               </p>
               {activePlanWarnings.map((warning) => (
@@ -798,7 +818,7 @@ const closeApproval = useCallback(() => {
                     </NeuChip>
                     <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)' }}>{warning.score}/100</span>
                   </div>
-                  <p style={{ margin: 'var(--space-1) 0 0', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', lineHeight: 'var(--leading-relaxed)' }}>
+                  <p style={{ margin: 'var(--space-1) 0 0', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', lineHeight: 'var(--leading-relaxed)' }}>
                     {warning.summary}
                   </p>
                 </div>
@@ -887,7 +907,7 @@ const closeApproval = useCallback(() => {
                     type="button"
                     className="ae-btn ae-btn-secondary"
                     onClick={() => setActorId('USR-ARJUN')}
-                    style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)', marginTop: 'var(--space-1)' }}
+                    style={{ fontSize: 'var(--text-sm)', padding: 'var(--space-1) var(--space-2)', marginTop: 'var(--space-1)' }}
                   >
                     Switch to Arjun M. (Trade Compliance Officer)
                   </button>
@@ -1044,7 +1064,7 @@ const closeApproval = useCallback(() => {
               <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-md)', fontFamily: 'var(--font-heading)' }}>Trade-rule results</h3>
               <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>Route {selectedFinding.subject.id} · applicable on {selectedRouteRules.query.applicable_on} · origin {selectedRouteRules.query.origin_country} · transit {selectedRouteRules.query.transit_countries.join(', ') || 'none recorded'}.</p>
               <div className="ae-table-wrap" role="region" aria-label="Route rules table" tabIndex={0} style={{ margin: 'var(--space-2) 0' }}>
-                <table className="ae-table" style={{ minWidth: 630, fontSize: 'var(--text-xs)' }}>
+                <table className="ae-table" style={{ minWidth: 630, fontSize: 'var(--text-sm)' }}>
                   <caption>Rules included in the evaluation response</caption>
                   <thead>
                     <tr><th scope="col">Rule</th><th scope="col">Type / rate</th><th scope="col">Effective</th><th scope="col">Authority</th><th scope="col">Result</th></tr>
@@ -1117,13 +1137,13 @@ const closeApproval = useCallback(() => {
               </h3>
               {selectedFinding.explanations.map((exp, idx) => (
                 <div key={idx} style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--color-bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-accent)' }}>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-accent)' }}>
                     <span style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>Mode: {exp.mode}</span>
                     <span style={{ background: exp.validation_status === 'validated' ? 'var(--color-success-bg)' : 'var(--color-warning-bg)', color: exp.validation_status === 'validated' ? 'var(--color-success-text)' : 'var(--color-warning-text)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>{exp.validation_status}</span>
                   </div>
                   <p style={{ margin: 0, lineHeight: 'var(--leading-relaxed)' }}>{exp.text}</p>
                   {exp.cited_evidence_ids && exp.cited_evidence_ids.length > 0 && (
-                    <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
                       Cited: {exp.cited_evidence_ids.map((id: string) => <a key={id} href={`#evidence-${id}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{id}</a>).join(', ')}
                     </p>
                   )}

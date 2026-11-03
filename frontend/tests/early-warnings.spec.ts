@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
+import { navTo } from './helpers/nav'
 import { expect, test } from '@playwright/test'
 
 async function expectNoAccessibilityViolations(page: import('@playwright/test').Page) {
@@ -17,7 +18,7 @@ test('open Early warnings -> sees 97/100, WARNING, heuristic index, not a probab
   await page.goto('/#command')
 
   // Navigate to Early warnings from sidebar nav
-  await page.locator('ui5-side-navigation-item[data-id="early-warnings"]').click()
+  await navTo(page, 'Early warnings')
 
   // Heading is visible
   await expect(page.getByRole('heading', { name: 'Early warnings' })).toBeVisible()

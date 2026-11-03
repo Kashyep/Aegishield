@@ -228,7 +228,7 @@ export function EvaluationsScreen({
                 marginBottom: 'var(--space-4)',
                 padding: 'var(--space-3) var(--space-4)',
                 background: 'var(--sapTile_Background, var(--color-bg-elevated))',
-                border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                border: '1px solid var(--color-border-light, var(--color-border))',
                 borderRadius: 'var(--radius-lg)',
               }}
             >
@@ -288,7 +288,7 @@ export function EvaluationsScreen({
                           width: 24,
                           height: 24,
                           borderRadius: '50%',
-                          fontSize: 13,
+                          fontSize: 'var(--text-sm)',
                           fontWeight: 'bold',
                           border: viewedSections.has('overview') ? '2px solid var(--sapPositiveColor)' : '2px solid var(--sapNeutralBorderColor)',
                           background: viewedSections.has('overview') ? 'var(--sapPositiveColor)' : 'transparent',
@@ -326,7 +326,7 @@ export function EvaluationsScreen({
                     width: 24,
                     height: 24,
                     borderRadius: '50%',
-                    fontSize: 13,
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 'bold',
                     border: viewedSections.has('plans') ? '2px solid var(--sapPositiveColor)' : '2px solid var(--sapNeutralBorderColor)',
                     background: viewedSections.has('plans') ? 'var(--sapPositiveColor)' : 'transparent',
@@ -348,14 +348,14 @@ export function EvaluationsScreen({
                   marginTop: 'var(--space-4)',
                   marginBottom: 'var(--space-4)',
                   background: 'var(--sapTile_Background, var(--color-bg-elevated))',
-                  border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
-                  borderRadius: 'var(--radius-lg, 0.5rem)',
+                  border: '1px solid var(--color-border-light, var(--color-border))',
+                  borderRadius: 'var(--radius-lg)',
                   boxShadow: 'var(--sapContent_Shadow0, 0 1px 3px rgba(0,0,0,0.1))',
                   padding: 'var(--space-4)',
                 }}
               >
                 <div style={{ marginBottom: 'var(--space-3)' }}>
-                  <ui5-title level="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor)' }}>
+                  <ui5-title level="H4" size="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor)' }}>
                     Decision matrix
                   </ui5-title>
                   <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-sm)' }}>
@@ -455,7 +455,7 @@ export function EvaluationsScreen({
                     </div>
 
                     {/* FB-08 Section 1: Validation status */}
-                    <section className="plan-section validation-status-section" data-section="validation-status" aria-label={`Validation status for ${plan.plan_id}`} style={{ paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                    <section className="plan-section validation-status-section" data-section="validation-status" aria-label={`Validation status for ${plan.plan_id}`} style={{ paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--color-border-light, var(--color-border-light))' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span className="section-label" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase' }}>
                           Validation status
@@ -467,7 +467,7 @@ export function EvaluationsScreen({
                     </section>
 
                     {/* FB-08 Section 2: Financial status */}
-                    <section className="plan-section financial-status-section" data-section="financial-status" aria-label={`Financial status for ${plan.plan_id}`} style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                    <section className="plan-section financial-status-section" data-section="financial-status" aria-label={`Financial status for ${plan.plan_id}`} style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border-light, var(--color-border-light))' }}>
                       <span className="section-label" style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase', display: 'block', marginBottom: 'var(--space-2)' }}>
                         Financial status
                       </span>
@@ -475,7 +475,7 @@ export function EvaluationsScreen({
                         <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Net avoided loss{isBlocked ? ' · on paper' : ''}</span>
                         <strong style={{ fontSize: 'var(--text-xl)', fontFamily: 'var(--font-heading)' }}>{money(plan.net_avoided_loss_inr)}</strong>
                       </div>
-                      <div className="financial-breakdown" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2) var(--space-3)', paddingTop: 'var(--space-2)', borderTop: '1px dashed var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                      <div className="financial-breakdown" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2) var(--space-3)', paddingTop: 'var(--space-2)', borderTop: '1px dashed var(--color-border-light, var(--color-border-light))' }}>
                         <div className="financial-item" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                           <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-accent)' }}>Recovery cost</span>
                           <strong style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', fontFamily: 'var(--font-heading)' }}>{money(plan.recovery_cost_inr)}</strong>
@@ -541,7 +541,7 @@ export function EvaluationsScreen({
                     width: 24,
                     height: 24,
                     borderRadius: '50%',
-                    fontSize: 13,
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 'bold',
                     border: viewedSections.has('findings') ? '2px solid var(--sapPositiveColor)' : '2px solid var(--sapNeutralBorderColor)',
                     background: viewedSections.has('findings') ? 'var(--sapPositiveColor)' : 'transparent',
@@ -577,7 +577,7 @@ export function EvaluationsScreen({
                       gap: 'var(--space-1)',
                       width: '100%',
                       padding: 'var(--space-3) var(--space-4)',
-                      border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                      border: '1px solid var(--color-border-light, var(--color-border))',
                       borderRadius: 'var(--radius-lg)',
                       color: 'var(--sapTextColor, var(--color-text))',
                       background: 'var(--sapTile_Background, var(--color-bg-elevated))',
@@ -587,7 +587,7 @@ export function EvaluationsScreen({
                       transition: 'border-color var(--duration-fast), background var(--duration-fast)',
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--sapHighlightColor, var(--color-primary))'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--sapTile_BorderColor, var(--color-border))'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border-light, var(--color-border))'; }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 'var(--space-2)' }}>
                       <strong>{finding.title}</strong>
@@ -637,7 +637,7 @@ export function EvaluationsScreen({
                     </p>
                   </div>
 
-                  <div className="evidence-plan-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--sapTile_Background, var(--color-bg-subtle))', borderRadius: 'var(--radius-md)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
+                  <div className="evidence-plan-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--sapTile_Background, var(--color-bg-subtle))', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-light, var(--color-border))' }}>
                     <div data-section="validation-status">
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', display: 'block', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontWeight: 'var(--weight-bold)' }}>Validation status</span>
                       <ui5-tag design={getValidationStatusDesign(selectedEvidencePlan.status)}>{selectedEvidencePlan.status}</ui5-tag>
@@ -666,7 +666,7 @@ export function EvaluationsScreen({
                               key={finding.finding_id}
                               style={{
                                 padding: 'var(--space-3)',
-                                border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                                border: '1px solid var(--color-border-light, var(--color-border))',
                                 borderRadius: 'var(--radius-md)',
                                 background: 'var(--sapTile_Background, var(--color-bg-elevated))',
                               }}
@@ -675,7 +675,7 @@ export function EvaluationsScreen({
                                 <strong>{finding.title}</strong>
                                 <ui5-tag design={getValidationStatusDesign(finding.outcome)}>{finding.outcome}</ui5-tag>
                               </div>
-                              <p style={{ margin: 'var(--space-1) 0', fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
+                              <p style={{ margin: 'var(--space-1) 0', fontSize: 'var(--text-sm)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))' }}>
                                 {finding.finding_id} · {finding.check_code} · Subject: {finding.subject.id} ({finding.subject.type})
                               </p>
                               {finding.remedies && finding.remedies.length > 0 && (
@@ -685,12 +685,12 @@ export function EvaluationsScreen({
                                 </div>
                               )}
                               {linkedEvidence.length > 0 && (
-                                <div style={{ marginTop: 'var(--space-2)', borderTop: '1px dashed var(--sapTile_BorderColor, var(--color-border))', paddingTop: 'var(--space-2)' }}>
-                                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', display: 'block', marginBottom: 'var(--space-1)' }}>
+                                <div style={{ marginTop: 'var(--space-2)', borderTop: '1px dashed var(--color-border-light, var(--color-border))', paddingTop: 'var(--space-2)' }}>
+                                  <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold', display: 'block', marginBottom: 'var(--space-1)' }}>
                                     Linked evidence records ({linkedEvidence.length}):
                                   </span>
                                   {linkedEvidence.map((ev) => (
-                                    <div key={ev.evidence_id} style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', marginBottom: 'var(--space-1)' }}>
+                                    <div key={ev.evidence_id} style={{ fontSize: 'var(--text-sm)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', marginBottom: 'var(--space-1)' }}>
                                       • <strong>{ev.evidence_id}</strong>: {ev.title} ({ev.kind}{ev.synthetic ? ' · synthetic' : ''})
                                       {ev.excerpt && (
                                         <pre style={{ margin: 'var(--space-1) 0 0', padding: 'var(--space-1) var(--space-2)', background: 'var(--sapNeutralBackground, var(--color-bg-subtle))', borderRadius: 'var(--radius-sm)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)' }}>

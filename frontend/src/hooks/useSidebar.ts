@@ -6,42 +6,60 @@ const STORAGE_KEY = 'aegisshield:sidebar-state';
 const DEFAULT_STATE: SidebarState = 'expanded';
 const MOBILE_BREAKPOINT = 768;
 
-export function useSidebar() {
-  const [state, setState] = useState<SidebarState>(() => {
-    if (typeof window === 'undefined') return DEFAULT_STATE;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === 'expanded' || stored === 'collapsed') return stored;
-    } catch { /* ignore */ }
-    return DEFAULT_STATE;
-  });
+function isPhoneViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
+}
 
-  const [isMobile, setIsMobile] = useState(false);
+function readStoredState(): SidebarState {
+  if (typeof window === 'undefined') return DEFAULT_STATE;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'expanded' || stored === 'collapsed') return stored;
+  } catch { /* ignore */ }
+  return DEFAULT_STATE;
+}
+
+export function useSidebar() {
+  // Phone state is decided before the first render. Starting from the desktop
+  // state and collapsing in an effect made ui5-navigation-layout animate its
+  // drawer from open to closed, so the drawer covered the content for ~300ms.
+  const [state, setState] = useState<SidebarState>(() =>
+    (isPhoneViewport() ? 'collapsed' : readStoredState()));
+
+  const [isMobile, setIsMobile] = useState(isPhoneViewport);
 
   // Check mobile breakpoint
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    const checkMobile = () => setIsMobile(isPhoneViewport());
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Persist state (except mobile-open)
+  // Persist desktop state only. Phone state is ephemeral: a drawer that is
+  // open or closed must not leak into the desktop preference.
   useEffect(() => {
-    if (state !== 'mobile-open') {
+    if (!isMobile) {
       try {
         localStorage.setItem(STORAGE_KEY, state);
       } catch { /* ignore */ }
     }
-  }, [state]);
+  }, [state, isMobile]);
 
-  // Auto-collapse on mobile: the drawer starts closed and only opens on request.
+  // Returning to desktop restores the stored desktop preference.
+  useEffect(() => {
+    if (!isMobile) setState(readStoredState());
+  }, [isMobile]);
+
+  // On phones the navigation starts closed (collapsed = drawer hidden).
   useEffect(() => {
     if (isMobile && state === 'expanded') {
       setState('collapsed');
     }
   }, [isMobile, state]);
 
+  // On phones the menu button flips the drawer open/closed. On desktop it
+  // flips expanded/collapsed.
   const toggle = useCallback(() => {
     setState(prev => {
       if (isMobile) return prev === 'mobile-open' ? 'collapsed' : 'mobile-open';

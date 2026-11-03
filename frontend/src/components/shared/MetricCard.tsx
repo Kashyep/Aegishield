@@ -42,7 +42,7 @@ export function MetricCard({
           <dd style={{ margin: 0 }}>
             <strong
               style={{
-                fontSize: '2rem',
+                fontSize: 'var(--text-2xl)',
                 fontWeight: 700,
                 color: valueColor,
               }}

@@ -153,7 +153,7 @@ export function ExecutionScreen({
             {execStatusIcon && (
               <ui5-icon
                 name={execStatusIcon.name}
-                style={{ color: execStatusIcon.color, fontSize: '1rem' }}
+                style={{ color: execStatusIcon.color, fontSize: 'var(--text-md)' }}
                 accessibleName={`Status: ${activeExecution.status}`}
               />
             )}
@@ -214,14 +214,14 @@ export function ExecutionScreen({
               <div style={{ padding: 'var(--space-4)' }}>
                 {/* D8 Heading: Workspace */}
                 <div style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                  <ui5-title level="H3" style={{ fontWeight: 'bold' }}>
+                  <ui5-title level="H3" size="H3" style={{ fontWeight: 'bold' }}>
                     Workspace
                   </ui5-title>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                     {execStatusIcon && (
                       <ui5-icon
                         name={execStatusIcon.name}
-                        style={{ color: execStatusIcon.color, fontSize: '1.25rem' }}
+                        style={{ color: execStatusIcon.color, fontSize: 'var(--text-lg)' }}
                         accessibleName={`Execution status: ${activeExecution.status}`}
                       />
                     )}
@@ -240,7 +240,7 @@ export function ExecutionScreen({
                         fontWeight: 600,
                       }}
                     >
-                      <ui5-icon name="history" style={{ fontSize: '0.875rem' }} />
+                      <ui5-icon name="history" style={{ fontSize: 'var(--text-sm)' }} />
                       {totalDuration}
                     </span>
                   </div>
@@ -256,36 +256,36 @@ export function ExecutionScreen({
                     margin: 0,
                   }}
                 >
-                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border-light, var(--color-border-light))' }}>
                     <dt style={{ marginBottom: 'var(--space-1)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'normal' }}>
-                      <ui5-title level="H4" style={{ fontWeight: 'bold' }}>Execution</ui5-title>
+                      <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold' }}>Execution</ui5-title>
                     </dt>
                     <dd style={{ margin: 0, color: 'var(--sapTextColor, var(--color-text))', fontSize: 'var(--text-sm)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                       {activeExecution.execution_id}
                     </dd>
                   </div>
 
-                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border-light, var(--color-border-light))' }}>
                     <dt style={{ marginBottom: 'var(--space-1)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'normal' }}>
-                      <ui5-title level="H4" style={{ fontWeight: 'bold' }}>Plan</ui5-title>
+                      <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold' }}>Plan</ui5-title>
                     </dt>
                     <dd style={{ margin: 0, color: 'var(--sapTextColor, var(--color-text))', fontSize: 'var(--text-sm)' }}>
                       <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{activeExecution.plan_id}</span> · version <span style={{ fontWeight: 600 }}>{activeExecution.plan_version}</span>
                     </dd>
                   </div>
 
-                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border-light, var(--color-border-light))' }}>
                     <dt style={{ marginBottom: 'var(--space-1)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'normal' }}>
-                      <ui5-title level="H4" style={{ fontWeight: 'bold' }}>Decision</ui5-title>
+                      <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold' }}>Decision</ui5-title>
                     </dt>
                     <dd style={{ margin: 0, color: 'var(--sapTextColor, var(--color-text))', fontSize: 'var(--text-sm)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                       {activeExecution.decision_id}
                     </dd>
                   </div>
 
-                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
+                  <div style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border-light, var(--color-border-light))' }}>
                     <dt style={{ marginBottom: 'var(--space-1)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 'normal' }}>
-                      <ui5-title level="H4" style={{ fontWeight: 'bold' }}>Started</ui5-title>
+                      <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold' }}>Started</ui5-title>
                     </dt>
                     <dd style={{ margin: 0, color: 'var(--sapTextColor, var(--color-text))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
                       {formatLocalTimestamp(activeExecution.started_at)}
@@ -294,8 +294,8 @@ export function ExecutionScreen({
                 </dl>
 
                 {/* Recovery metrics & SAP mappings in Summary Card (FB-12) */}
-                <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
-                  <ui5-title level="H4" style={{ fontWeight: 'bold', marginBottom: 'var(--space-2)' }}>
+                <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-border-light, var(--color-border-light))' }}>
+                  <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold', marginBottom: 'var(--space-2)' }}>
                     Recovery metrics
                   </ui5-title>
                   <dl
@@ -342,8 +342,8 @@ export function ExecutionScreen({
                   </dl>
                 </div>
 
-                <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--sapTile_BorderColor, var(--color-border-light))' }}>
-                  <ui5-title level="H4" style={{ fontWeight: 'bold', marginBottom: 'var(--space-2)' }}>
+                <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-border-light, var(--color-border-light))' }}>
+                  <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold', marginBottom: 'var(--space-2)' }}>
                     SAP mappings
                   </ui5-title>
                   <div
@@ -352,22 +352,22 @@ export function ExecutionScreen({
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                       gap: 'var(--space-2)',
-                      fontSize: 'var(--text-xs)',
+                      fontSize: 'var(--text-sm)',
                     }}
                   >
-                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
+                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-light, var(--color-border))' }}>
                       <span style={{ fontWeight: 600, color: 'var(--sapTextColor, var(--color-text))', display: 'block', marginBottom: '2px' }}>GTS (Trade Finance)</span>
                       <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontFamily: 'var(--font-mono)' }}>SWIFT MT707 Letter of Credit Amendment</span>
                     </div>
-                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
+                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-light, var(--color-border))' }}>
                       <span style={{ fontWeight: 600, color: 'var(--sapTextColor, var(--color-text))', display: 'block', marginBottom: '2px' }}>MM (Materials Management)</span>
                       <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontFamily: 'var(--font-mono)' }}>PO Processing (ME21N / ME22N)</span>
                     </div>
-                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
+                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-light, var(--color-border))' }}>
                       <span style={{ fontWeight: 600, color: 'var(--sapTextColor, var(--color-text))', display: 'block', marginBottom: '2px' }}>TM & GTS (Logistics)</span>
                       <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontFamily: 'var(--font-mono)' }}>Freight Order Booking & AIFTA Origin</span>
                     </div>
-                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))' }}>
+                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-light, var(--color-border))' }}>
                       <span style={{ fontWeight: 600, color: 'var(--sapTextColor, var(--color-text))', display: 'block', marginBottom: '2px' }}>SD (Sales & Distribution)</span>
                       <span style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontFamily: 'var(--font-mono)' }}>aATP Reallocation & Stock Transport</span>
                     </div>
@@ -381,7 +381,7 @@ export function ExecutionScreen({
               style={{
                 margin: 'var(--space-3) 0',
                 padding: 'var(--space-3)',
-                border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                border: '1px solid var(--color-border-light, var(--color-border))',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--sapContent_LabelColor, var(--color-text-muted))',
                 background: 'var(--color-bg-subtle)',
@@ -419,24 +419,24 @@ export function ExecutionScreen({
                     padding: 'var(--space-4)',
                     background: 'var(--sapTile_Background, var(--color-bg-elevated))',
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                    border: '1px solid var(--color-border-light, var(--color-border))',
                     borderLeft: `4px solid ${step1Status === 'succeeded' ? 'var(--sapPositiveColor, #107e3e)' : 'var(--sapCriticalColor, #e9730c)'}`,
                     marginBottom: 'var(--space-4)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                    <ui5-title level="H4" style={{ margin: 0, fontWeight: 'bold' }}>
+                    <ui5-title level="H4" size="H4" style={{ margin: 0, fontWeight: 'bold' }}>
                       Step 1. MT707 AMEND-2026-0019
                     </ui5-title>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <ui5-icon
                         name={getStatusIcon(step1Status).name}
-                        style={{ color: getStatusIcon(step1Status).color, fontSize: '1rem' }}
+                        style={{ color: getStatusIcon(step1Status).color, fontSize: 'var(--text-md)' }}
                         accessibleName={`Step 1 status: ${step1Status}`}
                       />
                       <ui5-tag design={tagDesign(step1Status)}>{step1Status}</ui5-tag>
                       <span className="ae-step-timing" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                        <ui5-icon name="history" style={{ fontSize: '0.875rem' }} />
+                        <ui5-icon name="history" style={{ fontSize: 'var(--text-sm)' }} />
                         {STEP_TIMINGS.step1}
                       </span>
                     </div>
@@ -468,24 +468,24 @@ export function ExecutionScreen({
                     padding: 'var(--space-4)',
                     background: 'var(--sapTile_Background, var(--color-bg-elevated))',
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                    border: '1px solid var(--color-border-light, var(--color-border))',
                     borderLeft: `4px solid ${step2Status === 'succeeded' ? 'var(--sapPositiveColor, #107e3e)' : step2Status === 'failed' ? 'var(--sapNegativeColor, #b00)' : 'var(--sapCriticalColor, #e9730c)'}`,
                     marginBottom: 'var(--space-4)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                    <ui5-title level="H4" style={{ margin: 0, fontWeight: 'bold' }}>
+                    <ui5-title level="H4" size="H4" style={{ margin: 0, fontWeight: 'bold' }}>
                       Step 2. MM PO re-issue
                     </ui5-title>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <ui5-icon
                         name={getStatusIcon(step2Status).name}
-                        style={{ color: getStatusIcon(step2Status).color, fontSize: '1rem' }}
+                        style={{ color: getStatusIcon(step2Status).color, fontSize: 'var(--text-md)' }}
                         accessibleName={`Step 2 status: ${step2Status}`}
                       />
                       <ui5-tag design={tagDesign(step2Status)}>{step2Status}</ui5-tag>
                       <span className="ae-step-timing" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                        <ui5-icon name="history" style={{ fontSize: '0.875rem' }} />
+                        <ui5-icon name="history" style={{ fontSize: 'var(--text-sm)' }} />
                         {STEP_TIMINGS.step2}
                       </span>
                     </div>
@@ -511,13 +511,13 @@ export function ExecutionScreen({
                               padding: 'var(--space-3)',
                               marginTop: 'var(--space-2)',
                               background: step.status === 'failed' ? 'var(--color-error-bg, #fff0ed)' : 'var(--color-bg-subtle)',
-                              border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                              border: '1px solid var(--color-border-light, var(--color-border))',
                               borderRadius: 'var(--radius-sm)',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                <ui5-icon name={sIcon.name} style={{ color: sIcon.color, fontSize: '0.875rem' }} />
+                                <ui5-icon name={sIcon.name} style={{ color: sIcon.color, fontSize: 'var(--text-sm)' }} />
                                 <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
                                   {step.seq}. {step.step_type.replace(/_/g, ' ')}
                                 </span>
@@ -534,7 +534,7 @@ export function ExecutionScreen({
                               <strong>Proposed SAP mapping:</strong> {step.proposed_sap_mapping}
                             </p>
                             {step.error && (
-                              <p style={{ color: 'var(--sapNegativeColor, #b00)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
+                              <p style={{ color: 'var(--sapNegativeColor, #b00)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
                                 {typeof step.error === 'string' ? step.error : step.error.message ?? 'Step failed.'}
                               </p>
                             )}
@@ -560,24 +560,24 @@ export function ExecutionScreen({
                     padding: 'var(--space-4)',
                     background: 'var(--sapTile_Background, var(--color-bg-elevated))',
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                    border: '1px solid var(--color-border-light, var(--color-border))',
                     borderLeft: `4px solid ${step3Status === 'succeeded' ? 'var(--sapPositiveColor, #107e3e)' : step3Status === 'failed' ? 'var(--sapNegativeColor, #b00)' : 'var(--sapCriticalColor, #e9730c)'}`,
                     marginBottom: 'var(--space-4)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                    <ui5-title level="H4" style={{ margin: 0, fontWeight: 'bold' }}>
+                    <ui5-title level="H4" size="H4" style={{ margin: 0, fontWeight: 'bold' }}>
                       Step 3. TM consignment + AIFTA Form AI
                     </ui5-title>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <ui5-icon
                         name={getStatusIcon(step3Status).name}
-                        style={{ color: getStatusIcon(step3Status).color, fontSize: '1rem' }}
+                        style={{ color: getStatusIcon(step3Status).color, fontSize: 'var(--text-md)' }}
                         accessibleName={`Step 3 status: ${step3Status}`}
                       />
                       <ui5-tag design={tagDesign(step3Status)}>{step3Status}</ui5-tag>
                       <span className="ae-step-timing" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                        <ui5-icon name="history" style={{ fontSize: '0.875rem' }} />
+                        <ui5-icon name="history" style={{ fontSize: 'var(--text-sm)' }} />
                         {STEP_TIMINGS.step3}
                       </span>
                     </div>
@@ -603,13 +603,13 @@ export function ExecutionScreen({
                               padding: 'var(--space-3)',
                               marginTop: 'var(--space-2)',
                               background: step.status === 'failed' ? 'var(--color-error-bg, #fff0ed)' : 'var(--color-bg-subtle)',
-                              border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                              border: '1px solid var(--color-border-light, var(--color-border))',
                               borderRadius: 'var(--radius-sm)',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                <ui5-icon name={sIcon.name} style={{ color: sIcon.color, fontSize: '0.875rem' }} />
+                                <ui5-icon name={sIcon.name} style={{ color: sIcon.color, fontSize: 'var(--text-sm)' }} />
                                 <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
                                   {step.seq}. {step.step_type.replace(/_/g, ' ')}
                                 </span>
@@ -626,7 +626,7 @@ export function ExecutionScreen({
                               <strong>Proposed SAP mapping:</strong> {step.proposed_sap_mapping}
                             </p>
                             {step.error && (
-                              <p style={{ color: 'var(--sapNegativeColor, #b00)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
+                              <p style={{ color: 'var(--sapNegativeColor, #b00)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
                                 {typeof step.error === 'string' ? step.error : step.error.message ?? 'Step failed.'}
                               </p>
                             )}
@@ -652,24 +652,24 @@ export function ExecutionScreen({
                     padding: 'var(--space-4)',
                     background: 'var(--sapTile_Background, var(--color-bg-elevated))',
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                    border: '1px solid var(--color-border-light, var(--color-border))',
                     borderLeft: `4px solid ${step4Status === 'succeeded' ? 'var(--sapPositiveColor, #107e3e)' : step4Status === 'failed' ? 'var(--sapNegativeColor, #b00)' : 'var(--sapCriticalColor, #e9730c)'}`,
                     marginBottom: 'var(--space-4)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                    <ui5-title level="H4" style={{ margin: 0, fontWeight: 'bold' }}>
+                    <ui5-title level="H4" size="H4" style={{ margin: 0, fontWeight: 'bold' }}>
                       Step 4. SD ATP reallocation
                     </ui5-title>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <ui5-icon
                         name={getStatusIcon(step4Status).name}
-                        style={{ color: getStatusIcon(step4Status).color, fontSize: '1rem' }}
+                        style={{ color: getStatusIcon(step4Status).color, fontSize: 'var(--text-md)' }}
                         accessibleName={`Step 4 status: ${step4Status}`}
                       />
                       <ui5-tag design={tagDesign(step4Status)}>{step4Status}</ui5-tag>
                       <span className="ae-step-timing" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                        <ui5-icon name="history" style={{ fontSize: '0.875rem' }} />
+                        <ui5-icon name="history" style={{ fontSize: 'var(--text-sm)' }} />
                         {STEP_TIMINGS.step4}
                       </span>
                     </div>
@@ -695,13 +695,13 @@ export function ExecutionScreen({
                               padding: 'var(--space-3)',
                               marginTop: 'var(--space-2)',
                               background: step.status === 'failed' ? 'var(--color-error-bg, #fff0ed)' : 'var(--color-bg-subtle)',
-                              border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                              border: '1px solid var(--color-border-light, var(--color-border))',
                               borderRadius: 'var(--radius-sm)',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                <ui5-icon name={sIcon.name} style={{ color: sIcon.color, fontSize: '0.875rem' }} />
+                                <ui5-icon name={sIcon.name} style={{ color: sIcon.color, fontSize: 'var(--text-sm)' }} />
                                 <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
                                   {step.seq}. {step.step_type.replace(/_/g, ' ')}
                                 </span>
@@ -718,7 +718,7 @@ export function ExecutionScreen({
                               <strong>Proposed SAP mapping:</strong> {step.proposed_sap_mapping}
                             </p>
                             {step.error && (
-                              <p style={{ color: 'var(--sapNegativeColor, #b00)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
+                              <p style={{ color: 'var(--sapNegativeColor, #b00)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
                                 {typeof step.error === 'string' ? step.error : step.error.message ?? 'Step failed.'}
                               </p>
                             )}
@@ -737,7 +737,7 @@ export function ExecutionScreen({
               </p>
             )}
             {activeExecution.status === 'completed' && (
-              <p className="approval-note" style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', border: '1px solid var(--sapTile_BorderColor, var(--color-border))', borderRadius: 'var(--radius-md)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', background: 'var(--color-bg-subtle)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
+              <p className="approval-note" style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', border: '1px solid var(--color-border-light, var(--color-border))', borderRadius: 'var(--radius-md)', color: 'var(--sapContent_LabelColor, var(--color-text-muted))', background: 'var(--color-bg-subtle)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
                 The API reports this simulated execution as completed.
               </p>
             )}
@@ -745,7 +745,7 @@ export function ExecutionScreen({
         ) : (
           <section className="execution-empty" aria-labelledby="execution-empty-heading">
             <div style={{ marginBottom: 'var(--space-3)' }}>
-              <ui5-title level="H3" style={{ fontWeight: 'bold' }}>
+              <ui5-title level="H3" size="H3" style={{ fontWeight: 'bold' }}>
                 Workspace
               </ui5-title>
             </div>
@@ -755,7 +755,7 @@ export function ExecutionScreen({
             <div className="execution-launch-list" aria-label="Available execution plans">
               {evaluation?.plans.filter((plan) => ['approved', 'completed', 'pending_approval', 'ready'].includes(plan.status) || plan.outcome === 'passed').map((plan) => (
                 <ui5-card key={plan.plan_id} className="ae-plan-card execution-launch" role="article" aria-label={`Execution plan: ${plan.label}`} style={{ marginTop: 'var(--space-3)', padding: 'var(--space-4)' }}>
-                  <ui5-title level="H4" style={{ fontWeight: 'bold', color: 'var(--sapTextColor, var(--color-text))' }}>{plan.label}</ui5-title>
+                  <ui5-title level="H4" size="H4" style={{ fontWeight: 'bold', color: 'var(--sapTextColor, var(--color-text))' }}>{plan.label}</ui5-title>
                   <p style={{ color: 'var(--sapContent_LabelColor, var(--color-text-muted))', fontSize: 'var(--text-sm)', margin: 'var(--space-2) 0' }}>
                     Plan <span style={{ fontFamily: 'var(--font-mono)' }}>{plan.plan_id}</span> · {plan.status.replace(/_/g, ' ')}
                   </p>

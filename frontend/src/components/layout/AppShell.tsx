@@ -42,9 +42,20 @@ export function AppShell({
 
   useEffect(() => setMounted(true), []);
 
+  // Escape dismisses the phone drawer.
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMobile();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMobileOpen, closeMobile]);
+
   const handleNavigate = useCallback((screen: Screen) => {
     navigation(screen);
-  }, [navigation]);
+    if (isMobile) closeMobile();
+  }, [navigation, isMobile, closeMobile]);
 
   // Don't render until mounted to avoid hydration mismatch
   if (!mounted) {
@@ -68,7 +79,8 @@ export function AppShell({
             position: 'fixed',
             inset: 0,
             background: 'rgba(0, 0, 0, 0.4)',
-            // Above page content, below the NavigationLayout drawer (z 2) and header (z 3).
+            // Must sit below the navigation aside (z-index 2 inside ui5-navigation-layout's
+            // stacking context) so the drawer is above it, and above the page content.
             zIndex: 1,
             display: isMobile ? 'block' : 'none',
           }}
@@ -123,13 +135,13 @@ export function AppShell({
             style={{
               marginBottom: 'var(--space-section, 1rem)',
               background: 'var(--sapTile_Background, #ffffff)',
-              border: '1px solid var(--sapTile_BorderColor, #e5e5e5)',
-              borderRadius: '0.5rem',
+              border: '1px solid var(--color-border-light, #e5e5e5)',
+              borderRadius: 'var(--radius-lg)',
               padding: '0.75rem 1rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-sm)',
               boxShadow: 'var(--sapContent_Shadow0, 0 1px 2px rgba(0, 0, 0, 0.05))',
             }}
             role="note"

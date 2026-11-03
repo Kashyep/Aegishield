@@ -123,7 +123,7 @@ export function EvaluationProgressScreen({
                   margin: 'var(--space-3) 0 var(--space-4)',
                   padding: 'var(--space-3) var(--space-4)',
                   background: 'var(--sapTile_Background, var(--color-bg-elevated))',
-                  border: '1px solid var(--sapTile_BorderColor, var(--color-border))',
+                  border: '1px solid var(--color-border-light, var(--color-border))',
                   borderRadius: 'var(--radius-lg)',
                 }}
               >
@@ -176,7 +176,7 @@ export function EvaluationProgressScreen({
                       display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: '50%',
                       color: viewedSteps.has(step.seq) ? 'var(--sapPositiveColor)' : (step.status === 'failed' ? 'var(--sapNegativeColor)' : 'var(--sapPositiveColor)'),
                       background: viewedSteps.has(step.seq) ? 'var(--sapPositiveBackground)' : (step.status === 'failed' ? 'var(--sapNegativeBackground)' : 'var(--sapPositiveBackground)'),
-                      fontSize: 14, fontWeight: 'var(--weight-extrabold)',
+                      fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-extrabold)',
                       border: viewedSteps.has(step.seq) ? '2px solid var(--sapPositiveColor)' : 'none',
                     }}
                   >

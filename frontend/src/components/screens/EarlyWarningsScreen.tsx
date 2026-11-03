@@ -224,10 +224,10 @@ export function EarlyWarningsScreen() {
                   fontSize: 'var(--text-xs)',
                   fontWeight: 'var(--weight-bold)',
                   padding: '2px 8px',
-                  borderRadius: '12px',
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--sapNeutralBackground)',
                   color: 'var(--sapTextColor)',
-                  border: '1px solid var(--sapTile_BorderColor)',
+                  border: '1px solid var(--color-border-light)',
                 }}
               >
                 Heuristic + Simulated
@@ -316,10 +316,10 @@ export function EarlyWarningsScreen() {
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px',
-                      fontSize: 'var(--text-xs)',
+                      fontSize: 'var(--text-sm)',
                       background: 'var(--sapList_AlternatingBackground, var(--sapBackgroundColor))',
                       padding: 'var(--space-2)',
-                      borderRadius: '4px',
+                      borderRadius: 'var(--radius-sm)',
                       marginBottom: 'var(--space-3)',
                     }}
                   >
@@ -348,7 +348,7 @@ export function EarlyWarningsScreen() {
                     <h4 style={{ margin: '0 0 4px', fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor)', textTransform: 'uppercase' }}>
                       Heuristic Evaluation Reasons:
                     </h4>
-                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: 'var(--text-xs)', color: 'var(--sapTextColor)' }}>
+                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: 'var(--text-sm)', color: 'var(--sapTextColor)' }}>
                       {node.reasons.map((reason, idx) => (
                         <li key={idx} style={{ marginBottom: '2px' }}>{reason}</li>
                       ))}
@@ -442,7 +442,7 @@ export function EarlyWarningsScreen() {
                       flexWrap: 'wrap',
                       gap: 'var(--space-2)',
                       paddingBottom: 'var(--space-3)',
-                      borderBottom: '1px solid var(--sapTile_BorderColor)',
+                      borderBottom: '1px solid var(--color-border-light)',
                     }}
                   >
                     <div>
@@ -503,7 +503,7 @@ export function EarlyWarningsScreen() {
                                 <td>
                                   <strong className="mono" style={{ fontFamily: 'var(--font-mono)' }}>{c.signal_id}</strong>
                                   {ev && (
-                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor)', maxWidth: 280 }}>
+                                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--sapContent_LabelColor)', maxWidth: 280 }}>
                                       {ev.title}
                                     </div>
                                   )}
@@ -515,7 +515,7 @@ export function EarlyWarningsScreen() {
                                   </NeuChip>
                                 </td>
                                 <td>{c.source_kind} ({c.confidence_pct}%)</td>
-                                <td style={{ fontSize: 'var(--text-xs)', color: 'var(--sapTextColor)' }}>{c.observed_at}</td>
+                                <td style={{ fontSize: 'var(--text-sm)', color: 'var(--sapTextColor)' }}>{c.observed_at}</td>
                                 <td>
                                   <strong>+{c.contribution} pts</strong>
                                 </td>
@@ -528,11 +528,11 @@ export function EarlyWarningsScreen() {
                   </div>
 
                   {/* Exposure Section */}
-                  <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--sapList_AlternatingBackground, var(--sapBackgroundColor))', borderRadius: 'var(--radius-md)', border: '1px solid var(--sapTile_BorderColor)' }}>
+                  <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--sapList_AlternatingBackground, var(--sapBackgroundColor))', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-light)' }}>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase', color: 'var(--sapContent_LabelColor)', fontFamily: 'var(--font-accent)' }}>
                       Linked downstream exposure
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', fontSize: 'var(--text-xs)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
                       <div>
                         <span style={{ color: 'var(--sapContent_LabelColor)', display: 'block' }}>Customer orders:</span>
                         <strong>
@@ -654,7 +654,7 @@ export function EarlyWarningsScreen() {
                         <strong style={{ color: 'var(--sapTextColor)' }}>{w.score}/100</strong>
                       </td>
                       <td>{w.contributing.length} signal(s)</td>
-                      <td style={{ fontSize: 'var(--text-xs)', color: 'var(--sapTextColor)' }}>
+                      <td style={{ fontSize: 'var(--text-sm)', color: 'var(--sapTextColor)' }}>
                         {w.exposure.affected_candidate_supplier_ids.length > 0 && (
                           <div>
                             Affects candidate:{' '}

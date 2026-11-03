@@ -202,10 +202,10 @@ export function AuditTrailScreen({
               marginBottom: 'var(--space-4, 1rem)',
               padding: 'var(--space-4, 1rem)',
               background: 'var(--sapTile_Background, #ffffff)',
-              border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
-              borderRadius: 'var(--radius-md, 0.5rem)',
+              border: '1px solid var(--color-border-light, #dce3d8)',
+              borderRadius: 'var(--radius-md)',
               color: 'var(--sapContent_LabelColor, #6a6d70)',
-              fontSize: 'var(--text-sm, 0.875rem)',
+              fontSize: 'var(--text-sm)',
               lineHeight: 'var(--leading-relaxed, 1.6)',
             }}
           >
@@ -228,8 +228,8 @@ export function AuditTrailScreen({
             margin: 'var(--space-4, 1rem) 0 var(--space-6, 1.5rem)',
             padding: 'var(--space-4, 1.25rem) var(--space-5, 1.5rem)',
             background: 'var(--sapTile_Background, #ffffff)',
-            border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
-            borderRadius: 'var(--radius-lg, 0.5rem)',
+            border: '1px solid var(--color-border-light, #dce3d8)',
+            borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--sapContent_Shadow0, 0 2px 8px rgba(0, 0, 0, 0.08))',
           }}
         >
@@ -239,7 +239,7 @@ export function AuditTrailScreen({
               for="audit-subject"
               style={{
                 color: 'var(--sapContent_LabelColor)',
-                fontSize: '0.875rem',
+                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 letterSpacing: '0.01em',
               }}
@@ -259,7 +259,7 @@ export function AuditTrailScreen({
               className="ae-input ae-audit-input"
               style={{
                 height: '42px',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--text-base)',
                 width: '100%',
                 minWidth: '240px',
               }}
@@ -273,7 +273,7 @@ export function AuditTrailScreen({
               for="audit-actor"
               style={{
                 color: 'var(--sapContent_LabelColor)',
-                fontSize: '0.875rem',
+                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 letterSpacing: '0.01em',
               }}
@@ -296,7 +296,7 @@ export function AuditTrailScreen({
               className="ae-select ae-audit-select"
               style={{
                 height: '42px',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--text-base)',
                 width: '100%',
                 minWidth: '260px',
                 cursor: 'pointer',
@@ -362,7 +362,7 @@ export function AuditTrailScreen({
             style={{
               marginBottom: 'var(--space-4, 1rem)',
               color: 'var(--sapContent_LabelColor, #6a6d70)',
-              fontSize: 'var(--text-sm, 0.875rem)',
+              fontSize: 'var(--text-sm)',
               lineHeight: 'var(--leading-relaxed, 1.6)',
             }}
           >
@@ -377,8 +377,8 @@ export function AuditTrailScreen({
             style={{
               padding: 'var(--space-5, 1.25rem)',
               background: 'var(--sapTile_Background, #ffffff)',
-              border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
-              borderRadius: 'var(--radius-md, 0.5rem)',
+              border: '1px solid var(--color-border-light, #dce3d8)',
+              borderRadius: 'var(--radius-md)',
               textAlign: 'center',
             }}
           >
@@ -393,8 +393,8 @@ export function AuditTrailScreen({
             style={{
               padding: 'var(--space-5, 1.25rem)',
               background: 'var(--sapTile_Background, #ffffff)',
-              border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
-              borderRadius: 'var(--radius-md, 0.5rem)',
+              border: '1px solid var(--color-border-light, #dce3d8)',
+              borderRadius: 'var(--radius-md)',
               color: 'var(--sapContent_LabelColor, #6a6d70)',
               textAlign: 'center',
             }}
@@ -409,7 +409,7 @@ export function AuditTrailScreen({
               {/* D6: ui5-timeline */}
               <section className="ae-audit-timeline-section" aria-labelledby="timeline-heading">
                 <div style={{ marginBottom: 'var(--space-3, 0.75rem)' }}>
-                  <ui5-title id="timeline-heading" level="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor, #32363a)' }}>
+                  <ui5-title id="timeline-heading" level="H4" size="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor, #32363a)' }}>
                     Audit Timeline ({effectiveEvents.length})
                   </ui5-title>
                 </div>
@@ -417,8 +417,8 @@ export function AuditTrailScreen({
                   style={{
                     background: 'var(--sapTile_Background, #ffffff)',
                     padding: 'var(--space-4, 1rem)',
-                    borderRadius: 'var(--radius-md, 0.5rem)',
-                    border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border-light, #dce3d8)',
                   }}
                 >
                   <ui5-timeline layout="Vertical" accessibleName="Audit event timeline">
@@ -430,7 +430,7 @@ export function AuditTrailScreen({
                         name={event.actor.display_name ?? event.actor.actor_id}
                         icon="history"
                       >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: 'var(--text-sm, 0.875rem)', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: 'var(--text-sm)', marginTop: '4px' }}>
                           <div>
                             <strong>Subject:</strong> {event.subject.type}: <span className="mono">{event.subject.id}</span>
                             {event.subject.version != null && <span> (v{event.subject.version})</span>}
@@ -439,7 +439,7 @@ export function AuditTrailScreen({
                             <span><strong>Seq:</strong> #{event.seq}</span>
                             <span><strong>Role:</strong> {event.actor.role}</span>
                           </div>
-                          <div style={{ fontSize: 'var(--text-xs, 0.75rem)', color: 'var(--sapContent_LabelColor, #6a6d70)' }}>
+                          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--sapContent_LabelColor, #6a6d70)' }}>
                             Hash: <span className="mono" title={event.event_hash}>{event.event_hash.slice(0, 16)}…</span>
                           </div>
                         </div>
@@ -452,7 +452,7 @@ export function AuditTrailScreen({
               {/* D6: ui5-table ledger (seq, timestamp, actor, prev_hash, hash) */}
               <section className="ae-audit-ledger-section" aria-labelledby="ledger-heading">
                 <div style={{ marginBottom: 'var(--space-3, 0.75rem)' }}>
-                  <ui5-title id="ledger-heading" level="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor, #32363a)' }}>
+                  <ui5-title id="ledger-heading" level="H4" size="H4" style={{ fontWeight: 700, color: 'var(--sapTextColor, #32363a)' }}>
                     Cryptographic Ledger
                   </ui5-title>
                 </div>
@@ -461,8 +461,8 @@ export function AuditTrailScreen({
                   style={{
                     overflowX: 'auto',
                     background: 'var(--sapTile_Background, #ffffff)',
-                    borderRadius: 'var(--radius-md, 0.5rem)',
-                    border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border-light, #dce3d8)',
                   }}
                 >
                   <ui5-table accessibleName="Audit events returned by the API, in sequence order">
@@ -484,18 +484,18 @@ export function AuditTrailScreen({
                         <ui5-table-cell>
                           <div>
                             <span>{event.actor.display_name ?? event.actor.actor_id}</span>
-                            <small style={{ display: 'block', color: 'var(--sapContent_LabelColor, #6a6d70)', fontSize: 'var(--text-xs, 0.75rem)' }}>
+                            <small style={{ display: 'block', color: 'var(--sapContent_LabelColor, #6a6d70)', fontSize: 'var(--text-xs)' }}>
                               {event.actor.role}
                             </small>
                           </div>
                         </ui5-table-cell>
                         <ui5-table-cell>
-                          <span className="mono" title={event.prev_hash} style={{ fontSize: 'var(--text-xs, 0.75rem)' }}>
+                          <span className="mono" title={event.prev_hash} style={{ fontSize: 'var(--text-xs)' }}>
                             {event.prev_hash ? `${event.prev_hash.slice(0, 16)}…` : 'genesis'}
                           </span>
                         </ui5-table-cell>
                         <ui5-table-cell>
-                          <span className="mono" title={event.event_hash} style={{ fontSize: 'var(--text-xs, 0.75rem)' }}>
+                          <span className="mono" title={event.event_hash} style={{ fontSize: 'var(--text-xs)' }}>
                             {event.event_hash ? `${event.event_hash.slice(0, 16)}…` : '—'}
                           </span>
                         </ui5-table-cell>
@@ -512,8 +512,8 @@ export function AuditTrailScreen({
               style={{
                 padding: 'var(--space-5, 1.25rem)',
                 background: 'var(--sapTile_Background, #ffffff)',
-                border: '1px solid var(--sapTile_BorderColor, #dce3d8)',
-                borderRadius: 'var(--radius-md, 0.5rem)',
+                border: '1px solid var(--color-border-light, #dce3d8)',
+                borderRadius: 'var(--radius-md)',
                 color: 'var(--sapContent_LabelColor, #6a6d70)',
                 textAlign: 'center',
               }}

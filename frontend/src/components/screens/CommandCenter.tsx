@@ -27,6 +27,7 @@ interface CommandCenterProps {
   openApproval: (planId: string, triggerElement?: HTMLElement | null, mode?: 'approve' | 'amend') => void;
   actorCanApprove: boolean;
   actorCanAmend: boolean;
+  decisionSubmitting?: boolean;
   startPlanExecution: (plan: Plan) => void;
   executionSubmitting: boolean;
   planWarnings?: Record<string, EarlyWarning[]>;
@@ -53,6 +54,7 @@ export function CommandCenter({
   openApproval,
   actorCanApprove,
   actorCanAmend,
+  decisionSubmitting = false,
   startPlanExecution,
   executionSubmitting,
   planWarnings,
@@ -242,6 +244,19 @@ export function CommandCenter({
             const fullPlan = evaluation?.plans?.find((candidate) => candidate.plan_id === plan.plan_id);
             const isVerdictVisible = Boolean(evaluationRun || inspectedPlanIds.includes(plan.plan_id));
             const isBlocked = isVerdictVisible && (fullPlan?.status === 'blocked' || plan.outcome === 'blocked');
+            const approveDisabledReason = !fullPlan
+              ? 'Plan details are still loading.'
+              : decisionSubmitting
+                ? 'Approval in progress.'
+                : !actorCanApprove
+                  ? 'Only Supply Planner or Trade Compliance Officer can approve.'
+                  : ['approved', 'executing', 'completed'].includes(fullPlan.status)
+                    ? 'Already approved.'
+                    : isBlocked || fullPlan.status === 'blocked'
+                      ? 'Plan is blocked.'
+                      : fullPlan.status !== 'pending_approval'
+                        ? `Plan is ${fullPlan.status.replace(/_/g, ' ')}, not pending approval.`
+                        : '';
             const planStatus = isVerdictVisible ? (fullPlan?.status ?? plan.outcome) : 'pending_analysis';
             const planStatusClass = planStatus.toLowerCase().replace(/_/g, '-');
             const worstCaseExposure = getWorstCaseExposure(plan, fullPlan);
@@ -319,7 +334,7 @@ export function CommandCenter({
                   <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border-light)', paddingTop: 'var(--space-3)' }}>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>Allocation</h4>
                     <div className="ae-table-wrap" role="region" aria-label="Allocation table" tabIndex={0} style={{ maxHeight: '200px', overflow: 'auto' }}>
-                      <table className="ae-table" style={{ fontSize: 'var(--text-xs)' }}>
+                      <table className="ae-table" style={{ fontSize: 'var(--text-sm)' }}>
                         <thead>
                           <tr>
                             <th scope="col">Order</th>
@@ -371,18 +386,18 @@ export function CommandCenter({
                         marginTop: 'var(--space-3)',
                         padding: 'var(--space-3)',
                         background: 'var(--sapTile_Background, #ffffff)',
-                        border: '1px solid var(--sapTile_BorderColor, #d1d9cc)',
+                        border: '1px solid var(--color-border-light, #d1d9cc)',
                         borderRadius: 'var(--radius-md)',
                       }}
                     >
                       <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
                         Plan Justification ({justification.wordCount} words)
                       </h4>
-                      <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xs)', lineHeight: 'var(--leading-relaxed)' }}>
+                      <p style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
                         <strong style={{ color: 'var(--sapPositiveTextColor, #106634)' }}>Why it helps: </strong>
                         {justification.whyItHelps}
                       </p>
-                      <p style={{ margin: 0, fontSize: 'var(--text-xs)', lineHeight: 'var(--leading-relaxed)' }}>
+                      <p style={{ margin: 0, fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-relaxed)' }}>
                         <strong style={{ color: 'var(--sapCriticalTextColor, #8a3b00)' }}>What could go wrong: </strong>
                         {justification.whatCouldGoWrong}
                       </p>
@@ -413,7 +428,8 @@ export function CommandCenter({
                       <NeuButton
                         design="Positive"
                         disabled={true}
-                        aria-describedby={`blocked-reason-${plan.plan_id}`}
+                        title={approveDisabledReason || undefined}
+                        {...{ accessibleDescription: approveDisabledReason || undefined }}
                         style={{ flex: 1 }}
                       >
                         Approve
@@ -430,7 +446,9 @@ export function CommandCenter({
                   ) : (
                     <NeuButton
                       design="Positive"
-                      disabled={!fullPlan || !actorCanApprove || fullPlan.status !== 'pending_approval'}
+                      disabled={Boolean(approveDisabledReason)}
+                      title={approveDisabledReason || undefined}
+                      {...{ accessibleDescription: approveDisabledReason || undefined }}
                       onClick={(event) => openApproval(plan.plan_id, event.currentTarget as HTMLElement)}
                       style={{ flex: 1 }}
                     >

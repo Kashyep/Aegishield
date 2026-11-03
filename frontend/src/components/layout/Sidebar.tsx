@@ -68,8 +68,21 @@ export function Sidebar({
   const isExpanded = state === 'expanded';
   const isMobileOpen = state === 'mobile-open' && isMobile;
   const isCollapsed = !isExpanded && !isMobileOpen;
+  // A closed phone drawer is slid off-screen by the layout. Visibility makes it
+  // non-focusable and non-hit-testable. It turns hidden only after the 0.3s slide-out
+  // (the layout's transform transition), and turns visible at once when opened.
+  const isPhoneDrawerClosed = isMobile && !isMobileOpen;
 
-  // Close the mobile drawer when an item is activated (including the current screen).
+  // Close the phone drawer when the screen changes by any route (e.g. hash/back).
+  // Depending on isMobileOpen alone closed the drawer the moment the menu opened it.
+  const lastScreen = useRef(activeScreen);
+  useEffect(() => {
+    if (lastScreen.current === activeScreen) return;
+    lastScreen.current = activeScreen;
+    if (isMobileOpen) onCloseMobile();
+  }, [activeScreen, isMobileOpen, onCloseMobile]);
+
+  // Close the drawer when an item is activated, including the current screen.
   const navigate = useCallback((screen: Screen) => {
     onNavigate(screen);
     if (isMobileOpen) onCloseMobile();
@@ -128,9 +141,26 @@ export function Sidebar({
     <div
       slot={slot ?? 'sideContent'}
       className="sidebar-container"
-      style={{
+      style={isMobileOpen ? {
+        // Phone drawer: positioned inside the layout's aside, which UI5 places
+        // below the header (ui5-navigation-layout header height). A viewport-fixed
+        // drawer started under the header and its items were covered by it.
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: 'min(300px, 88vw)',
+        height: '100%',
+      } : {
         height: '100%',
         position: 'relative',
+        ...(isPhoneDrawerClosed ? {
+          visibility: 'hidden',
+          transition: 'visibility 0s linear 0.3s',
+        } : {
+          visibility: 'visible',
+          transition: 'visibility 0s',
+        }),
       }}
     >
       <ui5-side-navigation
@@ -168,7 +198,7 @@ export function Sidebar({
               style={{
                 fontFamily: "'72', sans-serif",
                 fontWeight: 600,
-                fontSize: '14px',
+                fontSize: 'var(--text-sm)',
                 color: 'var(--sapTextColor, #1d2d3e)',
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',
@@ -180,7 +210,7 @@ export function Sidebar({
             <span
               style={{
                 fontFamily: "'72', sans-serif",
-                fontSize: '12px',
+                fontSize: 'var(--text-xs)',
                 color: 'var(--sapContent_LabelColor, #6a6d70)',
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',

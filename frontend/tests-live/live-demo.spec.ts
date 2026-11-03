@@ -4,7 +4,7 @@ test('reset, evaluate, graph, LC amendment and P2 approval against the live API'
   await page.goto('/#command')
   await page.getByRole('button', { name: 'Reset demo' }).click()
   await page.getByRole('dialog', { name: 'Reset demo?' }).getByRole('button', { name: 'Reset demo' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Demo reset' })).toBeVisible()
+  await expect(page.locator('#demo-toast').filter({ hasText: 'Demo reset' })).toBeVisible()
 
   await page.getByRole('button', { name: /Early warnings/ }).click()
   await expect(page.getByText('97/100')).toBeVisible()

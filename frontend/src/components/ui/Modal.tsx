@@ -205,6 +205,7 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       maxWidth="420px"
+      hostRoleDialog
       actions={
         <>
           <ui5-button
